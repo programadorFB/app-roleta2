@@ -1,0 +1,41 @@
+{
+  "name": "app-roleta",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "server": "nodemon server.js",
+    "start": "concurrently \"npm run dev\" \"npm run server\"",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "csv-parser": "^3.2.0",
+    "express": "^5.1.0",
+    "http-proxy-middleware": "^3.0.5",
+    "lucide-react": "^0.545.0",
+    "map": "^1.0.1",
+    "node-fetch": "^3.3.2",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-is": "^19.2.0",
+    "rechart": "^0.0.1",
+    "recharts": "^3.3.0",
+    "zap": "^2.1.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.36.0",
+    "@types/react": "^19.1.16",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.4",
+    "concurrently": "^9.2.1",
+    "eslint": "^9.36.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.22",
+    "globals": "^16.4.0",
+    "nodemon": "^3.1.10",
+    "vite": "^7.1.7"
+  }
+}

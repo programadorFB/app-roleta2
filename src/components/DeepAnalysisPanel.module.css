@@ -1,0 +1,494 @@
+/* DeepAnalysisPanel.module.css */
+
+.strategies-info-panel {
+    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 2px solid #a16207;
+    max-height: calc(100vh - 4rem);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    color: #d1d5db;
+}
+
+/* Scrollbar personalizada */
+.strategies-info-panel::-webkit-scrollbar {
+    width: 8px;
+}
+
+.strategies-info-panel::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.strategies-info-panel::-webkit-scrollbar-thumb {
+    background: #a16207;
+    border-radius: 4px;
+}
+
+.strategies-info-panel::-webkit-scrollbar-thumb:hover {
+    background: #ca8a04;
+}
+
+/* Título do Dashboard */
+.dashboard-title {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #fde047;
+    margin-bottom: 0;
+    text-align: center;
+}
+
+/* Cards de Estratégia/Análise */
+.strategy-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    border-left: 5px solid #ca8a04;
+    transition: all 0.3s ease;
+}
+
+.strategy-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Header do Card */
+.strategy-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #374151;
+}
+
+.card-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #fde047;
+    margin: 0;
+}
+
+/* Conteúdo de Análise */
+.analysis-content {
+    padding-top: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.card-concept {
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+    color: #d1d5db;
+    line-height: 1.5;
+}
+
+/* Linhas de Estatísticas */
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.95rem;
+    padding: 0.25rem 0;
+}
+
+.stat-label {
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.stat-value {
+    font-weight: bold;
+    color: #fde047;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.stat-value.red {
+    color: #ef4444;
+}
+
+.stat-value.black {
+    color: #d1d5db;
+}
+
+.stat-value.green {
+    color: #10b981;
+}
+
+/* Chips de vezes */
+.history-number {
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    color: white;
+    font-weight: bold;
+    font-size: 0.75rem;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+    min-width: 25px;
+    text-align: center;
+    display: inline-block;
+}
+
+.history-number.red {
+    background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+}
+
+.history-number.black {
+    background: linear-gradient(135deg, #1f2937 0%, #000000 100%);
+}
+
+.history-number.green {
+    background: linear-gradient(135deg, #15803d 0%, #14532d 100%);
+}
+
+/* Barras de Progresso */
+.progress-bar-container {
+    width: 100%;
+    background: #374151;
+    border-radius: 8px;
+    overflow: hidden;
+    height: 20px;
+    font-size: 0.75rem;
+    color: white;
+    font-weight: bold;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+/* Adicione estas classes ao final de DeepAnalysisPanel.module.css */
+
+.successButton,
+.dangerButton,
+.resetButton {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.successButton {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+.successButton:hover {
+    background: linear-gradient(135deg, #34d399, #10b981);
+    transform: translateY(-1px);
+}
+
+.dangerButton {
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+    color: white;
+}
+.dangerButton:hover {
+    background: linear-gradient(135deg, #f87171, #ef4444);
+    transform: translateY(-1px);
+}
+
+.resetButton {
+    flex: 0 1 auto;
+    background: rgba(255, 255, 255, 0.1);
+    color: #d1d5db;
+    border: 1px solid #4b5563;
+}
+.resetButton:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+/* Adicione estas classes ao final de DeepAnalysisPanel.module.css */
+
+/* --- Tabela de Análise (para Ocultos) --- */
+.analysisTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.analysisTable th,
+.analysisTable td {
+  padding: 0.6rem 0.4rem;
+  text-align: left;
+  border-bottom: 1px solid #374151;
+}
+
+.analysisTable th {
+  color: #9ca3af;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.analysisTable td {
+  color: #d1d5db;
+  text-align: center;
+}
+
+.analysisTable td:first-child {
+  text-align: left;
+}
+
+.analysisTable tr:last-child td {
+  border-bottom: none;
+}
+
+/* REQ 3: Destaque especial para número 25 */
+.highlight25 td {
+  background: rgba(234, 179, 8, 0.1);
+  border-top: 1px solid #ca8a04;
+  border-bottom: 1px solid #ca8a04;
+}
+
+/* --- Badges de Cavalos (REQ 3) --- */
+.badgeHot, .badgeWarm {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.badgeHot {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+/* Adicione isto ao final de DeepAnalysisPanel.module.css */
+
+.dynamicBadge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  border-width: 1px;
+  border-style: solid;
+}
+
+.badgeHot {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.badgeWarm {
+  background: rgba(234, 179, 8, 0.2);
+  color: #fde047;
+  border-color: rgba(234, 179, 8, 0.3);
+}
+
+.badgeNormal {
+  background: rgba(209, 213, 219, 0.2);
+  color: #e5e7eb;
+  border-color: rgba(209, 213, 219, 0.3);
+}
+
+.badgeCold {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.badgeFrozen {
+  background: rgba(165, 243, 252, 0.2);
+  color: #a5f3fc;
+  border-color: rgba(165, 243, 252, 0.3);
+}
+.badgeWarm {
+  background: rgba(234, 179, 8, 0.2);
+  color: #fde047;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+.progress-bar-fill {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: width 0.3s ease;
+    min-width: fit-content;
+    padding: 0 0.5rem;
+}
+
+.progress-bar-fill.red {
+    background: linear-gradient(90deg, #ef4444, #b91c1c);
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
+.progress-bar-fill.black {
+    background: linear-gradient(90deg, #6b7280, #1f2937);
+    box-shadow: 0 0 8px rgba(107, 114, 128, 0.5);
+}
+
+.progress-bar-fill.gold {
+    background: linear-gradient(90deg, #fde047, #ca8a04);
+    color: #111827;
+    box-shadow: 0 0 8px rgba(253, 224, 71, 0.5);
+}
+
+/* Badge de Atualização */
+.update-badge {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    border: 1px solid #374151;
+}
+
+/* Ícones com Cores */
+.dangerIcon {
+    color: #ef4444;
+}
+
+.warningIcon {
+    color: #fbbf24;
+}
+
+.successIcon {
+    color: #10b981;
+}
+
+.infoIcon {
+    color: #ca8a04;
+}
+
+/* Estados de Loading e Erro */
+.loading-state,
+.error-state,
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: #9ca3af;
+}
+
+.error-state {
+    color: #ef4444;
+}
+
+/* Animações */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.strategy-card {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes progressFill {
+    from {
+        width: 0;
+    }
+}
+
+.progress-bar-fill {
+    animation: progressFill 0.6s ease-out;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .strategies-info-panel {
+        padding: 1rem;
+        gap: 1rem;
+    }
+
+    .dashboard-title {
+        font-size: 1.2rem;
+    }
+
+    .card-title {
+        font-size: 1rem;
+    }
+
+    .stat-row {
+        font-size: 0.85rem;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+
+    .strategy-header {
+        gap: 0.5rem;
+    }
+
+    .progress-bar-container {
+        height: 18px;
+        font-size: 0.7rem;
+    }
+}
+
+/* Estados Hover para Interatividade */
+.stat-row:hover {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    margin: 0 -0.5rem;
+}
+
+/* Divider */
+.divider {
+    border: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #4b5563, transparent);
+    margin: 1rem 0;
+}
+
+/* Grid para estatísticas múltiplas */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+/* Badge de destaque */
+.highlight-badge {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    background: rgba(234, 179, 8, 0.2);
+    color: #fde047;
+    border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+/* Tooltip styles */
+.stat-label[title]:hover {
+    cursor: help;
+    text-decoration: underline dotted;
+}
+
+/* Estado de carregamento com pulse */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.loading-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
