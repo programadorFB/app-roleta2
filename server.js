@@ -417,7 +417,9 @@ function formatUptime(seconds) {
 
 // --- FALLBACK (ÚLTIMA ROTA) ---
 // Serve o index.html para todas as rotas não capturadas (SPA)
-app.get(/.*/, (req, res) => {
+// --- FALLBACK (ÚLTIMA ROTA) ---
+// Serve o index.html para todas as rotas não capturadas (SPA)
+app.get('*', (req, res) => {
     // Ignora requisições de API que não existem
     if (req.url.startsWith('/api/')) {
         return res.status(404).json({ 
