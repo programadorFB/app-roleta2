@@ -955,7 +955,14 @@ const handleLaunchGame = async () => {
         justifyContent: 'space-between', alignItems: 'center', gap: '1rem', borderBottom: '3px solid #a16207'
       }}>
         <div style={{ display: 'flex', gap: '1rem' }}>
-
+          <button onClick={() => setActivePage('roulette')}
+            style={activePage === 'roulette' ? activeTabStyle : inactiveTabStyle}>
+            <Settings size={18} /> Roleta Detalhada
+          </button>
+          <button onClick={() => setActivePage('master')}
+            style={activePage === 'master' ? activeTabStyle : inactiveTabStyle}>
+            <CheckSquare size={18} /> Painel Master
+          </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           {userInfo && (
@@ -1111,33 +1118,33 @@ const handleLaunchGame = async () => {
                 </div>
               </div>
 
-                {/* Container do Jogo - Aparece abaixo da roleta quando gameUrl está definido */}
-                {gameUrl && (
-                  <div className="game-container">
-                    <div className="game-header">
-                      <h3 className="game-title">
-                        <PlayCircle size={24} />
-                        {ROULETTE_SOURCES[selectedRoulette]}
-                      </h3>
-                      <button 
-                        onClick={handleCloseGame} 
-                        className="game-close-btn"
-                        title="Fechar Jogo"
-                      >
-                        <X size={20} />
-                        Fechar
-                      </button>
-                    </div>
-                    <div className="game-iframe-wrapper">
-                      <iframe 
-                        src={gameUrl} 
-                        title="Jogo de Roleta" 
-                        className="game-iframe"
-                        allowFullScreen 
-                      />
-                    </div>
-                  </div>
-                )}
+            {/* Container do Jogo - Aparece abaixo da roleta quando gameUrl está definido */}
+            {gameUrl && (
+              <div className="game-container">
+                <div className="game-header">
+                  <h3 className="game-title">
+                    <PlayCircle size={24} />
+                    {ROULETTE_SOURCES[selectedRoulette]}
+                  </h3>
+                  <button 
+                    onClick={handleCloseGame} 
+                    className="game-close-btn"
+                    title="Fechar Jogo"
+                  >
+                    <X size={20} />
+                    Fechar
+                  </button>
+                </div>
+                <div className="game-iframe-wrapper">
+                  <iframe 
+                    src={gameUrl} 
+                    title="Jogo de Roleta" 
+                    className="game-iframe"
+                    allowFullScreen 
+                  />
+                </div>
+              </div>
+            )}
                           <div style={{marginTop: '2rem', width: '100%', maxWidth: '800px'}}>
                             {stats.totalSpins > 0 && <MasterDashboard spinHistory={spinHistory} />}
                           </div>

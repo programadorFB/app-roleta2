@@ -1,0 +1,193 @@
+/* ========================================
+   RACING TRACK - ESTILO "FLAT" (IMAGEM)
+   ======================================== */
+
+.racetrack-flat-container {
+  width: 100%;
+  max-width: 1200px; /* Aumentado para acomodar o layout plano */
+  background: #065f46; /* Verde escuro da borda */
+  border-radius: 50px; /* Bordas bem arredondadas */
+  padding: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  margin: 2rem auto;
+  position: relative;
+}
+
+.racetrack-flat-inner {
+  display: flex; /* Estrutura principal: col-esquerda, col-centro, col-direita */
+  border: 3px solid white;
+  border-radius: 50px; /* Raio interno */
+  background: #16a34a; /* Fundo verde do centro */
+  overflow: hidden; /* Garante que os cantos dos números sejam cortados */
+}
+
+/* Colunas (Esquerda, Centro, Direita) */
+.racetrack-flat-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.racetrack-flat-col.center {
+  flex: 1; /* Coluna central ocupa todo o espaço restante */
+}
+
+.racetrack-flat-col.left,
+.racetrack-flat-col.right {
+  flex-basis: 50px; /* Largura das colunas da curva */
+}
+
+/* Linhas (Superior, Inferior) */
+.racetrack-flat-row {
+  display: flex;
+  width: 100%;
+}
+
+/* Caixa de Número Individual */
+.racetrack-flat-number {
+  flex: 2; /* Cada número ocupa espaço igual na linha */
+  padding: 12px 0;
+  color: white;
+  font-weight: bold;
+  font-size: 0.9rem;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.5); /* Linha divisória */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  z-index: 10;
+}
+
+/* Cores */
+.racetrack-flat-number.red { background: #dc2626;color: white; }
+.racetrack-flat-number.black { background: #1f2937; color: white;}
+.racetrack-flat-number.green { background: #16a34a; color: white;}
+
+/* Hover */
+.racetrack-flat-number:hover {
+  transform: scale(1.1);
+  z-index: 20;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.7);
+}
+
+/* Ativo (Animação de Pulse) */
+.racetrack-flat-number.active {
+  animation: pulse-number-flat 1.5s ease-in-out;
+  border: 3px solid #fde047 !important;
+  box-shadow: 0 0 30px rgba(253, 224, 71, 0.9);
+  z-index: 100;
+  transform: scale(1.1);
+}
+
+@keyframes pulse-number-flat {
+  0%, 100% { 
+    transform: scale(1.1);
+    box-shadow: 0 0 30px rgba(253, 224, 71, 0.9);
+  }
+  50% { 
+    transform: scale(1.25);
+    box-shadow: 0 0 45px rgba(253, 224, 71, 1);
+  }
+}
+
+/* Números das Curvas (Esquerda e Direita) */
+.racetrack-flat-col.left .racetrack-flat-number,
+.racetrack-flat-col.right .racetrack-flat-number {
+  flex: 1; /* Faz com que ocupem a altura da coluna */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  writing-mode: vertical-rl; /* Gira o texto (opcional, mas ajuda) */
+  transform: rotate(180deg);
+  padding: 0 10px;
+}
+.racetrack-flat-col.right .racetrack-flat-number {
+   padding: 0 12px; /* Ajuste fino para o zero */
+}
+
+
+/* Miolo Verde Central */
+.racetrack-flat-middle-green {
+  flex: 1; /* Ocupa o espaço entre as linhas de números */
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 1rem 0.5rem;
+  color: white;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.sector-label-text {
+  padding: 0.5rem;
+}
+
+.sector-label-box.zero-label {
+  border: 3px solid #eab308; /* Borda amarela como na imagem */
+  border-radius: 50px; /* Borda oval */
+  padding: 0.4rem 1.2rem;
+}
+
+/* Label "Neighbours" */
+.neighbours-label-flat {
+  text-align: center;
+  width: fit-content;
+  margin: 1.5rem auto 0 auto;
+  padding: 0.5rem 1.5rem;
+  background: #374151; /* Cor escura */
+  border: 2px solid white;
+  color: white;
+  font-weight: bold;
+  border-radius: 4px;
+}
+
+/* ========================================
+   RESPONSIVIDADE (Simplificada)
+   ======================================== */
+
+@media (max-width: 900px) {
+  .racetrack-flat-number {
+    font-size: 0.75rem;
+    padding: 8px 0;
+  }
+  .racetrack-flat-col.left,
+  .racetrack-flat-col.right {
+    flex-basis: 40px;
+  }
+  .racetrack-flat-middle-green {
+    font-size: 0.8rem;
+  }
+  .sector-label-box.zero-label {
+    padding: 0.3rem 1rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .racetrack-flat-container {
+     border-radius: 60px;
+     padding: 5px;
+  }
+   .racetrack-flat-inner {
+     border-radius: 55px;
+  }
+  .racetrack-flat-number {
+    font-size: 0.6rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 6px 0;
+  }
+  .racetrack-flat-col.left,
+  .racetrack-flat-col.right {
+    flex-basis: 30px;
+  }
+  .racetrack-flat-middle-green {
+    font-size: 0.7rem;
+    flex-direction: column; /* Empilha labels em telas pequenas */
+    padding: 0.5rem 0;
+  }
+  .sector-label-box.zero-label {
+    padding: 0.2rem 0.8rem;
+  }
+  .neighbours-label-flat {
+    font-size: 0.8rem;
+    margin-top: 1rem;
+  }
+}

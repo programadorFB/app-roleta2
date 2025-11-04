@@ -18,20 +18,6 @@ html { /* <-- ADICIONE ESTA REGRA */
 /* ========================================
    HEADER DE NAVEGAÇÃO
    ======================================== */
-.navbar{
-  width: 50%;
-}
-/* Container Responsivo para Iframe */
-.iframe-wrapper {
-  width: 10%;
-  max-width: 800px;
-  margin: 0 auto;
-  border-radius: 1rem;
-  overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  border: 3px solid #a16207;
-  background: #000;
-}
 .app-header {
   background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
   padding: 1rem 2rem;
@@ -1191,14 +1177,14 @@ html { /* <-- ADICIONE ESTA REGRA */
   }
   .game-container {
     margin-top:0rem;
-    width: 430px;
-    
+    width: 410px;
+    margin-left: -11.5px;
+    padding: 1rem;
   }
   .game-iframe-wrapper {
     position: relative;
-    width: 400px;
+    width: 100%;
     height: 650px;
-    margin-left: -2.5px;
     padding-bottom: 56.25%; /* Proporção 16:9 */
     background: #000;
     border-radius: 0.5rem;
@@ -1228,3 +1214,4 @@ html { /* <-- ADICIONE ESTA REGRA */
   height: 100%;
   border: none;
 }
+.navbar{width: 250px;}
