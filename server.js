@@ -1,4 +1,4 @@
-// server.js - Servidor Express com Proxy e Scraper
+// server.js (Corrigido com proxy /login e /start-game)
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -6,10 +6,10 @@ import fetch from 'node-fetch';
 import cors from 'cors';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 
-// Importa as funções do serviço CSV
+// Importa as funções atualizadas e as fontes
 import { loadAllExistingSignalIds, appendToCsv, getFullHistory, SOURCES } from './src/utils/csvService.js';
 
-console.log(`\n\n--- SERVIDOR INICIADO --- ${new Date().toLocaleTimeString()}`);
+console.log(`\n\n--- O SERVIDOR ESTÁ SENDO INICIADO AGORA --- ${new Date().toLocaleTimeString()}`);
 
 // --- CONFIGURAÇÃO INICIAL ---
 const __filename = fileURLToPath(import.meta.url);
@@ -45,17 +45,9 @@ app.use((req, res, next) => {
     next();
 });
 
-// 2. CORS (segundo) - Configurado para permitir o domínio do Render
-app.use(cors({
-    origin: [
-        'https://app-roleta2.onrender.com',
-        'http://localhost:5173',
-        'http://localhost:3000'
-    ],
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
-}));
+// 2. CORS (segundo)
+app.use(cors());
+
 // 3. PROXY DE LOGIN (ANTES de qualquer outra rota!)
 // Este middleware captura TODAS as requisições para /login (GET, POST, etc)
 app.use('/login', createProxyMiddleware({
@@ -64,6 +56,7 @@ app.use('/login', createProxyMiddleware({
     timeout: 60000,
     followRedirects: true,
     
+    // *** CORREÇÃO APLICADA AQUI ***
     // Reescreve a URL que o Express nos dá ('/') de volta para '/login'
     pathRewrite: {
         '^/': '/login' 
@@ -74,8 +67,8 @@ app.use('/login', createProxyMiddleware({
         console.log(`\n${'='.repeat(80)}`);
         console.log(`[${timestamp}] 🔄 PROXY LOGIN ATIVADO`);
         console.log(`[${timestamp}] 📤 Método: ${req.method}`);
-        console.log(`[${timestamp}] 📤 URL Original: ${req.url}`);
-        console.log(`[${timestamp}] 🎯 Destino: ${DEFAULT_AUTH_PROXY_TARGET}${proxyReq.path}`);
+        console.log(`[${timestamp}] 📤 URL Original: ${req.url}`); // O Express muda para '/'
+        console.log(`[${timestamp}] 🎯 Destino: ${DEFAULT_AUTH_PROXY_TARGET}${proxyReq.path}`); // Deve mostrar /login
         console.log(`${'='.repeat(80)}\n`);
         
         // Headers para simular navegador
@@ -83,7 +76,7 @@ app.use('/login', createProxyMiddleware({
         proxyReq.setHeader('Accept', 'application/json');
         
         if (req.headers.authorization) {
-            console.log(`[${timestamp}] 🔑 Authorization: ${req.headers.authorization.substring(0, 30)}...`);
+            console.log(`[${timestamp}] 🔐 Authorization: ${req.headers.authorization.substring(0, 30)}...`);
         }
     },
 
@@ -112,7 +105,6 @@ app.use('/login', createProxyMiddleware({
             }
             console.log(`${'='.repeat(80)}\n`);
             
-            // Copia headers do backend para a resposta
             Object.keys(proxyRes.headers).forEach((key) => {
                 try {
                     res.setHeader(key, proxyRes.headers[key]);
@@ -161,10 +153,11 @@ app.use('/login', createProxyMiddleware({
     logLevel: 'debug'
 }));
 
-// 4. PROXY DE START-GAME
+
+// 4. PROXY DE START-GAME (NOVO)
 // Captura /start-game/:id e redireciona para o backend
 app.use('/start-game', createProxyMiddleware({
-    target: DEFAULT_AUTH_PROXY_TARGET,
+    target: DEFAULT_AUTH_PROXY_TARGET, // O mesmo backend do login
     changeOrigin: true,
     timeout: 60000,
     
@@ -184,7 +177,7 @@ app.use('/start-game', createProxyMiddleware({
         
         // Repassa o header de Autorização vindo do App.jsx
         if (req.headers.authorization) {
-            console.log(`[${timestamp}] 🔑 Authorization: ${req.headers.authorization.substring(0, 30)}...`);
+            console.log(`[${timestamp}] 🔐 Authorization: ${req.headers.authorization.substring(0, 30)}...`);
             proxyReq.setHeader('Authorization', req.headers.authorization);
         } else {
             console.warn(`[${timestamp}] ⚠️ Aviso: Chamada para /start-game sem Authorization header.`);
@@ -241,6 +234,7 @@ app.use('/start-game', createProxyMiddleware({
     logLevel: 'debug'
 }));
 
+
 // 5. Servir arquivos estáticos (depois dos proxies)
 app.use(express.static(path.join(__dirname, 'dist')));
 
@@ -286,162 +280,64 @@ async function fetchAllData() {
 }
 
 // --- ENDPOINTS DA API (SCRAPER) ---
-
-// Endpoint: Buscar dados de todas as fontes manualmente
 app.get('/api/fetch/all', async (req, res) => {
     try {
         await fetchAllData();
-        res.json({ 
-            status: 'ok', 
-            message: 'Busca executada em todas as fontes.',
-            timestamp: new Date().toISOString()
-        });
+        res.json({ status: 'ok', message: 'Busca executada em todas as fontes.' });
     } catch (err) {
-        console.error('❌ Erro em /api/fetch/all:', err);
-        res.status(500).json({ 
-            error: 'Erro ao buscar dados', 
-            details: err.message 
-        });
+        res.status(500).json({ error: 'Erro ao buscar dados', details: err.message });
     }
 });
 
-// Endpoint: Buscar dados de uma fonte específica
 app.get('/api/fetch/:source', async (req, res) => {
     const { source } = req.params;
     const url = API_URLS[source];
     
     if (!url) {
-        return res.status(400).json({ 
-            error: `Fonte inválida: ${source}`,
-            validSources: Object.keys(API_URLS)
-        });
+        return res.status(400).json({ error: `Fonte inválida: ${source}` });
     }
     
     try {
         await fetchAndSaveFromSource(url, source);
-        res.json({ 
-            status: 'ok', 
-            message: `Dados da fonte ${source} buscados.`,
-            timestamp: new Date().toISOString()
-        });
+        res.json({ status: 'ok', message: `Dados da fonte ${source} buscados.` });
     } catch (err) {
-        console.error(`❌ Erro em /api/fetch/${source}:`, err);
-        res.status(500).json({ 
-            error: `Erro ao buscar dados de ${source}`, 
-            details: err.message 
-        });
+        res.status(500).json({ error: `Erro ao buscar dados de ${source}`, details: err.message });
     }
 });
 
-// Endpoint: Obter histórico completo de uma fonte
 app.get('/api/full-history', async (req, res) => {
     try {
         const sourceName = req.query.source;
 
         if (!sourceName || !SOURCES.includes(sourceName)) {
             return res.status(400).json({ 
-                error: `Parâmetro "source" obrigatório.`,
-                validSources: SOURCES,
-                example: '/api/full-history?source=immersive'
+                error: `Parâmetro "source" obrigatório. Valores válidos: [${SOURCES.join(', ')}]` 
             });
         }
         
         const history = await getFullHistory(sourceName);
-        res.json({
-            source: sourceName,
-            count: history.length,
-            data: history,
-            timestamp: new Date().toISOString()
-        });
+        res.json(history);
     } catch (error) {
         console.error(`❌ Erro ao ler histórico de ${req.query.source}:`, error);
-        res.status(500).json({ 
-            error: 'Falha ao ler histórico', 
-            details: error.message 
-        });
+        res.status(500).json({ error: 'Falha ao ler histórico', details: error.message });
     }
 });
 
-// Endpoint: Listar todas as fontes disponíveis
-app.get('/api/sources', (req, res) => {
-    res.json({
-        sources: Object.keys(API_URLS),
-        scraper: {
-            intervalMs: FETCH_INTERVAL_MS,
-            intervalSeconds: FETCH_INTERVAL_MS / 1000
-        },
-        timestamp: new Date().toISOString()
-    });
-});
-
-// Endpoint: Health check
 app.get('/health', (req, res) => {
     res.status(200).json({ 
         status: 'OK',
-        service: 'Roulette Analytics Server',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
-        uptimeFormatted: formatUptime(process.uptime()),
-        authProxyTarget: DEFAULT_AUTH_PROXY_TARGET,
-        version: '1.0.0'
+        authProxyTarget: DEFAULT_AUTH_PROXY_TARGET
     });
 });
-
-// Endpoint: Status do servidor
-app.get('/api/status', (req, res) => {
-    res.json({
-        status: 'running',
-        uptime: process.uptime(),
-        uptimeFormatted: formatUptime(process.uptime()),
-        memory: {
-            used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-            total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
-            unit: 'MB'
-        },
-        scraper: {
-            active: true,
-            intervalMs: FETCH_INTERVAL_MS,
-            sources: Object.keys(API_URLS).length
-        },
-        timestamp: new Date().toISOString()
-    });
-});
-
-// Função auxiliar para formatar uptime
-function formatUptime(seconds) {
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-    
-    const parts = [];
-    if (days > 0) parts.push(`${days}d`);
-    if (hours > 0) parts.push(`${hours}h`);
-    if (minutes > 0) parts.push(`${minutes}m`);
-    if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
-    
-    return parts.join(' ');
-}
 
 // --- FALLBACK (ÚLTIMA ROTA) ---
 // Serve o index.html para todas as rotas não capturadas (SPA)
-app.get(/.*/, (req, res) => {
+app.get(/,*/, (req, res) => {
     // Ignora requisições de API que não existem
     if (req.url.startsWith('/api/')) {
-        return res.status(404).json({ 
-            error: 'API endpoint não encontrado',
-            url: req.url,
-            availableEndpoints: [
-                'GET /api/fetch/all',
-                'GET /api/fetch/:source',
-                'GET /api/full-history?source=:source',
-                'GET /api/sources',
-                'GET /api/status',
-                'GET /health',
-                'POST /login',
-                'POST /start-game/:id'
-            ]
-        });
+        return res.status(44).json({ error: 'API endpoint não encontrado' });
     }
     
     console.log(`[FALLBACK] Servindo index.html para: ${req.url}`);
@@ -464,25 +360,11 @@ const startServer = async () => {
             console.log(`🎮 Proxy de Jogo: /start-game/* → ${DEFAULT_AUTH_PROXY_TARGET}/start-game/*`);
             console.log(`📊 API Scraper: /api/*`);
             console.log(`💚 Health Check: /health`);
-            console.log(`📈 Status: /api/status`);
-            console.log(`${'='.repeat(80)}`);
-            console.log(`\n📋 ENDPOINTS DISPONÍVEIS:`);
-            console.log(`   GET  /api/fetch/all - Buscar todas as fontes`);
-            console.log(`   GET  /api/fetch/:source - Buscar fonte específica`);
-            console.log(`   GET  /api/full-history?source=:source - Histórico completo`);
-            console.log(`   GET  /api/sources - Listar fontes`);
-            console.log(`   GET  /api/status - Status do servidor`);
-            console.log(`   GET  /health - Health check`);
-            console.log(`   POST /login - Autenticação (proxy)`);
-            console.log(`   POST /start-game/:id - Iniciar jogo (proxy)`);
             console.log(`${'='.repeat(80)}\n`);
             
             console.log(`🔄 Iniciando busca automática a cada ${FETCH_INTERVAL_MS / 1000}s...\n`);
             
-            // Primeira busca imediata
             fetchAllData(); 
-            
-            // Busca periódica
             setInterval(fetchAllData, FETCH_INTERVAL_MS); 
         });
     } catch (err) {

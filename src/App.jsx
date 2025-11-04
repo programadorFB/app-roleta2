@@ -724,65 +724,97 @@ const App = () => {
 // Em App.jsx
 
   // *** FUNÇÃO CORRIGIDA ***
-  const handleLaunchGame = async () => {
-    setIsLaunching(true);
-    setLaunchError('');
+const handleLaunchGame = async () => {
+  setIsLaunching(true);
+  setLaunchError('');
 
-    const gameId = ROULETTE_GAME_IDS[selectedRoulette];
-    
-    if (!gameId || !jwtToken) {
-      setLaunchError('Erro interno: ID do jogo ou Token não encontrado.');
-      setIsLaunching(false);
-      return;
-    }
+  const gameId = ROULETTE_GAME_IDS[selectedRoulette];
+  
+  if (!gameId || !jwtToken) {
+    setLaunchError('Erro interno: ID do jogo ou Token não encontrado.');
+    setIsLaunching(false);
+    return;
+  }
 
-    try {
-      const response = await fetch(`/start-game/${gameId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${jwtToken}`
-        }
-      });
-
-      const rawResponseText = await response.text();
-
-      if (response.ok) {
-        try {
-          // Tenta converter o texto para JSON
-          const data = JSON.parse(rawResponseText);
-          
-          // --- INÍCIO DA CORREÇÃO ---
-          // Busca a URL no caminho correto, conforme o log:
-          const gameUrl = data?.launchOptions?.launch_options?.game_url;
-
-          if (gameUrl) {
-            // SUCESSO! Encontramos a URL
-            console.log("Sucesso: Encontrada game_url em data.launchOptions.launch_options.game_url");
-            setGameUrl(gameUrl); 
-          } else {
-            // É um JSON, mas sem a chave game_url no local esperado
-            console.warn("Aviso: Resposta JSON válida, mas 'game_url' não encontrada no caminho esperado.", data);
-            setLaunchError(data.description || data.message || 'Resposta JSON inválida (game_url ausente).');
-          }
-          // --- FIM DA CORREÇÃO ---
-
-        } catch (jsonError) {
-          // NÃO é um JSON.
-          console.error("Erro: Resposta não é um JSON válido.", rawResponseText);
-          setLaunchError('Resposta inesperada (não-JSON) do servidor.');
-        }
-      } else {
-        // A resposta foi 4xx ou 5xx
-        setLaunchError(`Erro ${response.status}: ${rawResponseText}`);
+  try {
+    const response = await fetch(`/start-game/${gameId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${jwtToken}`
       }
-    } catch (err) {
-      console.error('Erro de fetch ao iniciar jogo:', err);
-      setLaunchError('Erro de conexão. O servidor (porta 3000) está rodando?');
-    } finally {
-      setIsLaunching(false);
-    }
-  };
+    });
 
+    const rawResponseText = await response.text();
+    console.log('🔍 Resposta completa do start-game:', rawResponseText);
+
+    if (response.ok) {
+      try {
+        const data = JSON.parse(rawResponseText);
+        console.log('📦 Dados parseados:', data);
+
+        // MÚLTIPLAS TENTATIVAS DE ENCONTRAR A URL DO JOGO
+        let gameUrl = null;
+
+        // Tentativa 1: Estrutura mais comum
+        gameUrl = data?.launchOptions?.launch_options?.game_url;
+        
+        // Tentativa 2: Estrutura alternativa
+        if (!gameUrl) {
+          gameUrl = data?.launch_options?.game_url;
+        }
+        
+        // Tentativa 3: Estrutura direta
+        if (!gameUrl) {
+          gameUrl = data?.game_url;
+        }
+        
+        // Tentativa 4: Estrutura com URL direta
+        if (!gameUrl) {
+          gameUrl = data?.url;
+        }
+        
+        // Tentativa 5: Busca recursiva em todo o objeto
+        if (!gameUrl) {
+          const findGameUrl = (obj) => {
+            for (let key in obj) {
+              if (key === 'game_url' && typeof obj[key] === 'string') {
+                return obj[key];
+              }
+              if (typeof obj[key] === 'object' && obj[key] !== null) {
+                const result = findGameUrl(obj[key]);
+                if (result) return result;
+              }
+            }
+            return null;
+          };
+          gameUrl = findGameUrl(data);
+        }
+
+        if (gameUrl) {
+          console.log("✅ URL do jogo encontrada:", gameUrl);
+          setGameUrl(gameUrl);
+          setLaunchError('');
+        } else {
+          console.warn("❌ game_url não encontrada na resposta. Estrutura completa:", data);
+          setLaunchError('URL do jogo não encontrada na resposta da API. Estrutura: ' + JSON.stringify(data).substring(0, 200));
+        }
+
+      } catch (jsonError) {
+        console.error("❌ Erro ao parsear JSON:", jsonError);
+        console.error("📄 Resposta original:", rawResponseText);
+        setLaunchError('Resposta da API não é um JSON válido: ' + rawResponseText.substring(0, 100));
+      }
+    } else {
+      console.error("❌ Erro HTTP:", response.status, rawResponseText);
+      setLaunchError(`Erro ${response.status} do servidor: ${rawResponseText.substring(0, 100)}`);
+    }
+  } catch (err) {
+    console.error('❌ Erro de rede:', err);
+    setLaunchError('Erro de conexão: ' + err.message);
+  } finally {
+    setIsLaunching(false);
+  }
+};
 
   useEffect(() => {
     const calculateRadius = () => {
