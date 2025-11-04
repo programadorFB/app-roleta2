@@ -45,9 +45,17 @@ app.use((req, res, next) => {
     next();
 });
 
-// 2. CORS (segundo)
-app.use(cors());
-
+// 2. CORS (segundo) - Configurado para permitir o domínio do Render
+app.use(cors({
+    origin: [
+        'https://app-roleta2.onrender.com',
+        'http://localhost:5173',
+        'http://localhost:3000'
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+}));
 // 3. PROXY DE LOGIN (ANTES de qualquer outra rota!)
 // Este middleware captura TODAS as requisições para /login (GET, POST, etc)
 app.use('/login', createProxyMiddleware({
