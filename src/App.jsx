@@ -1,13 +1,14 @@
-import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'; // 1. Importar useRef
-import { X, BarChart3, Clock, Hash, Percent, Layers, CheckSquare, Settings } from 'lucide-react';
+// App.jsx (Atualizado para abrir o jogo em um iframe)
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+// ... (ícones importados permanecem os mesmos)
+import { X, BarChart3, Clock, Hash, Percent, Layers, CheckSquare, Settings, LogOut, Lock, Mail, AlertCircle, PlayCircle } from 'lucide-react'; // Adicionei PlayCircle
 import FrequencyTable from './components/FrequencyTable';
 import NotificationCenter from './components/NotificationCenter.jsx';
 import MasterDashboard from './pages/MasterDashboard.jsx';
 import './components/NotificationsCenter.css';
-import  './App.module.css';
+import  './App.modules.css';
 
-// --- CSS Styles Globais e Layout ---
-// (O componente GlobalStyles permanece idêntico ao original, não precisa de alterações)
+// GlobalStyles (mantido igual)
 const GlobalStyles = () => (
   <style>{`
     * {
@@ -19,9 +20,9 @@ const GlobalStyles = () => (
     body {
         font-family: 'Arial', sans-serif;
         background-color: #064e3b;
+        overflow-x: hidden;
     }
 
-    /* Estilos gerais do container (usado na página da Roleta) */
     .container {
         min-height: calc(100vh - 65px);
         background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #064e3b 100%);
@@ -34,8 +35,10 @@ const GlobalStyles = () => (
         max-width: 2400px;
         margin: 0 auto;
     }
+      .html { /* <-- ADICIONE ESTA REGRA */
+        overflow-x: hidden;
+    }
 
-    /* Estilos do Dashboard Lateral (Coluna 1 na Roleta) */
     .stats-dashboard {
         grid-column: 1 / 2;
         background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
@@ -50,7 +53,6 @@ const GlobalStyles = () => (
         color: white;
     }
 
-    /* Título comum para dashboards */
     .dashboard-title {
         font-size: 1.25rem;
         font-weight: bold;
@@ -59,7 +61,6 @@ const GlobalStyles = () => (
         text-align: center;
     }
 
-    /* Divisor */
     .divider {
         border: 0;
         height: 1px;
@@ -67,7 +68,6 @@ const GlobalStyles = () => (
         margin: 1.5rem 0;
     }
 
-    /* Card de Estatística */
     .stat-card {
         background: rgba(255, 255, 255, 0.05);
         border-radius: 0.75rem;
@@ -100,7 +100,6 @@ const GlobalStyles = () => (
         color: #d1d5db;
     }
 
-    /* Seletor de Roleta */
     .roulette-selector {
       width: 100%;
       padding: 0.75rem;
@@ -124,7 +123,6 @@ const GlobalStyles = () => (
       box-shadow: 0 0 0 3px rgba(202, 138, 4, 0.3);
     }
 
-    /* Badge de Monitoramento */
     .monitoring-badge {
       margin-top: 0.5rem;
       padding: 0.5rem;
@@ -140,7 +138,6 @@ const GlobalStyles = () => (
       gap: 0.5rem;
     }
 
-    /* Lista de Histórico */
     .history-list {
       display: flex;
       flex-wrap: wrap;
@@ -170,127 +167,6 @@ const GlobalStyles = () => (
     .history-number.black { background: #1f2937; }
     .history-number.green { background: #15803d; }
 
-    /* Título comum para dashboards */
-    .dashboard-title {
-        font-size: 1.25rem;
-        font-weight: bold;
-        color: #fde047;
-        margin-bottom: 1rem;
-        text-align: center;
-    }
-
-    /* Divisor */
-    .divider {
-        border: 0;
-        height: 1px;
-        background: #4b5563;
-        margin: 1.5rem 0;
-    }
-
-    /* Card de Estatística */
-    .stat-card {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 0.75rem;
-        padding: 1rem;
-        border: 1px solid #374151;
-        margin-bottom: 1.5rem;
-        text-align: center;
-    }
-
-    .stat-title {
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: #fbbf24;
-        margin-bottom: 0.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-    }
-
-    .stat-value-lg {
-        font-size: 2rem;
-        font-weight: bold;
-        margin-bottom: 0.5rem;
-        color: #fde047;
-    }
-
-    .stat-value-sm {
-        font-size: 0.9rem;
-        color: #d1d5db;
-    }
-
-    /* Seletor de Roleta */
-    .roulette-selector {
-      width: 100%;
-      padding: 0.75rem;
-      background: #1f2937;
-      color: #fde047;
-      border: 2px solid #a16207;
-      border-radius: 0.5rem;
-      font-size: 1rem;
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .roulette-selector:hover {
-      background: #374151;
-      border-color: #ca8a04;
-    }
-
-    .roulette-selector:focus {
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(202, 138, 4, 0.3);
-    }
-
-    /* Badge de Monitoramento */
-    .monitoring-badge {
-      margin-top: 0.5rem;
-      padding: 0.5rem;
-      background: rgba(16, 185, 129, 0.1);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      border-radius: 0.5rem;
-      font-size: 0.75rem;
-      color: #10b981;
-      text-align: center;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-    }
-
-    /* Lista de Histórico */
-    .history-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-top: 1rem;
-      justify-content: center;
-    }
-
-    .history-number {
-      padding: 0.3rem 0.6rem;
-      border-radius: 4px;
-      color: white;
-      font-weight: bold;
-      font-size: 0.75rem;
-      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
-      min-width: 25px;
-      text-align: center;
-      cursor: pointer;
-      transition: transform 0.2s;
-    }
-
-    .history-number:hover {
-      transform: scale(1.1);
-    }
-
-    .history-number.red { background: #dc2626; }
-    .history-number.black { background: #1f2937; }
-    .history-number.green { background: #15803d; }
-
-    /* Wrapper da Roleta (Coluna 2 na Roleta) */
     .roulette-wrapper {
       grid-column: 2 / 3;
       display: flex;
@@ -319,8 +195,8 @@ const GlobalStyles = () => (
       flex-shrink: 0;
       position: sticky;
       top: 1.5rem;
-      -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+      -ms-overflow-style: none;
+      scrollbar-width: none;
       max-height: calc(100vh - 3rem - 65px);
       overflow-y: auto;
     }
@@ -345,7 +221,7 @@ const GlobalStyles = () => (
     }
 
     .result-number-box {
-      aspect-ratio: 1;
+      aspect-ratio: 2;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -367,7 +243,6 @@ const GlobalStyles = () => (
     .result-number-box.black { background: linear-gradient(135deg, #1f2937 0%, #000000 100%); }
     .result-number-box.green { background: linear-gradient(135deg, #22c55e 0%, #15803d 100%); }
 
-    /* Centro da Roleta (Visual) */
     .roulette-center {
       display: flex;
       flex-direction: column;
@@ -414,7 +289,6 @@ const GlobalStyles = () => (
       transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    /* Seção de Título */
     .title-section {
         text-align: center;
         margin-top: 1.5rem;
@@ -439,7 +313,6 @@ const GlobalStyles = () => (
         font-weight: 600;
     }
 
-    /* Painel de Análise Profunda (Coluna 3 na Roleta) */
     .analysis-panel {
         grid-column: 3 / 4;
         background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
@@ -452,8 +325,7 @@ const GlobalStyles = () => (
         max-height: calc(100vh - 3rem - 65px);
         overflow-y: auto;
     }
-
-    /* Estilos do Popup */
+    
     .popup-overlay {
        position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.85);
       backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; z-index: 1000;
@@ -503,303 +375,251 @@ const GlobalStyles = () => (
     }
     .popup-footer-btn:hover { transform: translateY(-2px); }
 
-    /* Responsividade */
-    /* (Toda a seção @media permanece idêntica) */
     @media (max-width: 1600px) {
-      .container {
-        grid-template-columns: 340px 1fr;
-        gap: 1rem;
-      }
-      .wood-border {
-        width: 380px;
-        height: 380px;
-      }
-      .roulette-wrapper {
-        flex-direction: column;
-        align-items: center;
-      }
-      .latest-results-compact {
-        max-width: 100%;
-        width: 100%;
-        position: static;
-        max-height: none;
-      }
+      .container { grid-template-columns: 340px 1fr; gap: 1rem; }
+      .wood-border { width: 380px; height: 380px; }
+      .roulette-wrapper { flex-direction: column; align-items: center; }
+      .latest-results-compact { max-width: 100%; width: 100%; position: static; max-height: none; }
     }
 
     @media (max-width: 1400px) {
-      .container {
-        grid-template-columns: 1fr;
-        padding: 1.5rem;
-      }
-      .stats-dashboard {
-          position: static;
-          max-height: none;
-          grid-column: auto;
-      }
-      .roulette-wrapper {
-        grid-column: auto;
-        flex-direction: column;
-        align-items: center;
-      }
-      .latest-results-compact {
-        max-width: 100%;
-        width: 100%;
-        position: static;
-        max-height: none;
-      }
-      .roulette-and-results {
-        width: 100%;
-        max-width: 800px;
-      }
+      .container { grid-template-columns: 1fr; padding: 1.5rem; }
+      .stats-dashboard { position: static; max-height: none; grid-column: auto; }
+      .roulette-wrapper { grid-column: auto; flex-direction: column; align-items: center; }
+      .latest-results-compact { max-width: 100%; width: 100%; position: static; max-height: none; }
+      .roulette-and-results { width: 100%; max-width: 800px; }
     }
 
     @media (max-width: 1024px) {
-      .container {
-        grid-template-columns: 1fr;
-        padding: 1rem;
-      }
-      .wood-border {
-        width: 350px;
-        height: 350px;
-      }
+      .container { grid-template-columns: 1fr; padding: 1rem; }
+      .wood-border { width: 350px; height: 350px; }
       .main-title { font-size: 1.75rem; }
       .subtitle { font-size: 0.9rem; }
-    }
-
-     @media (max-width: 600px) {
-        .wood-border {
-            width: 300px;
-            height: 300px;
-        }
-         .number-slot {
-             width: 28px;
-             height: 28px;
-             font-size: 0.7rem;
-         }
-         .ball {
-             width: 16px;
-             height: 16px;
-         }
-         .main-title { font-size: 1.5rem; }
-         .subtitle { font-size: 0.85rem; }
-         .popup-content { padding: 1rem; }
-         .popup-title { font-size: 1.5rem; }
-         .results-grid {
-           grid-template-columns: repeat(4, 1fr);
-         }
-         .latest-results-compact {
-           padding: 1rem;
-         }
-    }
-         /* Responsividade */
-    @media (max-width: 1600px) {
-      .container {
-        grid-template-columns: 340px 1fr;
-        gap: 1rem;
-      }
-      .wood-border {
-        width: 380px;
-        height: 380px;
-      }
-      .roulette-wrapper {
-        flex-direction: column;
-        align-items: center;
-      }
-      .latest-results-compact {
-        max-width: 100%;
-        width: 100%;
-        position: static;
-        max-height: none;
-      }
-    }
-
-    @media (max-width: 1400px) {
-      .container {
-        grid-template-columns: 1fr;
-        padding: 1.5rem;
-      }
-      .stats-dashboard {
-          position: static;
-          max-height: none;
-          grid-column: auto;
-      }
-      .roulette-wrapper {
-        grid-column: auto;
-        flex-direction: column;
-        align-items: center;
-      }
-      .latest-results-compact {
-        max-width: 100%;
-        width: 100%;
-        position: static;
-        max-height: none;
-      }
-      .roulette-and-results {
-        width: 100%;
-        max-width: 800px;
-      }
-    }
-
-    @media (max-width: 1024px) {
-      .container {
-        grid-template-columns: 1fr;
-        padding: 1rem;
-      }
-      .wood-border {
-        width: 350px;
-        height: 350px;
-      }
-      .main-title { font-size: 1.75rem; }
-      .subtitle { font-size: 0.9rem; }
-    }
-
-    @media (max-width: 768px) {
-      .container {
-        padding: 0.75rem;
-        gap: 1rem;
-      }
-      .wood-border {
-        width: 320px;
-        height: 320px;
-      }
-      .number-slot {
-        width: 32px;
-        height: 32px;
-        font-size: 0.75rem;
-      }
-      .ball {
-        width: 18px;
-        height: 18px;
-      }
-      .main-title { font-size: 1.6rem; }
-      .subtitle { font-size: 0.875rem; }
-      .stats-dashboard {
-        padding: 1rem;
-      }
-      .latest-results-compact {
-        padding: 1rem;
-      }
-      .results-grid {
-        grid-template-columns: repeat(5, 1fr);
-      }
     }
 
     @media (max-width: 600px) {
-      .container {
-        padding: 0.5rem;
-        min-height: calc(100vh - 65px);
-      }
-      .wood-border {
-        width: 280px;
-        height: 280px;
-        padding: 0.75rem;
-      }
-      .gold-border {
-        padding: 0.5rem;
-      }
-      .number-slot {
-        width: 26px;
-        height: 26px;
-        font-size: 0.65rem;
-      }
-      .ball {
-        width: 14px;
-        height: 14px;
-      }
-      .main-title { font-size: 1.4rem; }
-      .subtitle { font-size: 0.8rem; }
-      .popup-content { 
-        padding: 1rem;
-        width: 95%;
-      }
-      .popup-title { font-size: 1.3rem; }
-      .results-grid {
-        grid-template-columns: repeat(4, 1fr);
-        gap: 0.4rem;
-      }
-      .result-number-box {
-        font-size: 0.875rem;
-      }
-      .latest-results-compact {
-        padding: 0.75rem;
-      }
-      .stats-dashboard {
-        padding: 0.75rem;
-      }
-      .stat-card {
-        padding: 0.75rem;
-        margin-bottom: 1rem;
-      }
-      .dashboard-title {
-        font-size: 1.1rem;
-      }
-      .stat-value-lg {
-        font-size: clamp(1.5rem, 5vw, 2rem);
-      }
-      .stat-value-sm {
-        font-size: clamp(0.75rem, 2.5vw, 0.9rem);
-      }
+      .wood-border { width: 300px; height: 300px; }
+      .number-slot { width: 28px; height: 28px; font-size: 0.7rem; }
+      .ball { width: 16px; height: 16px; }
+      .main-title { font-size: 1.5rem; }
+      .subtitle { font-size: 0.85rem; }
+      .popup-content { padding: 1rem; }
+      .popup-title { font-size: 1.5rem; }
+      .results-grid { grid-template-columns: repeat(4, 1fr); }
+      .latest-results-compact { padding: 1rem; }
     }
 
-    @media (max-width: 430px) {
-      .wood-border {
-        width: 260px;
-        height: 260px;
-        padding: 0.65rem;
-      }
-      .gold-border {
-        padding: 0.45rem;
-      }
-      .number-slot {
-        width: 24px;
-        height: 24px;
-        font-size: 0.6rem;
-      }
-      .ball {
-        width: 12px;
-        height: 12px;
-      }
-      .main-title { font-size: 1.25rem; }
-      .subtitle { font-size: 0.75rem; }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
-
-    @media (max-width: 393px) {
-      .wood-border {
-        width: 240px;
-        height: 240px;
-        padding: 0.6rem;
-      }
-      .gold-border {
-        padding: 0.4rem;
-      }
-      .number-slot {
-        width: 22px;
-        height: 22px;
-        font-size: 0.55rem;
-      }
-      .ball {
-        width: 11px;
-        height: 11px;
-      }
-      .main-title { font-size: 1.15rem; }
-      .subtitle { font-size: 0.7rem; }
-      .title-section {
-        margin-top: 1rem;
-      }
-      .result-number-box {
-        font-size: 0.8rem;
-      }
-      .latest-results-title {
-        font-size: 0.95rem;
-      }
-    }
-
   `}</style>
 );
-// --- FIM DOS ESTILOS GLOBAIS ---
 
+// Login Component (Sem alterações)
+const Login = ({ onLoginSuccess }) => {
+  const [formData, setFormData] = useState({ email: '', password: '', brand: 'betou' });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [devMode, setDevMode] = useState(false);
 
-// Constantes
+  const brands = [
+    { value: 'betou', label: 'Betou' },
+    { value: 'betfusion', label: 'BetFusion' },
+    { value: 'sortenabet', label: 'Sortena Bet' }
+  ];
+
+  const handleChange = (e) => {
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    setError('');
+  };
+
+  const handleDevLogin = () => {
+    // Usar um JWT de desenvolvimento falso, se necessário, ou apenas um token simples.
+    // O importante é que `onLoginSuccess` seja chamado com um objeto que inclua `jwt`.
+    const devJwt = 'dev-jwt-token-' + Date.now();
+    localStorage.setItem('authToken', devJwt);
+    localStorage.setItem('userEmail', formData.email || 'dev@teste.com');
+    localStorage.setItem('userBrand', formData.brand);
+    onLoginSuccess({ jwt: devJwt, email: formData.email }); // Passa o JWT falso
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    if (devMode) {
+      setTimeout(() => {
+        handleDevLogin();
+        setLoading(false);
+      }, 500);
+      return;
+    }
+
+    try {
+      // *** CORREÇÃO ***
+      // A URL é relativa ('/login') para usar o proxy no mesmo host (porta 3000)
+      const response = await fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      // LÓGICA MODIFICADA PARA USAR 'jwt'
+      if (response.ok) {
+        const data = await response.json(); // Espera { success: true, jwt: "..." }
+        
+        if (data.jwt) {
+          localStorage.setItem('authToken', data.jwt); // Salva o JWT
+          localStorage.setItem('userEmail', formData.email);
+          localStorage.setItem('userBrand', formData.brand);
+          onLoginSuccess(data); // Passa os dados (incluindo o jwt) para o componente App
+        } else {
+          setError('Login bem-sucedido, mas o token (jwt) não foi recebido.');
+        }
+      } else {
+        // ... (lógica de tratamento de erro permanece a mesma) ...
+        const errorText = await response.text();
+        let errorMessage;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || `Erro ${response.status}: Resposta JSON inválida.`;
+        } catch (e) {
+          console.error("Erro não-JSON recebido do backend:", errorText);
+          errorMessage = `Erro ${response.status}. O servidor retornou uma resposta inesperada.`;
+        }
+        setError(errorMessage);
+      }
+      
+    } catch (err) {
+      // ... (lógica de tratamento de erro permanece a mesma) ...
+      console.error('Erro de fetch:', err);
+      let errorMessage = 'Erro de conexão. ';
+      if (err.message.includes('Failed to fetch')) {
+        errorMessage += 'API offline ou CORS bloqueado. Ative Modo DEV para testar.';
+      } else {
+        errorMessage += err.message;
+      }
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // O JSX do componente Login permanece o mesmo
+  return (
+    <div style={{
+      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'linear-gradient(135deg, #064e3b 0%, #065f46 50%, #064e3b 100%)', padding: '1rem'
+    }}>
+      <div style={{ width: '100%', maxWidth: '28rem' }}>
+        <div style={{
+          background: 'linear-gradient(135deg, #111827 0%, #1f2937 100%)', borderRadius: '1rem',
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)', padding: '2rem', border: '2px solid #a16207'
+        }}>
+          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: '4rem', height: '4rem', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+              borderRadius: '50%', marginBottom: '1rem'
+            }}>
+              <Lock size={32} color="white" />
+            </div>
+            <h2 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'white', marginBottom: '0.5rem' }}>
+              Bem-vindo
+            </h2>
+            <p style={{ color: '#9ca3af' }}>Faça login para acessar o dashboard</p>
+          </div>
+
+          {error && (
+            <div style={{
+              marginBottom: '1.5rem', padding: '1rem', background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.5)', borderRadius: '0.5rem',
+              display: 'flex', alignItems: 'flex-start', gap: '0.75rem'
+            }}>
+              <AlertCircle size={20} color="#ef4444" style={{ flexShrink: 0, marginTop: '0.125rem' }} />
+              <p style={{ color: '#f87171', fontSize: '0.875rem' }}>{error}</p>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#d1d5db', marginBottom: '0.5rem' }}>
+                Plataforma
+              </label>
+              <select name="brand" value={formData.brand} onChange={handleChange} required
+                style={{ width: '100%', padding: '0.75rem 1rem', background: '#374151', border: '1px solid #4b5563',
+                  borderRadius: '0.5rem', color: 'white', fontSize: '1rem', cursor: 'pointer' }}>
+                {brands.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#d1d5db', marginBottom: '0.5rem' }}>
+                Email
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Mail size={20} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+                <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="seu-email@gmail.com" required
+                  style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.5rem', background: '#374151', border: '1px solid #4b5563',
+                    borderRadius: '0.5rem', color: 'white', fontSize: '1rem' }} />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#d1d5db', marginBottom: '0.5rem' }}>
+                Senha
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Lock size={20} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+                <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="••••••••" required
+                  style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.5rem', background: '#374151', border: '1px solid #4b5563',
+                    borderRadius: '0.5rem', color: 'white', fontSize: '1rem' }} />
+              </div>
+            </div>
+
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem',
+              background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)',
+              borderRadius: '0.5rem', marginTop: '0.5rem'
+            }}>
+              <input type="checkbox" id="devMode" checked={devMode} onChange={(e) => setDevMode(e.target.checked)}
+                style={{ width: '1.25rem', height: '1.25rem', cursor: 'pointer', accentColor: '#3b82f6' }} />
+              <label htmlFor="devMode" style={{ color: '#93c5fd', fontSize: '0.875rem', cursor: 'pointer', userSelect: 'none' }}>
+                🔧 Modo Desenvolvedor (Bypass API)
+              </label>
+            </div>
+
+            <button type="submit" disabled={loading}
+              style={{
+                width: '100%', padding: '0.75rem 1rem',
+                background: loading ? '#6b7280' : 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                color: 'white', fontWeight: 'bold', fontSize: '1rem', borderRadius: '0.5rem', border: 'none',
+                cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: loading ? 0.7 : 1
+              }}>
+              {loading ? (
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                  <div style={{ width: '1.25rem', height: '1.25rem', border: '2px solid white',
+                    borderTop: '2px solid transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                  Entrando...
+                </span>
+              ) : 'Entrar'}
+            </button>
+          </form>
+
+          <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+            <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>Dashboard Analítico de Roleta</p>
+          </div>
+        </div>
+        <p style={{ textAlign: 'center', color: '#6b7280', fontSize: '0.75rem', marginTop: '1.5rem' }}>
+          Ao fazer login, você concorda com nossos Termos de Uso
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// Constants
 const rouletteNumbers = [
   0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10,
   5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26
@@ -811,63 +631,178 @@ const getNumberColor = (num) => {
   return redNumbers.includes(num) ? 'red' : 'black';
 };
 
-// --- NOVAS FONTES ADICIONADAS ---
 const ROULETTE_SOURCES = {
   immersive: '🌟 Roleta Immersive',
   brasileira: '🇧🇷 Roleta Brasileira',
-  // default: '🌐 Roleta Default (Genérica)',
   speed: '💨 Speed Roulette',
   xxxtreme: '⚡ Xxxtreme Lightning',
   vipauto: '🚘 Vip Auto Roulette'
 };
 
-// Componente Principal da Aplicação
+// Mapeamento dos nomes das fontes para os IDs dos jogos
+const ROULETTE_GAME_IDS = {
+  immersive: 55,  // Immersive Roulette
+  brasileira: 34, // Roleta ao Vivo (assumindo ser a Brasileira)
+  speed: 36,      // Speed Roulette
+  xxxtreme: 33,   // Lightning Roulette (assumindo ser a Xxxtreme)
+  vipauto: 31     // Auto Roulette Vip
+};
+
+// Main App
 const App = () => {
-  // Configuração inicial para a primeira roleta na lista
+  // Auth States
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userInfo, setUserInfo] = useState(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [jwtToken, setJwtToken] = useState(null); // Estado para o token JWT
+
+  // App States
   const [selectedRoulette, setSelectedRoulette] = useState(Object.keys(ROULETTE_SOURCES)[0]);
   const [spinHistory, setSpinHistory] = useState([]);
   const [selectedResult, setSelectedResult] = useState(null);
   const [popupNumber, setPopupNumber] = useState(null);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [activePage, setActivePage] = useState('roulette');
-
-  // --- INÍCIO DAS CORREÇÕES ---
   
-  // 2. Criar a ref e o estado para o raio
+  // Estados para o lançamento do jogo
+  const [isLaunching, setIsLaunching] = useState(false);
+  const [launchError, setLaunchError] = useState('');
+  
+  // *** NOVO ESTADO ***
+  // Armazena a URL do jogo para exibir no iframe
+  const [gameUrl, setGameUrl] = useState('');
+
   const greenBaseRef = useRef(null);
-  // Começa com 160 (valor original) e será atualizado
   const [dynamicRadius, setDynamicRadius] = useState(160);
 
-  // 3. useEffect para medir o contêiner e atualizar o raio
+  // Check Auth -- MODIFICADO --
+  useEffect(() => {
+    const token = localStorage.getItem('authToken'); // Este agora é o JWT
+    const email = localStorage.getItem('userEmail');
+    const brand = localStorage.getItem('userBrand');
+    if (token) {
+      setIsAuthenticated(true);
+      setJwtToken(token); // Carrega o JWT no estado
+      setUserInfo({ email, brand });
+    }
+    setCheckingAuth(false);
+  }, []);
+
+  // Login Handler -- MODIFICADO --
+  const handleLoginSuccess = (data) => {
+    setIsAuthenticated(true);
+    setJwtToken(data.jwt); // Armazena o JWT do login no estado
+    setUserInfo({
+      email: localStorage.getItem('userEmail'),
+      brand: localStorage.getItem('userBrand'),
+      ...data
+    });
+  };
+
+  // Logout Handler -- MODIFICADO --
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userBrand');
+    setIsAuthenticated(false);
+    setUserInfo(null);
+    setJwtToken(null); // Limpa o JWT do estado
+    setActivePage('roulette');
+    setGameUrl(''); // *** NOVO *** Garante que o jogo feche ao sair
+  };
+  
+  // *** NOVA FUNÇÃO ***
+  // Função para fechar o iframe do jogo e voltar ao dashboard
+  const handleCloseGame = useCallback(() => {
+    setGameUrl('');
+    setLaunchError(''); // Limpa erros de lançamento
+  }, []);
+
+  
+  // *** FUNÇÃO MODIFICADA ***
+  // Função para iniciar o jogo
+// Em App.jsx
+
+  // *** FUNÇÃO CORRIGIDA ***
+  const handleLaunchGame = async () => {
+    setIsLaunching(true);
+    setLaunchError('');
+
+    const gameId = ROULETTE_GAME_IDS[selectedRoulette];
+    
+    if (!gameId || !jwtToken) {
+      setLaunchError('Erro interno: ID do jogo ou Token não encontrado.');
+      setIsLaunching(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`/start-game/${gameId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${jwtToken}`
+        }
+      });
+
+      const rawResponseText = await response.text();
+
+      if (response.ok) {
+        try {
+          // Tenta converter o texto para JSON
+          const data = JSON.parse(rawResponseText);
+          
+          // --- INÍCIO DA CORREÇÃO ---
+          // Busca a URL no caminho correto, conforme o log:
+          const gameUrl = data?.launchOptions?.launch_options?.game_url;
+
+          if (gameUrl) {
+            // SUCESSO! Encontramos a URL
+            console.log("Sucesso: Encontrada game_url em data.launchOptions.launch_options.game_url");
+            setGameUrl(gameUrl); 
+          } else {
+            // É um JSON, mas sem a chave game_url no local esperado
+            console.warn("Aviso: Resposta JSON válida, mas 'game_url' não encontrada no caminho esperado.", data);
+            setLaunchError(data.description || data.message || 'Resposta JSON inválida (game_url ausente).');
+          }
+          // --- FIM DA CORREÇÃO ---
+
+        } catch (jsonError) {
+          // NÃO é um JSON.
+          console.error("Erro: Resposta não é um JSON válido.", rawResponseText);
+          setLaunchError('Resposta inesperada (não-JSON) do servidor.');
+        }
+      } else {
+        // A resposta foi 4xx ou 5xx
+        setLaunchError(`Erro ${response.status}: ${rawResponseText}`);
+      }
+    } catch (err) {
+      console.error('Erro de fetch ao iniciar jogo:', err);
+      setLaunchError('Erro de conexão. O servidor (porta 3000) está rodando?');
+    } finally {
+      setIsLaunching(false);
+    }
+  };
+
+
   useEffect(() => {
     const calculateRadius = () => {
       if (greenBaseRef.current) {
         const greenBaseWidth = greenBaseRef.current.clientWidth;
-        // O raio original (160) era ~87.9% do raio da base verde (que era ~182px)
-        // (420px .wood-border - 2*(1rem + 0.75rem) padding) / 2 = 182px
-        // Mantemos essa proporção para que os números fiquem dentro da borda
         const newRadius = (greenBaseWidth / 2) * 0.879;
         setDynamicRadius(newRadius);
       }
     };
-
-    calculateRadius(); // Calcular ao montar
-    window.addEventListener('resize', calculateRadius); // Recalcular ao redimensionar
-
-    // Limpar o listener ao desmontar
+    calculateRadius();
+    window.addEventListener('resize', calculateRadius);
     return () => window.removeEventListener('resize', calculateRadius);
-  }, []); // Array vazio garante que rode apenas ao montar/desmontar
+  }, []);
 
-  // --- FIM DAS CORREÇÕES ---
-
-
-  // Busca o histórico da API
   const fetchHistory = useCallback(async () => {
     try {
+      // URL relativa para usar o proxy no mesmo host (porta 3000)
       const response = await fetch(`/api/full-history?source=${selectedRoulette}`);
       if (!response.ok) throw new Error(`Erro na API: ${response.statusText}`);
       const data = await response.json();
-
       const convertedData = data.map(item => {
         const num = parseInt(item.signal, 10);
         return {
@@ -879,45 +814,40 @@ const App = () => {
           date: item.timestamp
         };
       });
-
       setSpinHistory(convertedData);
       setSelectedResult(convertedData[0] || null);
     } catch (error) {
-      console.error("Erro ao buscar histórico:", error);
+      console.error("Erro:", error);
       setSpinHistory([]);
       setSelectedResult(null);
     }
   }, [selectedRoulette]);
 
-  // Efeito para buscar dados ao montar e a cada 5 segundos
   useEffect(() => {
+    if (!isAuthenticated) return;
     fetchHistory();
     const intervalId = setInterval(fetchHistory, 5000);
     return () => clearInterval(intervalId);
-  }, [fetchHistory]);
+  }, [fetchHistory, isAuthenticated]);
 
-  // Abre o popup de análise de número
   const handleNumberClick = useCallback((number) => {
     setPopupNumber(number);
     setIsPopupOpen(true);
   }, []);
 
-  // Fecha o popup
   const closePopup = useCallback(() => {
     setIsPopupOpen(false);
     setPopupNumber(null);
   }, []);
 
-  // Calcula estatísticas básicas para o dashboard lateral
+  // ... (useMemo para stats e popupStats permanece o mesmo) ...
   const stats = useMemo(() => {
     const totalSpins = spinHistory.length;
     if (totalSpins === 0) return { totalSpins: 0, colorFrequencies: { red: '0.0', black: '0.0', green: '0.0' }, latestNumbers: [] };
-
     const colorCounts = spinHistory.reduce((acc, curr) => {
       acc[curr.color] = (acc[curr.color] || 0) + 1;
       return acc;
     }, {});
-
     return {
       totalSpins,
       colorFrequencies: {
@@ -929,39 +859,25 @@ const App = () => {
     };
   }, [spinHistory]);
 
-  // Calcula estatísticas detalhadas para o popup
   const popupStats = useMemo(() => {
     if (popupNumber === null || !isPopupOpen) return null;
-
     const occurrences = [];
     spinHistory.forEach((spin, index) => {
-      if (spin.number === popupNumber) {
-        occurrences.push({ index });
-      }
+      if (spin.number === popupNumber) occurrences.push({ index });
     });
-
     const count = occurrences.length;
     const totalSpins = spinHistory.length;
     const frequency = totalSpins > 0 ? ((count / totalSpins) * 100).toFixed(2) : '0.00';
-
     const nextOccurrences = occurrences.slice(0, 5).map(occ => {
       const prevSpins = spinHistory.slice(occ.index + 1, occ.index + 1 + 5).map(s => s.number);
-      return {
-        spinsAgo: occ.index + 1,
-        prevSpins: prevSpins,
-      };
+      return { spinsAgo: occ.index + 1, prevSpins };
     });
-
     return {
-      count,
-      frequency,
-      nextOccurrences,
-      totalSpins,
+      count, frequency, nextOccurrences, totalSpins,
       lastHitAgo: occurrences.length > 0 ? occurrences[0].index + 1 : null
     };
   }, [popupNumber, isPopupOpen, spinHistory]);
 
-  // Calcula a posição de um número na roda visual
   const getNumberPosition = useCallback((number, radius) => {
     const index = rouletteNumbers.indexOf(number);
     if (index === -1) return { x: 0, y: 0, angle: 0 };
@@ -971,86 +887,147 @@ const App = () => {
     return { x, y, angle };
   }, []);
 
-  // Calcula a posição da bola (baseado no último resultado)
   const ballPosition = useMemo(() => {
     if (selectedResult === null) return null;
-    
-    // 4. Usar o dynamicRadius em vez de 160
     return getNumberPosition(selectedResult.number, dynamicRadius);
-    
-    // 5. Adicionar dynamicRadius às dependências
   }, [selectedResult, getNumberPosition, dynamicRadius]);
-  
-  // 6. Calcular tamanho dinâmico para o display central
-  // (160 * 0.625 = 100px, o tamanho original)
-  const centerDisplaySize = dynamicRadius * 0.625; 
-  // (100 * 0.56 = 56px, que é 3.5rem * 16px/rem, o font-size original)
-  const centerFontSize = centerDisplaySize * 0.56; 
 
+  const centerDisplaySize = dynamicRadius * 0.625;
+  const centerFontSize = centerDisplaySize * 0.56;
+
+  if (checkingAuth) {
+    // ... (JSX de carregamento permanece o mesmo) ...
+    return (
+      <div style={{
+        minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'linear-gradient(135deg, #064e3b 0%, #065f46 50%, #064e3b 100%)',
+        color: 'white', fontSize: '1.5rem'
+      }}>
+        Carregando...
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Login onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  // Renderiza o dashboard normal (o jogo agora aparece dentro do layout)
   return (
     <>
-      <NotificationCenter />
       <GlobalStyles />
-
-      {/* BARRA DE NAVEGAÇÃO ENTRE PÁGINAS */}
+      {/* Navbar */}
       <div style={{
-        background: '#111827',
-        padding: '0.75rem 2rem',
-        display: 'flex',
-        justifyContent: 'center',
-        gap: '1rem',
-        borderBottom: '3px solid #a16207'
+        className:'navbar',
+        background: '#111827', padding: '0.75rem 2rem', display: 'flex',
+        justifyContent: 'space-between', alignItems: 'center', gap: '1rem', borderBottom: '3px solid #a16207'
       }}>
-        <button
-          onClick={() => setActivePage('roulette')}
-          style={activePage === 'roulette' ? activeTabStyle : inactiveTabStyle}
-        >
-          <Settings size={18} /> Roleta Detalhada
-        </button>
-        <button
-          onClick={() => setActivePage('master')}
-          style={activePage === 'master' ? activeTabStyle : inactiveTabStyle}
-        >
-          <CheckSquare size={18} /> Painel Master
-        </button>
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <button onClick={() => setActivePage('roulette')}
+            style={activePage === 'roulette' ? activeTabStyle : inactiveTabStyle}>
+            <Settings size={18} /> Roleta Detalhada
+          </button>
+          <button onClick={() => setActivePage('master')}
+            style={activePage === 'master' ? activeTabStyle : inactiveTabStyle}>
+            <CheckSquare size={18} /> Painel Master
+          </button>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {userInfo && (
+            <div style={{
+              color: '#d1d5db', fontSize: '0.875rem', display: 'flex',
+              flexDirection: 'column', alignItems: 'flex-end'
+            }}>
+              <span style={{ fontWeight: 'bold', color: '#fde047' }}>{userInfo.email}</span>
+              <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                {userInfo.brand ? userInfo.brand.charAt(0).toUpperCase() + userInfo.brand.slice(1) : ''}
+              </span>
+            </div>
+          )}
+          <button onClick={handleLogout}
+            style={{
+              ...inactiveTabStyle, background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid #ef4444', color: '#ef4444', padding: '0.5rem 1rem'
+            }} title="Sair">
+            <LogOut size={18} /> Sair
+          </button>
+        </div>
       </div>
 
-      {/* Renderização Condicional da Página Ativa */}
+      {/* Pages */}
       {activePage === 'roulette' && (
         <div className="container">
-
-          {/* Coluna 1: Dashboard Lateral */}
           <div className="stats-dashboard">
-            <h3 className="dashboard-title">Estatísticas em Tempo Real</h3>
-
+            <h3 className="dashboard-title">Estatísticas e Ações</h3>
             <div className="stat-card">
               <h4 className="stat-title"><Layers size={20} /> Fonte de Dados</h4>
-              <select
-                className="roulette-selector"
-                value={selectedRoulette}
-                onChange={(e) => setSelectedRoulette(e.target.value)}
-              >
+              <select className="roulette-selector" value={selectedRoulette}
+                onChange={(e) => {
+                  setSelectedRoulette(e.target.value);
+                  setLaunchError(''); // Limpa o erro ao trocar de roleta
+                }}>
                 {Object.keys(ROULETTE_SOURCES).map(key => (
-                  <option key={key} value={key}>
-                    {ROULETTE_SOURCES[key]}
-                  </option>
+                  <option key={key} value={key}>{ROULETTE_SOURCES[key]}</option>
                 ))}
               </select>
               <div className="monitoring-badge">
                 <span style={{ fontSize: '1.2rem' }}>⚡</span>
                 Monitorando: {ROULETTE_SOURCES[selectedRoulette]}
               </div>
+              
+              {/* BOTÃO DE INICIAR JOGO */}
+              <button
+                onClick={handleLaunchGame}
+                disabled={isLaunching || !ROULETTE_GAME_IDS[selectedRoulette]}
+                title={!ROULETTE_GAME_IDS[selectedRoulette] ? "Este jogo não possui integração para iniciar." : `Iniciar ${ROULETTE_SOURCES[selectedRoulette]}`}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  marginTop: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  fontSize: '1rem',
+                  fontWeight: 'bold',
+                  color: '#111827',
+                  background: 'linear-gradient(90deg, #ca8a04 0%, #eab308 100%)',
+                  border: 'none',
+                  borderRadius: '0.5rem',
+                  cursor: (isLaunching || !ROULETTE_GAME_IDS[selectedRoulette]) ? 'not-allowed' : 'pointer',
+                  opacity: (isLaunching || !ROULETTE_GAME_IDS[selectedRoulette]) ? 0.6 : 1,
+                  transition: 'all 0.2s'
+                }}
+              >
+                {isLaunching ? (
+                  <>
+                    <div style={{ width: '1.25rem', height: '1.25rem', border: '2px solid #111827', borderTop: '2px solid transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                    Iniciando...
+                  </>
+                ) : (
+                  <>
+                    <PlayCircle size={20} />
+                    Iniciar {ROULETTE_SOURCES[selectedRoulette]}
+                  </>
+                )}
+              </button>
+              
+              {/* MENSAGEM DE ERRO */}
+              {launchError && (
+                <p style={{color: '#f87171', fontSize: '0.875rem', marginTop: '0.75rem', textAlign: 'center'}}>
+                  {launchError}
+                </p>
+              )}
             </div>
-
+            
             <hr className="divider" />
-
+            
+            {/* ... (Resto do stats-dashboard: Total de Sinais, Frequência, etc.) ... */}
             <div className="stat-card">
               <h4 className="stat-title"><BarChart3 size={20} /> Total de Sinais</h4>
               <p className="stat-value-lg">{stats.totalSpins}</p>
             </div>
-
             <hr className="divider" />
-
             <div className="stat-card">
               <h4 className="stat-title">Frequência de Cores</h4>
               <p className="stat-value-sm">Vermelho: <span style={{color: '#ef4444', fontWeight: 'bold'}}>{stats.colorFrequencies.red}%</span></p>
@@ -1058,179 +1035,148 @@ const App = () => {
               <p className="stat-value-sm">Zero: <span style={{color: '#10b981', fontWeight: 'bold'}}>{stats.colorFrequencies.green}%</span></p>
             </div>
           </div>
-
-          {/* Coluna 2: Roleta Visual e Painel de Análise */}
+          {/* ... (Resto do JSX da página 'roulette' permanece o mesmo) ... */}
           <div className="roulette-wrapper">
             <div className="roulette-and-results">
-              {/* Roleta Visual */}
               <div className="roulette-center">
                 <div className="wood-border">
                   <div className="gold-border">
-                  
-                    {/* 7. Adicionar a ref ao elemento .green-base */}
                     <div className="green-base" ref={greenBaseRef}>
-                    
                       {rouletteNumbers.map((number) => {
-                        
-                        // 8. Usar o dynamicRadius em vez de 160
                         const { x, y, angle } = getNumberPosition(number, dynamicRadius);
                         const color = getNumberColor(number);
                         return (
-                          <div
-                            key={number}
-                            className={`number-slot ${color}`}
+                          <div key={number} className={`number-slot ${color}`}
                             style={{
                               left: '50%', top: '50%',
                               transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) rotate(${angle}deg)`
                             }}
                             onClick={() => handleNumberClick(number)}
-                            title={`Analisar número ${number}`}
-                          >
+                            title={`Analisar número ${number}`}>
                             <span style={{ display: 'inline-block', transform: `rotate(-${angle}deg)` }}>
                               {number}
                             </span>
                           </div>
                         );
                       })}
-                      {/* Bola */}
                       {ballPosition && (
-                        <div
-                          className="ball"
+                        <div className="ball"
                           style={{
                             left: '50%', top: '50%',
                             transform: `translate(calc(-50% + ${ballPosition.x}px), calc(-50% + ${ballPosition.y}px))`
-                          }}
-                        />
+                          }} />
                       )}
-                      
-                      {/* --- INÍCIO: NÚMERO ATUAL NO CENTRO (CORRIGIDO) --- */}
                       {selectedResult !== null && (
-                        <div
-                          style={{
-                            position: 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                            // 9. Usar tamanhos dinâmicos
-                            width: `${centerDisplaySize}px`,
-                            height: `${centerDisplaySize}px`,
-                            borderRadius: '50%',
-                            background: selectedResult.color === 'red' ? '#dc2626' : 
-                                        selectedResult.color === 'black' ? '#1f2937' : '#15803d',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: `${centerFontSize}px`, // 9. Usar font-size dinâmico
-                            fontWeight: 'bold',
-                            color: 'white',
-                            border: '5px solid #fde047',
-                            boxShadow: 'inset 0 0 15px rgba(0,0,0,0.7), 0 5px 20px rgba(0,0,0,0.5)',
-                            zIndex: 5,
-                            textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
-                          }}
-                          title={`Último Número: ${selectedResult.number}`}
-                        >
+                        <div style={{
+                          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                          width: `${centerDisplaySize}px`, height: `${centerDisplaySize}px`, borderRadius: '50%',
+                          background: selectedResult.color === 'red' ? '#dc2626' :
+                                      selectedResult.color === 'black' ? '#1f2937' : '#15803d',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: `${centerFontSize}px`, fontWeight: 'bold', color: 'white',
+                          border: '5px solid #fde047',
+                          boxShadow: 'inset 0 0 15px rgba(0,0,0,0.7), 0 5px 20px rgba(0,0,0,0.5)',
+                          zIndex: 5, textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
+                        }} title={`Último Número: ${selectedResult.number}`}>
                           {selectedResult.number}
                         </div>
                       )}
-                      {/* --- FIM: NÚMERO ATUAL NO CENTRO --- */}
-
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Título e Tabela de Frequência abaixo da roleta */}
+            {/* Container do Jogo - Aparece abaixo da roleta quando gameUrl está definido */}
+            {gameUrl && (
+              <div className="game-container">
+                <div className="game-header">
+                  <h3 className="game-title">
+                    <PlayCircle size={24} />
+                    {ROULETTE_SOURCES[selectedRoulette]}
+                  </h3>
+                  <button 
+                    onClick={handleCloseGame} 
+                    className="game-close-btn"
+                    title="Fechar Jogo"
+                  >
+                    <X size={20} />
+                    Fechar
+                  </button>
+                </div>
+                <div className="game-iframe-wrapper">
+                  <iframe 
+                    src={gameUrl} 
+                    title="Jogo de Roleta" 
+                    className="game-iframe"
+                    allowFullScreen 
+                  />
+                </div>
+              </div>
+            )}
+                          <div style={{marginTop: '2rem', width: '100%', maxWidth: '800px'}}>
+                            {stats.totalSpins > 0 && <MasterDashboard spinHistory={spinHistory} />}
+                          </div>
+                          <div className="latest-results-compact">
+                            <h4 className="latest-results-title">
+                              <Clock size={20} /> Últimos Resultados (100)
+                            </h4>
+                            <div className="results-grid">
+                              {stats.latestNumbers.map((result, index) => (
+                                <div key={index} className={`result-number-box ${result.color}`}
+                                  onClick={() => handleNumberClick(result.number)}
+                                  title={`Spin #${stats.totalSpins - index}`}>
+                                  {result.number}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
               <div className="title-section">
                 <h1 className="main-title">Dashboard Analítico de Roleta</h1>
                 <p className="subtitle">{ROULETTE_SOURCES[selectedRoulette]}</p>
               </div>
 
-              {/* Painel Master abaixo da roleta */}
-              <div style={{marginTop: '2rem', width: '100%', maxWidth: '800px'}}>
-                {stats.totalSpins > 0 && <MasterDashboard spinHistory={spinHistory} />}
-              </div>
               <div style={{marginTop: '1rem', width: '100%', maxWidth: '600px'}}>
                 {stats.totalSpins > 0 && <FrequencyTable spinHistory={spinHistory} />}
               </div>
-
             </div>
 
-            {/* Últimos Resultados (100) - Ao lado da roleta */}
-            <div className="latest-results-compact">
-              <h4 className="latest-results-title">
-                <Clock size={20} />
-                Últimos Resultados (100)
-              </h4>
-              <div className="results-grid">
-                {stats.latestNumbers.map((result, index) => (
-                  <div
-                    key={index}
-                    className={`result-number-box ${result.color}`}
-                    onClick={() => handleNumberClick(result.number)}
-                    title={`Spin #${stats.totalSpins - index}`}
-                  >
-                    {result.number}
-                  </div>
-                ))}
-              </div>
-            </div>
+
           </div>
-
         </div>
       )}
 
-      {/* Renderização Condicional da Página Master */}
       {activePage === 'master' && (
         <div style={{
-            padding: '2rem',
-            background: 'linear-gradient(135deg, #064e3b 0%, #065f46 50%, #064e3b 100%)',
-            minHeight: 'calc(100vh - 65px)'
+          padding: '2rem',
+          background: 'linear-gradient(135deg, #064e3b 0%, #065f46 50%, #064e3b 100%)',
+          minHeight: 'calc(100vh - 65px)'
         }}>
-            <MasterDashboard spinHistory={spinHistory} />
+          <MasterDashboard spinHistory={spinHistory} />
         </div>
       )}
 
-      {/* Popup de Análise de Número */}
       <NumberStatsPopup isOpen={isPopupOpen} onClose={closePopup} number={popupNumber} stats={popupStats} />
     </>
   );
 };
 
-// Estilos para os Botões de Navegação
+// ... (activeTabStyle e inactiveTabStyle permanecem os mesmos) ...
 const activeTabStyle = {
-  padding: '0.75rem 1.5rem',
-  background: 'linear-gradient(135deg, #ca8a04, #eab308)',
-  color: '#111827',
-  border: 'none',
-  borderRadius: '0.5rem',
-  cursor: 'pointer',
-  fontWeight: 'bold',
-  fontSize: '1rem',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.5rem',
-  boxShadow: '0 4px 10px rgba(202, 138, 4, 0.4)',
-  transition: 'all 0.2s'
+  padding: '0.75rem 1.5rem', background: 'linear-gradient(135deg, #ca8a04, #eab308)',
+  color: '#111827', border: 'none', borderRadius: '0.5rem', cursor: 'pointer',
+  fontWeight: 'bold', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem',
+  boxShadow: '0 4px 10px rgba(202, 138, 4, 0.4)', transition: 'all 0.2s'
 };
 
 const inactiveTabStyle = {
-  padding: '0.75rem 1.5rem',
-  background: 'rgba(255, 255, 255, 0.05)',
-  color: '#d1d5db',
-  border: '1px solid #4b5563',
-  borderRadius: '0.5rem',
-  cursor: 'pointer',
-  fontWeight: 'bold',
-  fontSize: '1rem',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.5rem',
+  padding: '0.75rem 1.5rem', background: 'rgba(255, 255, 255, 0.05)', color: '#d1d5db',
+  border: '1px solid #4b5563', borderRadius: '0.5rem', cursor: 'pointer',
+  fontWeight: 'bold', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem',
   transition: 'all 0.2s'
 };
 
-// Popup de Análise de Número
-// (Componente NumberStatsPopup permanece idêntico)
+// ... (Componente NumberStatsPopup permanece o mesmo) ...
 const NumberStatsPopup = ({ isOpen, onClose, number, stats }) => {
   if (!isOpen || !stats) return null;
   const color = getNumberColor(number);
@@ -1257,7 +1203,6 @@ const NumberStatsPopup = ({ isOpen, onClose, number, stats }) => {
           <div className="info-card">
             <p className="info-label"><Clock size={18} /> Última Vez:</p>
             <p className="info-value">{stats.lastHitAgo !== null ? `${stats.lastHitAgo} spins atrás` : 'Nunca'}</p>
-
           </div>
           <div className="info-card">
             <p className="info-label">Cor:</p>
@@ -1272,7 +1217,8 @@ const NumberStatsPopup = ({ isOpen, onClose, number, stats }) => {
                 <p className="next-spins-label">Ocorrência #{stats.count - index} ({occ.spinsAgo} spins atrás)</p>
                 <div className="next-numbers-list">
                   {occ.prevSpins.length > 0 ? occ.prevSpins.map((num, i) => (
-                    <span key={i} className={`next-number ${getNumberColor(num)}`} title={`Spin #${stats.totalSpins - (occ.spinsAgo + i)} (${5-i}º Spin ANTES)`}>
+                    <span key={i} className={`next-number ${getNumberColor(num)}`}
+                      title={`Spin #${stats.totalSpins - (occ.spinsAgo + i)} (${5-i}º Spin ANTES)`}>
                       {num}
                     </span>
                   )) : <span style={{color: '#9ca3af', fontStyle: 'italic'}}>Início do histórico</span>}

@@ -95,6 +95,42 @@ const MasterDashboard = ({ spinHistory }) => {
           <Target size={24} className={styles.infoIcon} />
           <h4 className={styles['card-title']}>PAINEL MASTER - STATUS GERAL</h4>
         </div>
+        {/* 3. SINAL DE ENTRADA (Se existir) */}
+        {entrySignal && !isSignalAccepted && (
+          <div className={styles.entrySignalCard}>
+            <div className={styles['strategy-header']} style={{ marginBottom: '1rem', borderBottomColor: '#10b981' }}>
+              <CheckCircle size={24} style={{ color: '#10b981' }} />
+              <h4 className={styles['card-title']} style={{ color: '#10b981' }}>SINAL DE ENTRADA CONFIRMADO!</h4>
+            </div>
+  
+            <p className={styles['card-concept']} style={{ textAlign: 'center', marginBottom: '1rem' }}>
+              Convergência de <strong>{entrySignal.convergence}</strong> estratégias detectada! ({entrySignal.reason})
+            </p>
+  
+            <div style={{ marginBottom: '1rem' }}>
+              <span className={styles['stat-label']} style={{ justifyContent: 'center', marginBottom: '0.5rem' }}>📊 Aposte em:</span>
+              <div style={{ textAlign: 'center' }}>
+                {entrySignal.suggestedNumbers.map(num => <NumberChip key={num} number={num} />)}
+              </div>
+            </div>
+  
+            <div className={styles['stats-grid']} style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: '1.5rem' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div className={styles['stat-label']} style={{ justifyContent: 'center' }}>💰 Sugestão</div>
+                <div className={styles['stat-value']} style={{ justifyContent: 'center' }}>5 unids</div> {/* Valor fixo por enquanto */}
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div className={styles['stat-label']} style={{ justifyContent: 'center' }}>🎯 Confiança</div>
+                <div className={styles['stat-value']} style={{ justifyContent: 'center' }}>{entrySignal.confidence.toFixed(0)}%</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div className={styles['stat-label']} style={{ justifyContent: 'center' }}>⏱️ Válido por</div>
+                <div className={styles['stat-value']} style={{ justifyContent: 'center' }}>{entrySignal.validFor} giros</div>
+              </div>
+            </div>
+  
+          </div>
+        )}
         <div className={styles['stat-row']}>
           <span className={styles['stat-label']}>Assertividade Global (Estratégias Ativas)</span>
           <span className={styles['stat-value']} style={{ fontSize: '1.2rem', color: '#fde047' }}>
@@ -121,42 +157,6 @@ const MasterDashboard = ({ spinHistory }) => {
         ))}
       </div>
 
-      {/* 3. SINAL DE ENTRADA (Se existir) */}
-      {entrySignal && !isSignalAccepted && (
-        <div className={styles.entrySignalCard}>
-          <div className={styles['strategy-header']} style={{ marginBottom: '1rem', borderBottomColor: '#10b981' }}>
-            <CheckCircle size={24} style={{ color: '#10b981' }} />
-            <h4 className={styles['card-title']} style={{ color: '#10b981' }}>SINAL DE ENTRADA CONFIRMADO!</h4>
-          </div>
-
-          <p className={styles['card-concept']} style={{ textAlign: 'center', marginBottom: '1rem' }}>
-            Convergência de <strong>{entrySignal.convergence}</strong> estratégias detectada! ({entrySignal.reason})
-          </p>
-
-          <div style={{ marginBottom: '1rem' }}>
-            <span className={styles['stat-label']} style={{ justifyContent: 'center', marginBottom: '0.5rem' }}>📊 Aposte em:</span>
-            <div style={{ textAlign: 'center' }}>
-              {entrySignal.suggestedNumbers.map(num => <NumberChip key={num} number={num} />)}
-            </div>
-          </div>
-
-          <div className={styles['stats-grid']} style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: '1.5rem' }}>
-            <div style={{ textAlign: 'center' }}>
-              <div className={styles['stat-label']} style={{ justifyContent: 'center' }}>💰 Sugestão</div>
-              <div className={styles['stat-value']} style={{ justifyContent: 'center' }}>5 unids</div> {/* Valor fixo por enquanto */}
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div className={styles['stat-label']} style={{ justifyContent: 'center' }}>🎯 Confiança</div>
-              <div className={styles['stat-value']} style={{ justifyContent: 'center' }}>{entrySignal.confidence.toFixed(0)}%</div>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div className={styles['stat-label']} style={{ justifyContent: 'center' }}>⏱️ Válido por</div>
-              <div className={styles['stat-value']} style={{ justifyContent: 'center' }}>{entrySignal.validFor} giros</div>
-            </div>
-          </div>
-
-        </div>
-      )}
 
        {/* Mensagem se o sinal foi aceito */}
        {isSignalAccepted && (
