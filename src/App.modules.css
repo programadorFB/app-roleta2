@@ -18,6 +18,20 @@ html { /* <-- ADICIONE ESTA REGRA */
 /* ========================================
    HEADER DE NAVEGAÇÃO
    ======================================== */
+.navbar{
+  width: 50%;
+}
+/* Container Responsivo para Iframe */
+.iframe-wrapper {
+  width: 10%;
+  max-width: 800px;
+  margin: 0 auto;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  border: 3px solid #a16207;
+  background: #000;
+}
 .app-header {
   background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
   padding: 1rem 2rem;
@@ -474,8 +488,7 @@ html { /* <-- ADICIONE ESTA REGRA */
 
 @media (max-width: 480px) {
   .iframe-wrapper {
-    padding-bottom: 100%; /* Mais quadrado em telas pequenas */
-  }
+  height: max-content;}
 }
 
 /* Roleta Visual */
@@ -1176,17 +1189,24 @@ html { /* <-- ADICIONE ESTA REGRA */
     padding: 0.65rem 1.25rem;
     font-size: 0.9rem;
   }
+  .game-container {
+    margin-top:0rem;
+    width: 430px;
+    
+  }
+  .game-iframe-wrapper {
+    position: relative;
+    width: 400px;
+    height: 650px;
+    margin-left: -2.5px;
+    padding-bottom: 56.25%; /* Proporção 16:9 */
+    background: #000;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+  }
 }
 
-.game-iframe-wrapper {
-  position: relative;
-  width: 100%;
-  padding-bottom: 56.25%; /* Proporção 16:9 */
-  background: #000;
-  border-radius: 0.5rem;
-  overflow: hidden;
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
-}
 
 @media (max-width: 1024px) {
   .game-iframe-wrapper {
@@ -1208,4 +1228,3 @@ html { /* <-- ADICIONE ESTA REGRA */
   height: 100%;
   border: none;
 }
-.navbar{width: 250px;}

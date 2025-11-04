@@ -5,7 +5,7 @@ import { NotificationProvider } from './contexts/NotificationContext'; // <-- Im
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <NotificationProvider> {/* <-- Envolva o App */}
+    <NotificationProvider> 
       <App />
     </NotificationProvider>
   </React.StrictMode>
