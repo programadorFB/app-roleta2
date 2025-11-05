@@ -1187,13 +1187,14 @@ html { /* <-- ADICIONE ESTA REGRA */
     font-size: 0.9rem;
   }
   .game-container {
+    height: 820px;
     margin-top: 0rem;
     width: 100%; /* <-- CORRIGIDO */
     margin-left: 0; /* <-- CORRIGIDO */
     padding: 1rem;
   }
   .game-iframe-wrapper {
-    /* height: 650px; <-- REMOVIDO */
+    height: 650px;
     padding-bottom: 150%; /* Proporção 2:3 (mais alta para mobile) */
   }
 }
