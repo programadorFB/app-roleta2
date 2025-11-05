@@ -975,16 +975,7 @@ const handleLaunchGame = async () => {
         background: '#111827', padding: '0.75rem 2rem', display: 'flex',
         justifyContent: 'space-between', alignItems: 'center', gap: '1rem', borderBottom: '3px solid #a16207'
       }}>
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          <button onClick={() => setActivePage('roulette')}
-            style={activePage === 'roulette' ? activeTabStyle : inactiveTabStyle}>
-            <Settings size={18} /> Roleta Detalhada
-          </button>
-          <button onClick={() => setActivePage('master')}
-            style={activePage === 'master' ? activeTabStyle : inactiveTabStyle}>
-            <CheckSquare size={18} /> Painel Master
-          </button>
-        </div>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           {userInfo && (
             <div style={{
