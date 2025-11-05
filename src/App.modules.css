@@ -1170,26 +1170,31 @@ html { /* <-- ADICIONE ESTA REGRA */
   box-shadow: 0 6px 15px rgba(239, 68, 68, 0.4);
 }
 
+/* NOVA REGRA BASE ADICIONADA */
+.game-iframe-wrapper {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%; /* Proporção 16:9 (Default) */
+  background: #000;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
 @media (max-width: 480px) {
   .game-close-btn {
     padding: 0.65rem 1.25rem;
     font-size: 0.9rem;
   }
   .game-container {
-    margin-top:0rem;
-    width: 410px;
-    margin-left: -11.5px;
+    margin-top: 0rem;
+    width: 100%; /* <-- CORRIGIDO */
+    margin-left: 0; /* <-- CORRIGIDO */
     padding: 1rem;
   }
   .game-iframe-wrapper {
-    position: relative;
-    width: 100%;
-    height: 650px;
-    padding-bottom: 56.25%; /* Proporção 16:9 */
-    background: #000;
-    border-radius: 0.5rem;
-    overflow: hidden;
-    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+    /* height: 650px; <-- REMOVIDO */
+    padding-bottom: 150%; /* Proporção 2:3 (mais alta para mobile) */
   }
 }
 

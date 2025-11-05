@@ -1,7 +1,7 @@
-// App.jsx (Atualizado para abrir o jogo em um iframe)
+// App.jsx (Corrigido)
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 // ... (ícones importados permanecem os mesmos)
-import { X, BarChart3, Clock, Hash, Percent, Layers, CheckSquare, Settings, LogOut, Lock, Mail, AlertCircle, PlayCircle } from 'lucide-react'; // Adicionei PlayCircle
+import { X, BarChart3, Clock, Hash, Percent, Layers, CheckSquare, Settings, LogOut, Lock, Mail, AlertCircle, PlayCircle, Filter } from 'lucide-react'; // Adicionei PlayCircle e Filter
 import FrequencyTable from './components/FrequencyTable';
 import NotificationCenter from './components/NotificationCenter.jsx';
 import MasterDashboard from './pages/MasterDashboard.jsx';
@@ -648,6 +648,14 @@ const ROULETTE_GAME_IDS = {
   vipauto: 31     // Auto Roulette Vip
 };
 
+// *** NOVO *** - Opções para o filtro
+const filterOptions = [
+  { value: 'all', label: 'Histórico Completo' },
+  { value: 100, label: 'Últimos 100 spins' },
+  { value: 250, label: 'Últimos 250 spins' },
+  { value: 500, label: 'Últimos 500 spins' },
+];
+
 // Main App
 const App = () => {
   // Auth States
@@ -671,6 +679,10 @@ const App = () => {
   // *** NOVO ESTADO ***
   // Armazena a URL do jogo para exibir no iframe
   const [gameUrl, setGameUrl] = useState('');
+
+  // *** NOVOS ESTADOS ***
+  const [historyFilter, setHistoryFilter] = useState(100); // Filtro (default 100)
+  const [entrySignals, setEntrySignals] = useState([]); // Para o MasterDashboard
 
   const greenBaseRef = useRef(null);
   const [dynamicRadius, setDynamicRadius] = useState(160);
@@ -891,6 +903,15 @@ const handleLaunchGame = async () => {
     };
   }, [spinHistory]);
 
+  // *** NOVO *** - Histórico filtrado com base no seletor
+  const filteredSpinHistory = useMemo(() => {
+    if (historyFilter === 'all') {
+      return spinHistory;
+    }
+    return spinHistory.slice(0, historyFilter);
+  }, [spinHistory, historyFilter]);
+
+
   const popupStats = useMemo(() => {
     if (popupNumber === null || !isPopupOpen) return null;
     const occurrences = [];
@@ -989,25 +1010,56 @@ const handleLaunchGame = async () => {
       {/* Pages */}
       {activePage === 'roulette' && (
         <div className="container">
+          
+          {/* === COLUNA 1: SIDEBAR ESQUERDA === */}
           <div className="stats-dashboard">
             <h3 className="dashboard-title">Estatísticas e Ações</h3>
             <div className="stat-card">
-              <h4 className="stat-title"><Layers size={20} /> Fonte de Dados</h4>
-              <select className="roulette-selector" value={selectedRoulette}
-                onChange={(e) => {
-                  setSelectedRoulette(e.target.value);
-                  setLaunchError(''); // Limpa o erro ao trocar de roleta
-                }}>
-                {Object.keys(ROULETTE_SOURCES).map(key => (
-                  <option key={key} value={key}>{ROULETTE_SOURCES[key]}</option>
-                ))}
-              </select>
-              <div className="monitoring-badge">
-                <span style={{ fontSize: '1.2rem' }}>⚡</span>
-                Monitorando: {ROULETTE_SOURCES[selectedRoulette]}
+
+              <div style={{
+                display: 'flex',
+                gap: '1rem',
+                alignItems: 'flex-start',
+                marginBottom: '1rem'
+              }}>
+                
+                <div style={{ flex: 1 }}>
+                  <h4 className="stat-title" style={{ 
+                    marginBottom: '0.75rem', 
+                    justifyContent: 'flex-start'
+                  }}>
+                    <Layers size={20} /> Fonte de Dados
+                  </h4>
+                  <select className="roulette-selector" value={selectedRoulette}
+                    onChange={(e) => {
+                      setSelectedRoulette(e.target.value);
+                      setLaunchError('');
+                    }}>
+                    {Object.keys(ROULETTE_SOURCES).map(key => (
+                      <option key={key} value={key}>{ROULETTE_SOURCES[key]}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ flex: 1 }}>
+                  <h4 className="stat-title" style={{ 
+                    marginBottom: '0.75rem', 
+                    justifyContent: 'flex-start'
+                  }}>
+                    <Filter size={20} /> Filtro de Análise
+                  </h4>
+                  <select 
+                    className="roulette-selector" 
+                    value={historyFilter}
+                    onChange={(e) => setHistoryFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                  >
+                    {filterOptions.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              
-              {/* BOTÃO DE INICIAR JOGO */}
+
               <button
                 onClick={handleLaunchGame}
                 disabled={isLaunching || !ROULETTE_GAME_IDS[selectedRoulette]}
@@ -1015,7 +1067,6 @@ const handleLaunchGame = async () => {
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem',
-                  marginTop: '1rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1044,7 +1095,6 @@ const handleLaunchGame = async () => {
                 )}
               </button>
               
-              {/* MENSAGEM DE ERRO */}
               {launchError && (
                 <p style={{color: '#f87171', fontSize: '0.875rem', marginTop: '0.75rem', textAlign: 'center'}}>
                   {launchError}
@@ -1053,130 +1103,100 @@ const handleLaunchGame = async () => {
             </div>
             
             <hr className="divider" />
-            
-            {/* ... (Resto do stats-dashboard: Total de Sinais, Frequência, etc.) ... */}
+
+            {/* Tabela de Frequência movida para a sidebar */}
             <div className="stat-card">
-              <h4 className="stat-title"><BarChart3 size={20} /> Total de Sinais</h4>
-              <p className="stat-value-lg">{stats.totalSpins}</p>
+              <h4 className="stat-title" style={{ justifyContent: 'flex-start' }}>
+                <BarChart3 size={20} /> Frequência (Todos)
+              </h4>
+              {stats.totalSpins > 0 ? (
+                <FrequencyTable spinHistory={spinHistory} />
+              ) : (
+                <p style={{color: '#9ca3af', fontSize: '0.875rem'}}>Aguardando dados...</p>
+              )}
             </div>
-            <hr className="divider" />
-            <div className="stat-card">
-              <h4 className="stat-title">Frequência de Cores</h4>
-              <p className="stat-value-sm">Vermelho: <span style={{color: '#ef4444', fontWeight: 'bold'}}>{stats.colorFrequencies.red}%</span></p>
-              <p className="stat-value-sm">Preto: <span style={{color: '#d1d5db', fontWeight: 'bold'}}>{stats.colorFrequencies.black}%</span></p>
-              <p className="stat-value-sm">Zero: <span style={{color: '#10b981', fontWeight: 'bold'}}>{stats.colorFrequencies.green}%</span></p>
-            </div>
+
           </div>
-          {/* ... (Resto do JSX da página 'roulette' permanece o mesmo) ... */}
+          {/* === FIM DA COLUNA 1 === */}
+
+
+          {/* === COLUNA 2: CONTEÚDO CENTRAL === */}
           <div className="roulette-wrapper">
+
+            {/* Sub-coluna 1: Conteúdo Principal */}
             <div className="roulette-and-results">
-              <div className="roulette-center">
-                <div className="wood-border">
-                  <div className="gold-border">
-                    <div className="green-base" ref={greenBaseRef}>
-                      {rouletteNumbers.map((number) => {
-                        const { x, y, angle } = getNumberPosition(number, dynamicRadius);
-                        const color = getNumberColor(number);
-                        return (
-                          <div key={number} className={`number-slot ${color}`}
-                            style={{
-                              left: '50%', top: '50%',
-                              transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) rotate(${angle}deg)`
-                            }}
-                            onClick={() => handleNumberClick(number)}
-                            title={`Analisar número ${number}`}>
-                            <span style={{ display: 'inline-block', transform: `rotate(-${angle}deg)` }}>
-                              {number}
-                            </span>
-                          </div>
-                        );
-                      })}
-                      {ballPosition && (
-                        <div className="ball"
-                          style={{
-                            left: '50%', top: '50%',
-                            transform: `translate(calc(-50% + ${ballPosition.x}px), calc(-50% + ${ballPosition.y}px))`
-                          }} />
-                      )}
-                      {selectedResult !== null && (
-                        <div style={{
-                          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                          width: `${centerDisplaySize}px`, height: `${centerDisplaySize}px`, borderRadius: '50%',
-                          background: selectedResult.color === 'red' ? '#dc2626' :
-                                      selectedResult.color === 'black' ? '#1f2937' : '#15803d',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: `${centerFontSize}px`, fontWeight: 'bold', color: 'white',
-                          border: '5px solid #fde047',
-                          boxShadow: 'inset 0 0 15px rgba(0,0,0,0.7), 0 5px 20px rgba(0,0,0,0.5)',
-                          zIndex: 5, textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
-                        }} title={`Último Número: ${selectedResult.number}`}>
-                          {selectedResult.number}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-            {/* Container do Jogo - Aparece abaixo da roleta quando gameUrl está definido */}
-            {gameUrl && (
-              <div className="game-container">
-                <div className="game-header">
-                  <h3 className="game-title">
-                    <PlayCircle size={24} />
-                    {ROULETTE_SOURCES[selectedRoulette]}
-                  </h3>
-                  <button 
-                    onClick={handleCloseGame} 
-                    className="game-close-btn"
-                    title="Fechar Jogo"
-                  >
-                    <X size={20} />
-                    Fechar
-                  </button>
-                </div>
-                <div className="game-iframe-wrapper">
-                  <iframe 
-                    src={gameUrl} 
-                    title="Jogo de Roleta" 
-                    className="game-iframe"
-                    allowFullScreen 
-                  />
-                </div>
-              </div>
-            )}
-                          <div style={{marginTop: '2rem', width: '100%', maxWidth: '800px'}}>
-                            {stats.totalSpins > 0 && <MasterDashboard spinHistory={spinHistory} />}
-                          </div>
-                          <div className="latest-results-compact">
-                            <h4 className="latest-results-title">
-                              <Clock size={20} /> Últimos Resultados (100)
-                            </h4>
-                            <div className="results-grid">
-                              {stats.latestNumbers.map((result, index) => (
-                                <div key={index} className={`result-number-box ${result.color}`}
-                                  onClick={() => handleNumberClick(result.number)}
-                                  title={`Spin #${stats.totalSpins - index}`}>
-                                  {result.number}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
+              
               <div className="title-section">
                 <h1 className="main-title">Dashboard Analítico de Roleta</h1>
                 <p className="subtitle">{ROULETTE_SOURCES[selectedRoulette]}</p>
               </div>
 
-              <div style={{marginTop: '1rem', width: '100%', maxWidth: '600px'}}>
-                {stats.totalSpins > 0 && <FrequencyTable spinHistory={spinHistory} />}
+              {/* Container do Jogo - Aparece aqui quando gameUrl está definido */}
+              {gameUrl && (
+                <div className="game-container" style={{marginTop: '2rem', width: '100%'}}>
+                  <div className="game-header">
+                    <h3 className="game-title">
+                      <PlayCircle size={24} />
+                      {ROULETTE_SOURCES[selectedRoulette]}
+                    </h3>
+                    <button 
+                      onClick={handleCloseGame} 
+                      className="game-close-btn"
+                      title="Fechar Jogo"
+                    >
+                      <X size={20} />
+                      Fechar
+                    </button>
+                  </div>
+                  <div className="game-iframe-wrapper">
+                    <iframe 
+                      src={gameUrl} 
+                      title="Jogo de Roleta" 
+                      className="game-iframe"
+                      allowFullScreen 
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Master Dashboard (agora no local correto) */}
+              <div style={{marginTop: '2rem', width: '100%', maxWidth: '800px'}}>
+                {filteredSpinHistory.length >= 50 ? (
+                  <MasterDashboard 
+                    spinHistory={filteredSpinHistory} 
+                    onSignalUpdate={setEntrySignals}
+                  />
+                ) : (
+                  <div className="stat-card" style={{background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', border: '1px solid rgba(253, 224, 71, 0.2)', color: '#9ca3af', padding: '2rem', textAlign: 'center'}}>
+                    Aguardando {50 - filteredSpinHistory.length} spins (no filtro atual) para iniciar o Master Dashboard...
+                  </div>
+                )}
               </div>
             </div>
 
+            {/* Sub-coluna 2: Barra Lateral de Resultados */}
+            <div className="latest-results-compact">
+              <h4 className="latest-results-title">
+                <Clock size={20} /> Últimos Resultados (100)
+              </h4>
+              <div className="results-grid">
+                {stats.latestNumbers.map((result, index) => (
+                  <div key={index} className={`result-number-box ${result.color}`}
+                    onClick={() => handleNumberClick(result.number)}
+                    title={`Spin #${stats.totalSpins - index}`}>
+                    {result.number}
+                  </div>
+                ))}
+              </div>
+            </div>
 
           </div>
+          {/* === FIM DA COLUNA 2 === */}
+
         </div>
       )}
+      {/* === FIM DA PÁGINA 'roulette' === */}
+
 
       {activePage === 'master' && (
         <div style={{
