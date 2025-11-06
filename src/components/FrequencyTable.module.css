@@ -2,7 +2,7 @@
 
 .container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #064e3b 100%);
+  /* background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #064e3b 100%); */
   padding: 2rem;
 }
 
@@ -12,7 +12,7 @@
 }
 
 .card {
-  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  /* background: linear-gradient(135deg, #1f2937 0%, #111827 100%); */
   border-radius: 1.5rem;
   padding: 2rem;
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);

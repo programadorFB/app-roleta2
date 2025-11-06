@@ -10,8 +10,8 @@ import { checkConvergenceAlert, checkPatternBrokenAlert } from '../services/aler
 import SectorsAnalysis from './SectorAnalysis';
 import NeighborAnalysis from './NeighborAnalysis';
 import TerminalAnalysis from './TerminalAnalysis';
-
 import AdvancedPatternsAnalysis from './AdvancedPatternsAnalysis';
+import FrequencyTable from './FrequencyTable'; // <-- 1. IMPORTADO AQUI
 
 import { UpdateCountdown } from './VisualIndicators';
 
@@ -129,11 +129,17 @@ const DeepAnalysisPanel = ({ spinHistory }) => {
             return acc;
         }, {});
 
-        const sleepers = Object.entries(lastSeenIndex)
-            .sort(([,a], [,b]) => (a === -1 ? -Infinity : a) - (b === -1 ? -Infinity : b))
+const sleepers = Object.entries(lastSeenIndex)
+            .sort(([,a], [,b]) => {
+                // Trata -1 (nunca saiu) como o valor mais "antigo" (totalSpins)
+                const aValue = (a === -1) ? totalSpins : a;
+                const bValue = (b === -1) ? totalSpins : b;
+                
+                // Ordena de forma descendente (maior "ago" primeiro)
+                return bValue - aValue;
+            })
             .map(([num, index]) => ({ num, ago: index === -1 ? totalSpins : index }))
             .slice(0, 5);
-
         return {
             hotNumbers, 
             sleepers, 
@@ -271,9 +277,37 @@ const DeepAnalysisPanel = ({ spinHistory }) => {
                         boxShadow: activeTab === 'statistics' ? '0 2px 8px rgba(202, 138, 4, 0.4)' : 'none'
                     }}
                 >
-                    <BarChart3 size={18} />
-                    Estatísticas
+                    {/* 2. ÍCONE DE ESTATÍSTICAS MUDADO */}
+                    <TrendingUp size={18} />
+                    Geral
                 </button>
+                
+                {/* 3. NOVA ABA DE FREQUÊNCIA ADICIONADA */}
+                <button
+                    onClick={() => setActiveTab('frequency')}
+                    style={{
+                        flex: 1,
+                        minWidth: '100px',
+                        padding: '0.75rem 0.5rem',
+                        background: activeTab === 'frequency' ? 'linear-gradient(135deg, #ca8a04, #eab308)' : 'rgba(255, 255, 255, 0.05)',
+                        color: activeTab === 'frequency' ? '#111827' : '#d1d5db',
+                        border: 'none',
+                        borderRadius: '0.5rem',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        fontSize: '0.9rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                        transition: 'all 0.2s',
+                        boxShadow: activeTab === 'frequency' ? '0 2px 8px rgba(202, 138, 4, 0.4)' : 'none'
+                    }}
+                >
+                    <BarChart3 size={18} />
+                    Frequência
+                </button>
+
                 <button
                     onClick={() => setActiveTab('neighbors')}
                     style={{
@@ -320,7 +354,7 @@ const DeepAnalysisPanel = ({ spinHistory }) => {
                     }}
                 >
                     <PieChart size={18} />
-                    Terminais
+                    Cavalos
                 </button>
        
                 <button
@@ -371,30 +405,7 @@ const DeepAnalysisPanel = ({ spinHistory }) => {
                     <Target size={18} />
                     Setores Secos
                 </button>
-                <button
-                    onClick={() => setActiveTab('visual')}
-                    style={{
-                        flex: 1,
-                        minWidth: '100px',
-                        padding: '0.75rem 0.5rem',
-                        background: activeTab === 'visual' ? 'linear-gradient(135deg, #ca8a04, #eab308)' : 'rgba(255, 255, 255, 0.05)',
-                        color: activeTab === 'visual' ? '#111827' : '#d1d5db',
-                        border: 'none',
-                        borderRadius: '0.5rem',
-                        cursor: 'pointer',
-                        fontWeight: 'bold',
-                        fontSize: '0.9rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.5rem',
-                        transition: 'all 0.2s',
-                        boxShadow: activeTab === 'visual' ? '0 2px 8px rgba(202, 138, 4, 0.4)' : 'none'
-                    }}
-                >
-                    <Info size={18} />
-                    Visual
-                </button>
+                
             </div>
 
             {/* Conteúdo da Aba */}
@@ -430,7 +441,7 @@ const DeepAnalysisPanel = ({ spinHistory }) => {
                                     Número <NumberChip number={parseInt(num)} />
                                 </span>
                                 <span className={styles['stat-value']}>
-                                    {ago} spins atrás
+                                    {ago} rodadas atrás
                                 </span>
                             </div>
                         ))}
@@ -500,6 +511,11 @@ const DeepAnalysisPanel = ({ spinHistory }) => {
                         </div>
                     </StatCard>
                 </>
+            )}
+            
+            {/* 4. CONTEÚDO DA NOVA ABA ADICIONADO */}
+            {activeTab === 'frequency' && (
+                <FrequencyTable spinHistory={spinHistory} />
             )}
 
             {activeTab === 'neighbors' && (

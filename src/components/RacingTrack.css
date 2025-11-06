@@ -1,24 +1,24 @@
 /* ========================================
-   RACING TRACK - ESTILO "FLAT" (IMAGEM)
+   RACING TRACK - ESTILO "DARK MODE" (IMAGEM)
    ======================================== */
 
 .racetrack-flat-container {
   width: 100%;
-  max-width: 1200px; /* Aumentado para acomodar o layout plano */
-  background: #065f46; /* Verde escuro da borda */
-  border-radius: 50px; /* Bordas bem arredondadas */
-  padding: 10px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  min-width: 70px; /* Reduzido para um visual mais compacto */
+  background: #1a1a1a; /* Fundo escuro */
+  border-radius: 60px; /* Bordas bem arredondadas */
+  padding: 0px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
   margin: 2rem auto;
   position: relative;
 }
 
 .racetrack-flat-inner {
-  display: flex; /* Estrutura principal: col-esquerda, col-centro, col-direita */
-  border: 3px solid white;
-  border-radius: 50px; /* Raio interno */
-  background: #16a34a; /* Fundo verde do centro */
-  overflow: hidden; /* Garante que os cantos dos números sejam cortados */
+  display: flex; 
+  border: 1px solid #555; /* Borda cinza escura */
+  border-radius: 30px; /* Raio interno */
+  background: #000; /* Miolo preto */
+  overflow: hidden; 
 }
 
 /* Colunas (Esquerda, Centro, Direita) */
@@ -28,12 +28,16 @@
 }
 
 .racetrack-flat-col.center {
-  flex: 1; /* Coluna central ocupa todo o espaço restante */
+  flex: 1; 
+  /* Adiciona a borda preta central para separar as linhas */
+  background: #000;
+  border-left: 1px solid #444;
+  border-right: 1px solid #444;
 }
 
 .racetrack-flat-col.left,
 .racetrack-flat-col.right {
-  flex-basis: 50px; /* Largura das colunas da curva */
+  flex-basis: 50px; 
 }
 
 /* Linhas (Superior, Inferior) */
@@ -44,32 +48,40 @@
 
 /* Caixa de Número Individual */
 .racetrack-flat-number {
-  flex: 2; /* Cada número ocupa espaço igual na linha */
+  flex: 1; /* <- Modificado para flex: 1 */
   padding: 12px 0;
-  color: white;
   font-weight: bold;
   font-size: 0.9rem;
   text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.5); /* Linha divisória */
+  border: 1px solid #444; 
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
   z-index: 10;
 }
 
-/* Cores */
-.racetrack-flat-number.red { background: #dc2626;color: white; }
-.racetrack-flat-number.black { background: #1f2937; color: white;}
-.racetrack-flat-number.green { background: #16a34a; color: white;}
+/* Cores (AGORA SÃO CORES DE TEXTO) */
+.racetrack-flat-number.red { 
+  background: transparent; 
+  color: #e53e3e; /* Vermelho */
+}
+.racetrack-flat-number.black { 
+  background: transparent; 
+  color: #fff; /* Branco */
+}
+.racetrack-flat-number.green { 
+  background: transparent; 
+  color: #38b2ac; /* Verde/Cyan */
+}
 
 /* Hover */
 .racetrack-flat-number:hover {
-  transform: scale(1.1);
+  background: #2d3748; /* Fundo cinza-azulado no hover */
   z-index: 20;
-  box-shadow: 0 0 15px rgba(255, 255, 255, 0.7);
+  transform: scale(1.05);
 }
 
-/* Ativo (Animação de Pulse) */
+/* Ativo (Animação de Pulse) - Mantido igual */
 .racetrack-flat-number.active {
   animation: pulse-number-flat 1.5s ease-in-out;
   border: 3px solid #fde047 !important;
@@ -89,55 +101,89 @@
   }
 }
 
+/* ========================================
+   SINAIS DE ENTRADA (FICHA DE ROLETA)
+   ======================================== */
+
+/* O elemento principal agora serve como container */
+.racetrack-flat-number.entry-signal-glow {
+  z-index: 90;
+  /* Garante que o número fique visível (caso a ficha tampe) */
+  /* Isso pode ser ajustado se preferir que a ficha tampe o número */
+  overflow: visible; 
+}
+
+/* A ficha é criada com o ::after */
+.racetrack-flat-number.entry-signal-glow::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  
+  /* Tamanho da ficha */
+  width: 24px; 
+  height: 24px;
+
+  /* Cor roxa do sinal */
+  /* background: #ffffff;  */
+  /* Borda branca da ficha */
+  border: 3px solid #ffffff; 
+  border-radius: 50%;
+  /* Sombra para profundidade */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); 
+  z-index: 100;
+
+  /* Animação de pulsação */
+  animation: chip-pulse 1.2s infinite;
+}
+
+
+/* ========================================
+   FIM DA MODIFICAÇÃO
+   ======================================== */
+
+
 /* Números das Curvas (Esquerda e Direita) */
 .racetrack-flat-col.left .racetrack-flat-number,
 .racetrack-flat-col.right .racetrack-flat-number {
-  flex: 1; /* Faz com que ocupem a altura da coluna */
+  flex: 1; 
   display: flex;
   align-items: center;
   justify-content: center;
-  writing-mode: vertical-rl; /* Gira o texto (opcional, mas ajuda) */
-  transform: rotate(180deg);
   padding: 0 10px;
+  /* Removemos a rotação para ficar igual à imagem */
+  writing-mode: unset; 
+  transform: none; 
+}
+
+/* Adiciona bordas arredondadas para simular a curva */
+.racetrack-flat-col.left .racetrack-flat-number:first-child {
+  border-top-left-radius: 46px; /* (50px do inner - 4px) */
+}
+.racetrack-flat-col.left .racetrack-flat-number:last-child {
+  border-bottom-left-radius: 46px;
+}
+.racetrack-flat-col.right .racetrack-flat-number:first-child {
+  border-top-right-radius: 46px;
+}
+.racetrack-flat-col.right .racetrack-flat-number:last-child {
+  border-bottom-right-radius: 46px;
+}
+
+/* Remove a borda interna das colunas de curva */
+.racetrack-flat-col.left .racetrack-flat-number {
+  border-right: none;
 }
 .racetrack-flat-col.right .racetrack-flat-number {
-   padding: 0 12px; /* Ajuste fino para o zero */
+  border-left: none;
 }
 
-
-/* Miolo Verde Central */
-.racetrack-flat-middle-green {
-  flex: 1; /* Ocupa o espaço entre as linhas de números */
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  padding: 1rem 0.5rem;
-  color: white;
-  font-weight: bold;
-  font-size: 0.9rem;
+/* Remove a borda interna entre os números da curva */
+.racetrack-flat-col.left .racetrack-flat-number:not(:last-child) {
+  border-bottom: none;
 }
-
-.sector-label-text {
-  padding: 0.5rem;
-}
-
-.sector-label-box.zero-label {
-  border: 3px solid #eab308; /* Borda amarela como na imagem */
-  border-radius: 50px; /* Borda oval */
-  padding: 0.4rem 1.2rem;
-}
-
-/* Label "Neighbours" */
-.neighbours-label-flat {
-  text-align: center;
-  width: fit-content;
-  margin: 1.5rem auto 0 auto;
-  padding: 0.5rem 1.5rem;
-  background: #374151; /* Cor escura */
-  border: 2px solid white;
-  color: white;
-  font-weight: bold;
-  border-radius: 4px;
+.racetrack-flat-col.right .racetrack-flat-number:not(:last-child) {
+  border-bottom: none;
 }
 
 /* ========================================
@@ -153,41 +199,70 @@
   .racetrack-flat-col.right {
     flex-basis: 40px;
   }
-  .racetrack-flat-middle-green {
-    font-size: 0.8rem;
-  }
-  .sector-label-box.zero-label {
-    padding: 0.3rem 1rem;
+  
+  .racetrack-flat-number.entry-signal-glow::after {
+    width: 18px;
+    height: 18px;
+    border-width: 2px;
   }
 }
-
+@media (max-width: 480px) {
+    .racetrack-flat-container {
+      width: 390px;
+     border-radius: 40px;
+     padding: 5px;
+     background-color: transparent;
+     margin-left: -10px;
+  }
+     .racetrack-flat-inner {
+     height: 100px;
+     width: 380px;
+  }
+}
 @media (max-width: 600px) {
   .racetrack-flat-container {
-     border-radius: 60px;
+     border-radius: 40px;
      padding: 5px;
   }
    .racetrack-flat-inner {
-     border-radius: 55px;
+     border-radius: 35px;
+  }
+  .racetrack-flat-col.left .racetrack-flat-number:first-child {
+    border-top-left-radius: 32px; 
+  }
+  .racetrack-flat-col.left .racetrack-flat-number:last-child {
+    border-bottom-left-radius: 32px;
+  }
+  .racetrack-flat-col.right .racetrack-flat-number:first-child {
+    border-top-right-radius: 32px;
+  }
+  .racetrack-flat-col.right .racetrack-flat-number:last-child {
+    border-bottom-right-radius: 32px;
   }
   .racetrack-flat-number {
     font-size: 0.6rem;
-    border: 1px solid rgba(255, 255, 255, 0.3);
     padding: 6px 0;
   }
   .racetrack-flat-col.left,
   .racetrack-flat-col.right {
     flex-basis: 30px;
   }
-  .racetrack-flat-middle-green {
-    font-size: 0.7rem;
-    flex-direction: column; /* Empilha labels em telas pequenas */
-    padding: 0.5rem 0;
+  
+  .racetrack-flat-number.entry-signal-glow::after {
+    width: 16px;
+    height: 16px;
+    border-width: 2px;
   }
-  .sector-label-box.zero-label {
-    padding: 0.2rem 0.8rem;
+}
+
+/* Animação para a ficha */
+@keyframes chip-pulse {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5), 0 0 10px rgba(239, 237, 240, 0.5);
   }
-  .neighbours-label-flat {
-    font-size: 0.8rem;
-    margin-top: 1rem;
+  50% {
+    transform: translate(-50%, -50%) scale(1.1);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.7), 0 0 20px rgba(168, 85, 247, 0,5);
   }
 }

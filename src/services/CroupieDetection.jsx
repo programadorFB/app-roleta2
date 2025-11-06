@@ -1,25 +1,5 @@
 // services/croupierDetection.js - VERSÃO MELHORADA
 
-/**
- * ANÁLISE PROFUNDA DOS PROBLEMAS ENCONTRADOS:
- * 
- * 1. SETORES MAL DEFINIDOS:
- *    - TM5 tem 7 números (29,7,28,12,35,3,26) enquanto outros têm 6
- *    - Isso cria desequilíbrio estatístico (TM5 tem vantagem de 16.67%)
- * 
- * 2. THRESHOLDS IRREALISTAS:
- *    - Esperado matemático: 16.22% (6/37) ou 18.92% (7/37)
- *    - Threshold de 25% é 54% acima do esperado!
- *    - 40% é 147% acima do esperado (improvável em amostra honesta)
- * 
- * 3. AMOSTRA PEQUENA:
- *    - 30 spins é estatisticamente insuficiente
- *    - Variância natural pode criar "padrões" falsos
- * 
- * 4. FALTA DE VALIDAÇÃO ESTATÍSTICA:
- *    - Não verifica se o padrão é estatisticamente significante
- *    - Não considera desvio padrão ou intervalo de confiança
- */
 
 // SETORES BALANCEADOS (6 números cada)
 export const SECTORS = {
@@ -221,7 +201,7 @@ const getNeighbors = (centerNumber, radius) => {
   return neighbors;
 };
 
-export const analyzeNeighborhood = (spinHistory, neighborRadius = 2, lookback = 75) => {
+export const analyzeNeighborhood = (spinHistory, neighborRadius = 2, lookback = 1000) => {
   
   const MINIMUM_SPINS = 50;
   

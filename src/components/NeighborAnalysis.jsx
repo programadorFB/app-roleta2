@@ -59,7 +59,7 @@ const getHeatColor = (accuracy) => {
     if (accuracy > 120) return '#f59e0b'; // Quente
     if (accuracy > 80) return '#6b7280';  // Normal
     if (accuracy > 50) return '#3b82f6';  // Frio
-    return '#1f2937'; // Congelado (fundo do painel)
+    return '#6922c7ff'; // Congelado (fundo do painel)
 };
 
 // --- Componente Principal da Análise de Vizinhança ---
@@ -119,7 +119,7 @@ const NeighborAnalysis = ({ spinHistory }) => {
       </h3>
 
       {/* REQ 2: Seletor de Raio */}
-      <StatCard title="Configuração da Análise" icon={<Gauge size={24} className={styles.infoIcon} />}>
+      <StatCard title="Quantidade de Vizinhos" icon={<Gauge size={24} className={styles.infoIcon} />}>
         <div className={styles['stat-row']}>
           <span className={styles['stat-label']}>Raio de Vizinhança</span>
           <select 
@@ -140,9 +140,9 @@ const NeighborAnalysis = ({ spinHistory }) => {
       </StatCard>
       
       {/* REQ 3: Gráfico de Calor Visual (Heatmap) */}
-      <StatCard title="Heatmap da Roda (por Precisão)" icon={<Target size={24} className={styles.warningIcon} />}>
+      <StatCard title="Mapa de Calor" icon={<Target size={24} className={styles.warningIcon} />}>
         <p className={styles['card-concept']} style={{fontSize: '0.85rem', textAlign: 'center', marginTop: '-0.5rem', marginBottom: '1rem'}}>
-          Clique em um número para ver a análise detalhada. (Vermelho = Quente, Azul = Frio)
+          Clique em um número para ver a análise detalhada. (🔴= Quente, 🟡= Morno, 🔵= Frio, 🟣=Inativo,⚪= normal )
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', justifyContent: 'center', background: 'rgba(0,0,0,0.2)', padding: '0.5rem', borderRadius: '0.5rem' }}>
           {PHYSICAL_WHEEL.map(num => {
@@ -271,18 +271,15 @@ const NeighborAnalysis = ({ spinHistory }) => {
           
           {/* REQ 4: Asymmetry & Momentum */}
           <div className={styles['stat-row']}>
-            <span className={styles['stat-label']}><ArrowLeftRight size={16} /> Assimetria (Esq vs Dir)</span>
+            <span className={styles['stat-label']}><ArrowLeftRight size={16} /> Esq vs Dir</span>
             <span className={styles['stat-value']}>
               {selectedPattern.asymmetry.leftRate.toFixed(1)}% vs {selectedPattern.asymmetry.rightRate.toFixed(1)}%
             </span>
           </div>
+          
           <div className={styles['stat-row']}>
-            <span className={styles['stat-label']}><TrendingUp size={16} /> Momentum</span>
-            <span className={styles['stat-value']}>{selectedPattern.momentum.label}</span>
-          </div>
-          <div className={styles['stat-row']}>
-            <span className={styles['stat-label']}><Clock size={16} /> Último Hit</span>
-            <span className={styles['stat-value']}>{selectedPattern.lastHitAgo} spins atrás</span>
+            <span className={styles['stat-label']}><Clock size={16} /> Último Acerto</span>
+            <span className={styles['stat-value']}>{selectedPattern.lastHitAgo} rodadas atrás</span>
           </div>
 
         </StatCard>

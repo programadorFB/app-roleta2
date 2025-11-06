@@ -4,26 +4,20 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  padding: 1rem;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  /* padding: 1rem; */
+
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  
 }
 
 /* === STRATEGY CARD - PAINEL PRINCIPAL === */
 .strategyCard {
-  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-  border: 1px solid rgba(253, 224, 71, 0.2);
+  
   border-radius: 12px;
-  padding: 0.5rem;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  transition: all 0.3s ease;
+  margin-top: -30px;
+    transition: all 0.3s ease;
 }
 
-.strategyCard:hover {
-  border-color: rgba(253, 224, 71, 0.4);
-  box-shadow: 0 8px 24px rgba(253, 224, 71, 0.1);
-}
 
 /* === HEADER === */
 .strategy-header {
@@ -33,18 +27,24 @@
   padding-bottom: 1rem;
   border-bottom: 2px solid rgba(253, 224, 71, 0.3);
   margin-bottom: 1rem;
+  
 }
 
 .card-title {
-  font-size: 1.1rem;
+  font-size: 1.0rem;
   font-weight: 700;
   color: #fde047;
   text-transform: uppercase;
   letter-spacing: 1px;
-  margin: 0;
+  margin-bottom: 16px;
+  margin-top: 16px;
   text-shadow: 0 2px 8px rgba(253, 224, 71, 0.3);
 }
-
+.card-title2{
+  margin-top: 15px;
+  font-size: small;
+  margin-left: 40px;
+}
 .infoIcon {
   color: #fde047;
   filter: drop-shadow(0 2px 4px rgba(253, 224, 71, 0.4));
@@ -64,7 +64,7 @@
 }
 
 .stat-label {
-  font-size: 0.95rem;
+  font-size: 0.5rem;
   color: #cbd5e1;
   font-weight: 500;
   display: flex;
@@ -72,7 +72,7 @@
 }
 
 .stat-value {
-  font-size: 1.1rem;
+  font-size: 0.5rem;
   font-weight: 700;
   color: #fde047;
   text-shadow: 0 2px 8px rgba(253, 224, 71, 0.3);
@@ -87,20 +87,21 @@
 /* === GRID DE ESTRATÉGIAS === */
 .masterGridContainer {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(10px, 0.5fr));
   gap: 1rem;
 }
 
 .strategyMiniCard {
-  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  padding-right: 10px;
   border-bottom: 3px solid;
   border-radius: 10px;
-  
-  display: flex;
-  width: 150px;
+  padding-left: 10px;
+    display: flex;
+  width: 61px;
+  backdrop-filter: blur(20px);
+  margin-left: -10px;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: unset;
   transition: all 0.3s ease;
   cursor: default;
 }
@@ -115,7 +116,7 @@
   align-items: center;
   gap: 0.5rem;
   color: #cbd5e1;
-  font-size: 0.7rem;
+  font-size: 0.5rem;
   font-weight: 600;
 }
 
@@ -124,14 +125,14 @@
 }
 
 .miniCardScore {
-  font-size: 1.0rem;
+  font-size: 0.8rem;
   font-weight: 700;
   text-align: center;
   text-shadow: 0 2px 8px currentColor;
 }
 
 .miniCardStatus {
-  font-size: 1.5rem;
+  font-size: 1.0rem;
   text-align: center;
 }
 
@@ -140,7 +141,7 @@
   background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
   border: 2px solid #10b981;
   border-radius: 12px;
-  padding: 1.5rem;
+  
   box-shadow: 0 8px 32px rgba(16, 185, 129, 0.3);
   animation: pulseGlow 2s ease-in-out infinite;
 }
@@ -156,7 +157,7 @@
 
 .card-concept {
   color: #e2e8f0;
-  font-size: 1rem;
+  font-size: 0.9rem;
   line-height: 1.6;
   margin: 0.5rem 0;
 }
@@ -257,11 +258,11 @@
 /* === RESPONSIVIDADE === */
 @media (max-width: 768px) {
   .masterGridContainer {
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   }
 
   .card-title {
-    font-size: 0.95rem;
+    font-size: 0.5rem;
   }
 
   .miniCardScore {

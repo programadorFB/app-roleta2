@@ -1,11 +1,11 @@
 /* DeepAnalysisPanel.module.css */
 
 .strategies-info-panel {
-    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+    background:#c4c4c41f;
     border-radius: 1rem;
     padding: 1.5rem;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    border: 2px solid #a16207;
+    
     max-height: calc(100vh - 4rem);
     overflow-y: auto;
     display: flex;
@@ -162,7 +162,6 @@
     font-weight: bold;
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
 }
-/* Adicione estas classes ao final de DeepAnalysisPanel.module.css */
 
 .successButton,
 .dangerButton,
@@ -209,9 +208,8 @@
 .resetButton:hover {
     background: rgba(255, 255, 255, 0.2);
 }
-/* Adicione estas classes ao final de DeepAnalysisPanel.module.css */
 
-/* --- Tabela de Análise (para Ocultos) --- */
+/* --- Tabela de Análise (para Ocultos, Terminais, etc.) --- */
 .analysisTable {
   width: 100%;
   border-collapse: collapse;
@@ -236,6 +234,7 @@
   text-align: center;
 }
 
+/* Alinha a primeira coluna (ex: T-1) à esquerda */
 .analysisTable td:first-child {
   text-align: left;
 }
@@ -244,30 +243,20 @@
   border-bottom: none;
 }
 
-/* REQ 3: Destaque especial para número 25 */
+/* Destaque especial (se necessário) */
 .highlight25 td {
   background: rgba(234, 179, 8, 0.1);
   border-top: 1px solid #ca8a04;
   border-bottom: 1px solid #ca8a04;
 }
 
-/* --- Badges de Cavalos (REQ 3) --- */
-.badgeHot, .badgeWarm {
-  display: inline-block;
-  padding: 0.2rem 0.6rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: bold;
-}
-
-.badgeHot {
-  background: rgba(239, 68, 68, 0.2);
-  color: #fca5a5;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-}
-/* Adicione isto ao final de DeepAnalysisPanel.module.css */
-
-.dynamicBadge {
+/* --- Badges --- */
+.dynamicBadge,
+.badgeHot, 
+.badgeWarm,
+.badgeNormal,
+.badgeCold,
+.badgeFrozen {
   display: inline-block;
   padding: 0.2rem 0.6rem;
   border-radius: 9999px;
@@ -306,11 +295,7 @@
   color: #a5f3fc;
   border-color: rgba(165, 243, 252, 0.3);
 }
-.badgeWarm {
-  background: rgba(234, 179, 8, 0.2);
-  color: #fde047;
-  border: 1px solid rgba(234, 179, 8, 0.3);
-}
+
 .progress-bar-fill {
     height: 100%;
     display: flex;
@@ -435,6 +420,34 @@
         height: 18px;
         font-size: 0.7rem;
     }
+
+    /* --- INÍCIO: CSS DE TABELA RESPONSIVA (A CORREÇÃO) --- */
+    
+    /* Em telas pequenas (max-width: 768px), forçamos a tabela 
+      a se comportar como um bloco e permitimos que ela role 
+      horizontalmente para não quebrar o layout.
+    */
+    .analysisTable {
+        display: block; /* Força a tabela a se comportar como um bloco */
+        width: 100%; /* Garante que ela não estoure o contêiner pai */
+        overflow-x: auto; /* Adiciona a rolagem horizontal */
+        -webkit-overflow-scrolling: touch; /* Habilita rolagem suave em iOS */
+    }
+
+    .analysisTable th,
+    .analysisTable td {
+        white-space: nowrap; /* Impede que o texto quebre, mantendo as colunas */
+    }
+
+    /* Exceção para a coluna de "Números" (a segunda coluna), 
+      permitindo que ela quebre a linha se for muito longa.
+    */
+    .analysisTable td:nth-child(2) {
+        white-space: normal;
+        min-width: 120px; /* Dá um espaço mínimo para a lista de números */
+    }
+    
+    /* --- FIM: CSS DE TABELA RESPONSIVA --- */
 }
 
 /* Estados Hover para Interatividade */

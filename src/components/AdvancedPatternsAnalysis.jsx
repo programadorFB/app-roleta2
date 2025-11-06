@@ -191,7 +191,7 @@ const AdvancedPatternsAnalysis = ({ spinHistory }) => {
       </h3>
 
       {/* --- Card 1: Ocultos (REQ 1 & 3) --- */}
-      <StatCard title="Números Ocultos (Top 10)" icon={<AlertOctagon size={24} className={styles.dangerIcon} />}>
+      <StatCard title="Números Ausentes (Top 10)" icon={<AlertOctagon size={24} className={styles.dangerIcon} />}>
         <table className={styles.analysisTable}>
           <thead>
             <tr>
@@ -203,8 +203,8 @@ const AdvancedPatternsAnalysis = ({ spinHistory }) => {
           </thead>
           <tbody>
             {analysis.top10Ocultos.map(item => (
-              <tr key={item.number} className={item.number === 25 ? styles.highlight25 : ''}>
-                <td><NumberChip number={item.number} isHighlighted={item.number === 25} /></td>
+              <tr key={item.number}>
+                <td><NumberChip number={item.number} /></td>
                 <td>{item.absence} spins</td>
                 <td style={{ color: item.level.color, fontWeight: 'bold' }}>
                   {item.level.label}
@@ -216,35 +216,8 @@ const AdvancedPatternsAnalysis = ({ spinHistory }) => {
         </table>
       </StatCard>
 
-      {/* --- Card 2: Cavalos (REQ 2 & 3) --- */}
-      <StatCard title="Cavalos Quentes (Top 5)" icon={<Activity size={24} className={styles.infoIcon} />}>
-        <p className={styles['card-concept']} style={{fontSize: '0.85rem', textAlign: 'center', marginTop: '-0.5rem', marginBottom: '1rem'}}>
-          Pares (splits) que mais saíram nos últimos 50 spins.
-        </p>
-        {analysis.top5HotHorses.map(item => {
-          let badge;
-          if (item.score > 20) { // +20% é muito quente para um split
-            badge = <span className={styles.badgeHot}>⚡ Muito Quente</span>;
-          } else if (item.score > 15) {
-            badge = <span className={styles.badgeWarm}>🐴 Quente</span>;
-          }
-
-          return (
-            <div className={styles['stat-row']} key={item.pair}>
-              <span className={styles['stat-label']} style={{fontSize: '1.2rem', fontWeight: 'bold'}}>
-                {item.pair}
-              </span>
-              <span className={styles['stat-value']} style={{gap: '0.75rem'}}>
-                {badge}
-                <span>{item.hits} hits ({item.score.toFixed(0)}%)</span>
-              </span>
-            </div>
-          );
-        })}
-      </StatCard>
-
       {/* --- Card 3: Sequências (REQ 3) --- */}
-      <StatCard title="Sequência de Dúzias (Padrão de 3)" icon={<Repeat size={24} className={styles.warningIcon} />}>
+      {/* <StatCard title="Sequência de Dúzias (Padrão de 3)" icon={<Repeat size={24} className={styles.warningIcon} />}>
         {analysis.mostFrequentSequence ? (
           <>
             <div className={styles['stat-row']}>
@@ -271,7 +244,7 @@ const AdvancedPatternsAnalysis = ({ spinHistory }) => {
             Nenhuma sequência de 3 dúzias se repetiu ainda.
           </p>
         )}
-      </StatCard>
+      </StatCard> */}
     </>
   );
 };

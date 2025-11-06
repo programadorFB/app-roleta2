@@ -22,6 +22,7 @@ const getNumberColor = (num) => {
 const SectorsAnalysis = ({ spinHistory }) => {
   const analysis = useMemo(() => {
     const totalSpins = spinHistory.length;
+    const history = spinHistory.filter;
     
     if (totalSpins === 0) {
       return { sectors: [], totalSpins: 0, hottestSector: null, coldestSector: null };
@@ -44,7 +45,7 @@ const SectorsAnalysis = ({ spinHistory }) => {
       const lastNumber = lastHitIndex !== -1 ? spinHistory[lastHitIndex].number : null;
       const spinsSinceLastHit = lastHitIndex === -1 ? totalSpins : lastHitIndex;
       
-      // Encontrar o número "mais seco" (que não sai há mais tempo)
+      // Encontrar o número "mais Ausente" (que não sai há mais tempo)
       let driestNumber = null;
       let maxDryness = -1;
       
@@ -58,7 +59,7 @@ const SectorsAnalysis = ({ spinHistory }) => {
       });
       
       // Calcular temperatura do setor (baseado em hits recentes)
-      const temperature = totalSpins > 0 ? (recentHits / Math.min(50, totalSpins)) * 100 : 0;
+      const temperature = totalSpins > 0 ? (recentHits / Math.min(100, totalSpins)) * 100 : 0;
       
       return {
         key,
@@ -74,7 +75,7 @@ const SectorsAnalysis = ({ spinHistory }) => {
       };
     });
     
-    // Ordenar por "secura" (maior tempo sem sair)
+    // Ordenar por "Há" (maior tempo sem sair)
     const sortedSectors = sectorStats.sort((a, b) => b.spinsSinceLastHit - a.spinsSinceLastHit);
     
     return {
@@ -118,10 +119,10 @@ const SectorsAnalysis = ({ spinHistory }) => {
     let color, label;
     if (spins > 30) {
       color = '#ef4444';
-      label = 'MUITO SECO';
+      label = 'MUITO Ausente';
     } else if (spins > 20) {
       color = '#f59e0b';
-      label = 'SECO';
+      label = 'Ausente';
     } else if (spins > 10) {
       color = '#eab308';
       label = 'MORNO';
@@ -215,12 +216,7 @@ const SectorsAnalysis = ({ spinHistory }) => {
                   </span>
                   <DrynessBadge spins={sector.spinsSinceLastHit} />
                 </div>
-                <span style={{
-                  fontSize: '0.9rem',
-                  color: '#9ca3af'
-                }}>
-                  {sector.recentHits} hits/50
-                </span>
+                
               </div>
 
               {/* Números do Setor */}
@@ -255,23 +251,23 @@ const SectorsAnalysis = ({ spinHistory }) => {
                            sector.spinsSinceLastHit > 20 ? '#f59e0b' : '#10b981',
                     fontWeight: 'bold' 
                   }}>
-                    {sector.spinsSinceLastHit} spins
+                    {sector.spinsSinceLastHit} rodadas
                   </span>
                 </div>
                 <div>
-                  <span style={{ color: '#9ca3af' }}>Mais seco:</span>{' '}
+                  <span style={{ color: '#9ca3af' }}>Mais Ausente:</span>{' '}
                   <span style={{ color: '#ef4444', fontWeight: 'bold' }}>
                     {sector.driestNumber}
                   </span>
                 </div>
                 <div>
-                  <span style={{ color: '#9ca3af' }}>Secura:</span>{' '}
+                  <span style={{ color: '#9ca3af' }}>Há:</span>{' '}
                   <span style={{ 
                     color: sector.maxDryness > 40 ? '#ef4444' : 
                            sector.maxDryness > 25 ? '#f59e0b' : '#fde047',
                     fontWeight: 'bold' 
                   }}>
-                    {sector.maxDryness} spins
+                    {sector.maxDryness} rodadas
                   </span>
                 </div>
               </div>
@@ -325,13 +321,13 @@ const SectorsAnalysis = ({ spinHistory }) => {
           📊 Legenda:
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem' }}>
-          <div>• <span style={{ color: '#ef4444' }}>Muito Seco</span>: +30 spins</div>
-          <div>• <span style={{ color: '#f59e0b' }}>Seco</span>: 20-30 spins</div>
-          <div>• <span style={{ color: '#eab308' }}>Morno</span>: 10-20 spins</div>
-          <div>• <span style={{ color: '#10b981' }}>Ativo</span>: -10 spins</div>
+          <div>• <span style={{ color: '#ef4444' }}>Muito Ausente</span>: +30 rodadas</div>
+          <div>• <span style={{ color: '#f59e0b' }}>Ausente</span>: 20-30 rodadas</div>
+          <div>• <span style={{ color: '#eab308' }}>Morno</span>: 10-20 rodadas</div>
+          <div>• <span style={{ color: '#10b981' }}>Ativo</span>: -10 rodadas</div>
         </div>
         <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', fontStyle: 'italic' }}>
-          * Temperatura: % de hits nas últimas 50 rodadas
+          * Temperatura: % de repetições nas últimas 50 rodadas
         </div>
       </div>
     </>

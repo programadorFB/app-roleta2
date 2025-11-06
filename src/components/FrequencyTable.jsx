@@ -15,15 +15,15 @@ const getNumberColor = (num) => {
 };
 
 // Opções de filtro de tempo (em minutos)
-const TIME_FILTERS = [
-  { value: 30, label: '30 min' },
-  { value: 60, label: '1 hora' },
-  { value: 120, label: '2 horas' },
-  { value: 360, label: '6 horas' },
-  { value: 720, label: '12 horas' },
-  { value: 1440, label: '24 horas' },
-  { value: 0, label: 'Tudo' }
-];
+// const TIME_FILTERS = [
+//   { value: 30, label: '30 min' },
+//   { value: 60, label: '1 hora' },
+//   { value: 120, label: '2 horas' },
+//   { value: 360, label: '6 horas' },
+//   { value: 720, label: '12 horas' },
+//   { value: 1440, label: '24 horas' },
+//   { value: 0, label: 'Tudo' }
+// ];
 
 // --- FUNÇÃO CORRIGIDA ---
 const getSpinTime = (spin) => {
@@ -164,13 +164,13 @@ const FrequencyTable = ({ spinHistory = [] }) => {
       <div style={{
         background: 'linear-gradient(135deg, #1f2937 0%, #111827 100%)',
         borderRadius: '1rem',
-        padding: '2rem',
+        
         boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
-        border: '4px solid #a16207',
+        
         textAlign: 'center',
         color: '#9ca3af'
       }}>
-        <BarChart3 size={48} style={{ margin: '0 auto 1rem', color: '#fde047' }} />
+        <BarChart3 size={48} style={{  color: '#fde047' }} />
         <h3 style={{ color: '#fde047', fontSize: '1.5rem', marginBottom: '0.5rem' }}>
           Tabela de Frequência
         </h3>
@@ -181,13 +181,13 @@ const FrequencyTable = ({ spinHistory = [] }) => {
 
   return (
     <div style={{
-      background: 'linear-gradient(135deg, #1f2937 0%, #111827 100%)',
+      // background: 'linear-gradient(135deg, #1f2937 0%, #111827 100%)',
       borderRadius: '1rem',
-      padding: '1.5rem',
-      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
-      border: '4px solid #a16207',
+
+      // boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
+
       maxHeight: 'calc(100vh - 4rem)',
-      overflow: 'hidden',
+      overflowY: 'hidden',
       display: 'flex',
       flexDirection: 'column'
     }}>
@@ -215,7 +215,7 @@ const FrequencyTable = ({ spinHistory = [] }) => {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <Clock size={20} style={{ color: '#9ca3af' }} />
-          <select 
+          {/* <select 
             value={timeFilter}
             onChange={(e) => setTimeFilter(Number(e.target.value))}
             style={{
@@ -231,13 +231,13 @@ const FrequencyTable = ({ spinHistory = [] }) => {
             }}
             onMouseEnter={(e) => e.target.style.background = '#4b5563'}
             onMouseLeave={(e) => e.target.style.background = '#374151'}
-          >
-            {TIME_FILTERS.map(filter => (
+          > */}
+            {/* {TIME_FILTERS.map(filter => (
               <option key={filter.value} value={filter.value}>
                 {filter.label}
               </option>
-            ))}
-          </select>
+            ))} */}
+          {/* </select> */}
         </div>
       </div>
 
@@ -424,7 +424,7 @@ const FrequencyTable = ({ spinHistory = [] }) => {
       {/* Legenda */}
       <div style={{
         marginTop: '1rem',
-        padding: '0.75rem',
+
         background: 'rgba(0, 0, 0, 0.2)',
         borderRadius: '0.5rem',
         textAlign: 'center',

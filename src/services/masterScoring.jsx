@@ -33,7 +33,7 @@ function analyzeTerminals(spinHistory) {
   if (score > 80 && score <= 120) status = '🟡';
 
   return {
-    name: 'Terminais',
+    name: 'Cavalos',
     score: Math.min(score, 100),
     status,
     signal: mostDue.absence > 25 ? `TM${mostDue.terminal} devendo` : 'OK',

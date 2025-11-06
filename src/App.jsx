@@ -1,14 +1,17 @@
-// App.jsx (Corrigido)
+// App.jsx (Com Histórico de Puxadas no Tooltip)
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-// ... (ícones importados permanecem os mesmos)
-import { X, BarChart3, Clock, Hash, Percent, Layers, CheckSquare, Settings, LogOut, Lock, Mail, AlertCircle, PlayCircle, Filter } from 'lucide-react'; // Adicionei PlayCircle e Filter
-import FrequencyTable from './components/FrequencyTable';
+import { 
+    X, BarChart3, Clock, Hash, Percent, Layers, CheckSquare, Settings, 
+    LogOut, Lock, Mail, AlertCircle, PlayCircle, Filter 
+} from 'lucide-react';
 import NotificationCenter from './components/NotificationCenter.jsx';
 import MasterDashboard from './pages/MasterDashboard.jsx';
+import RacingTrack from './components/RacingTrack.jsx';
+import DeepAnalysisPanel from './components/DeepAnalysisPanel.jsx';
 import './components/NotificationsCenter.css';
 import  './App.modules.css';
 
-// GlobalStyles (mantido igual)
+// ... (GlobalStyles permanece o mesmo) ...
 const GlobalStyles = () => (
   <style>{`
     * {
@@ -19,38 +22,12 @@ const GlobalStyles = () => (
 
     body {
         font-family: 'Arial', sans-serif;
-        background-color: #064e3b;
+        background-color: #1a1a1a;
         overflow-x: hidden;
     }
 
-    .container {
-        min-height: calc(100vh - 65px);
-        background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #064e3b 100%);
-        display: grid;
-        grid-template-columns: 380px 1fr;
-        gap: 1.5rem;
-        align-items: flex-start;
-        padding: 1.5rem;
+      .html { 
         overflow-x: hidden;
-        max-width: 2400px;
-        margin: 0 auto;
-    }
-      .html { /* <-- ADICIONE ESTA REGRA */
-        overflow-x: hidden;
-    }
-
-    .stats-dashboard {
-        grid-column: 1 / 2;
-        background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
-        border-radius: 1rem;
-        padding: 1.25rem;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        border: 2px solid #a16207;
-        position: sticky;
-        top: 1.5rem;
-        max-height: calc(100vh - 3rem - 65px);
-        overflow-y: auto;
-        color: white;
     }
 
     .dashboard-title {
@@ -68,17 +45,8 @@ const GlobalStyles = () => (
         margin: 1.5rem 0;
     }
 
-    .stat-card {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 0.75rem;
-        padding: 1rem;
-        border: 1px solid #374151;
-        margin-bottom: 1.5rem;
-        text-align: center;
-    }
-
     .stat-title {
-        font-size: 1.1rem;
+        font-size: 0.8rem;
         font-weight: 600;
         color: #fbbf24;
         margin-bottom: 0.5rem;
@@ -89,7 +57,7 @@ const GlobalStyles = () => (
     }
 
     .stat-value-lg {
-        font-size: 2rem;
+        font-size: 2.1rem;
         font-weight: bold;
         margin-bottom: 0.5rem;
         color: #fde047;
@@ -170,7 +138,7 @@ const GlobalStyles = () => (
     .roulette-wrapper {
       grid-column: 2 / 3;
       display: flex;
-      flex-direction: row;
+      flex-direction: row; 
       align-items: flex-start;
       gap: 2rem;
       padding: 0 1rem;
@@ -185,20 +153,32 @@ const GlobalStyles = () => (
       width: 100%;
     }
 
+    .racetrack-and-results-wrapper {
+      display: flex;
+      flex-direction: row; 
+      gap: 1.5rem;
+      width: 100%;
+      align-items: flex-start;
+    }
+
+    .racetrack-main-column {
+      flex: 1; 
+      min-width: 0; 
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem; 
+    }
+
     .latest-results-compact {
-      background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
       border-radius: 1rem;
-      padding: 1.5rem;
-      border: 2px solid #a16207;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-      width: 300px;
+      margin-left:1px;
+      width: 100%;
       flex-shrink: 0;
-      position: sticky;
-      top: 1.5rem;
+      position: static;
+      top: auto;       
       -ms-overflow-style: none;
       scrollbar-width: none;
-      max-height: calc(100vh - 3rem - 65px);
-      overflow-y: auto;
+      margin-bottom: 1.5rem; 
     }
 
     .latest-results-title {
@@ -215,23 +195,37 @@ const GlobalStyles = () => (
 
     .results-grid {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(40px, 1fr)); 
       gap: 0.5rem;
       margin-bottom: 1rem;
+      transition: all 0.2s ease-in-out;
     }
 
     .result-number-box {
-      aspect-ratio: 2;
+      aspect-ratio: 1; 
       display: flex;
       align-items: center;
       justify-content: center;
       border-radius: 0.5rem;
       font-weight: bold;
-      font-size: 1rem;
+      font-size: 1rem; 
       color: white;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.2s ease-in-out;
+      opacity: 1;
+    }
+    
+    .results-grid.hover-active .result-number-box {
+        opacity: 0.3;
+    }
+    
+    .results-grid.hover-active .result-number-box.highlighted {
+        opacity: 1;
+        transform: scale(1.15);
+        border: 2px solid #fde047;
+        box-shadow: 0 0 15px rgba(253, 224, 71, 0.7);
+        z-index: 10;
     }
 
     .result-number-box:hover {
@@ -247,10 +241,6 @@ const GlobalStyles = () => (
       display: flex;
       flex-direction: column;
       align-items: center;
-    }
-
-    .wood-border, .gold-border, .green-base, .number-slot, .ball {
-       position: relative;
     }
      .wood-border {
       width: 420px; height: 420px; border-radius: 50%;
@@ -313,18 +303,7 @@ const GlobalStyles = () => (
         font-weight: 600;
     }
 
-    .analysis-panel {
-        grid-column: 3 / 4;
-        background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-        border-radius: 1rem;
-        padding: 1.25rem;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        border: 2px solid #a16207;
-        position: sticky;
-        top: 1.5rem;
-        max-height: calc(100vh - 3rem - 65px);
-        overflow-y: auto;
-    }
+
     
     .popup-overlay {
        position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.85);
@@ -376,27 +355,33 @@ const GlobalStyles = () => (
     .popup-footer-btn:hover { transform: translateY(-2px); }
 
     @media (max-width: 1600px) {
-      .container { grid-template-columns: 340px 1fr; gap: 1rem; }
-      .wood-border { width: 380px; height: 380px; }
-      .roulette-wrapper { flex-direction: column; align-items: center; }
-      .latest-results-compact { max-width: 100%; width: 100%; position: static; max-height: none; }
-    }
 
     @media (max-width: 1400px) {
       .container { grid-template-columns: 1fr; padding: 1.5rem; }
-      .stats-dashboard { position: static; max-height: none; grid-column: auto; }
+
       .roulette-wrapper { grid-column: auto; flex-direction: column; align-items: center; }
-      .latest-results-compact { max-width: 100%; width: 100%; position: static; max-height: none; }
+      .analysis-panel {
+        position: static;
+        max-height: none;
+        grid-column: auto;
+      }
+      .racetrack-and-results-wrapper {
+        flex-direction: column;
+      }
+      .latest-results-compact { 
+        max-width: 100%; 
+        width: 100%; 
+        position: static; 
+        max-height: none; 
+      }
       .roulette-and-results { width: 100%; max-width: 800px; }
     }
-
     @media (max-width: 1024px) {
       .container { grid-template-columns: 1fr; padding: 1rem; }
       .wood-border { width: 350px; height: 350px; }
       .main-title { font-size: 1.75rem; }
       .subtitle { font-size: 0.9rem; }
     }
-
     @media (max-width: 600px) {
       .wood-border { width: 300px; height: 300px; }
       .number-slot { width: 28px; height: 28px; font-size: 0.7rem; }
@@ -405,49 +390,41 @@ const GlobalStyles = () => (
       .subtitle { font-size: 0.85rem; }
       .popup-content { padding: 1rem; }
       .popup-title { font-size: 1.5rem; }
-      .results-grid { grid-template-columns: repeat(4, 1fr); }
+      .results-grid { grid-template-columns: repeat(6, 1fr); }
       .latest-results-compact { padding: 1rem; }
     }
-
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
   `}</style>
 );
 
-// Login Component (Sem alterações)
+// ... (Login Component permanece exatamente igual) ...
 const Login = ({ onLoginSuccess }) => {
   const [formData, setFormData] = useState({ email: '', password: '', brand: 'betou' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [devMode, setDevMode] = useState(false);
-
   const brands = [
     { value: 'betou', label: 'Betou' },
-    { value: 'betfusion', label: 'BetFusion' },
-    { value: 'sortenabet', label: 'Sortena Bet' }
+    // { value: 'betfusion', label: 'BetFusion' },
+    // { value: 'sortenabet', label: 'Sortena Bet' }
   ];
-
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     setError('');
   };
-
   const handleDevLogin = () => {
-    // Usar um JWT de desenvolvimento falso, se necessário, ou apenas um token simples.
-    // O importante é que `onLoginSuccess` seja chamado com um objeto que inclua `jwt`.
     const devJwt = 'dev-jwt-token-' + Date.now();
     localStorage.setItem('authToken', devJwt);
     localStorage.setItem('userEmail', formData.email || 'dev@teste.com');
     localStorage.setItem('userBrand', formData.brand);
-    onLoginSuccess({ jwt: devJwt, email: formData.email }); // Passa o JWT falso
+    onLoginSuccess({ jwt: devJwt, email: formData.email });
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-
     if (devMode) {
       setTimeout(() => {
         handleDevLogin();
@@ -455,30 +432,23 @@ const Login = ({ onLoginSuccess }) => {
       }, 500);
       return;
     }
-
     try {
-      // *** CORREÇÃO ***
-      // A URL é relativa ('/login') para usar o proxy no mesmo host (porta 3000)
       const response = await fetch('/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify(formData)
       });
-
-      // LÓGICA MODIFICADA PARA USAR 'jwt'
       if (response.ok) {
-        const data = await response.json(); // Espera { success: true, jwt: "..." }
-        
+        const data = await response.json();
         if (data.jwt) {
-          localStorage.setItem('authToken', data.jwt); // Salva o JWT
+          localStorage.setItem('authToken', data.jwt);
           localStorage.setItem('userEmail', formData.email);
           localStorage.setItem('userBrand', formData.brand);
-          onLoginSuccess(data); // Passa os dados (incluindo o jwt) para o componente App
+          onLoginSuccess(data);
         } else {
           setError('Login bem-sucedido, mas o token (jwt) não foi recebido.');
         }
       } else {
-        // ... (lógica de tratamento de erro permanece a mesma) ...
         const errorText = await response.text();
         let errorMessage;
         try {
@@ -490,9 +460,7 @@ const Login = ({ onLoginSuccess }) => {
         }
         setError(errorMessage);
       }
-      
     } catch (err) {
-      // ... (lógica de tratamento de erro permanece a mesma) ...
       console.error('Erro de fetch:', err);
       let errorMessage = 'Erro de conexão. ';
       if (err.message.includes('Failed to fetch')) {
@@ -505,32 +473,31 @@ const Login = ({ onLoginSuccess }) => {
       setLoading(false);
     }
   };
-  
-  // O JSX do componente Login permanece o mesmo
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'linear-gradient(135deg, #064e3b 0%, #065f46 50%, #064e3b 100%)', padding: '1rem'
+      background: '#20311f', padding: '1rem'
     }}>
       <div style={{ width: '100%', maxWidth: '28rem' }}>
         <div style={{
-          background: 'linear-gradient(135deg, #111827 0%, #1f2937 100%)', borderRadius: '1rem',
+          background: '#1a1a1a', borderRadius: '1rem',
           boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)', padding: '2rem', border: '2px solid #a16207'
         }}>
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
             <div style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              width: '4rem', height: '4rem', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+              width: '5rem', height: '5rem', background: 'linear-gradient(135deg, #eab308, #eab308)',
               borderRadius: '50%', marginBottom: '1rem'
             }}>
-              <Lock size={32} color="white" />
+              <Lock size={32} color="Black" />
             </div>
             <h2 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'white', marginBottom: '0.5rem' }}>
               Bem-vindo
             </h2>
-            <p style={{ color: '#9ca3af' }}>Faça login para acessar o dashboard</p>
+            <p style={{ color: '#9ca3af' }}>Este aplicativo é integrado com a casa BETOU. </p>
+            <br/>
+            <p style={{ color: '#9ca3af',marginBottom:"-25px" }}>Faça login com sua conta BETOU para acessar o aplicativo.</p>
           </div>
-
           {error && (
             <div style={{
               marginBottom: '1.5rem', padding: '1rem', background: 'rgba(239, 68, 68, 0.1)',
@@ -541,22 +508,19 @@ const Login = ({ onLoginSuccess }) => {
               <p style={{ color: '#f87171', fontSize: '0.875rem' }}>{error}</p>
             </div>
           )}
-
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#d1d5db', marginBottom: '0.5rem' }}>
-                Plataforma
-              </label>
-              <select name="brand" value={formData.brand} onChange={handleChange} required
+
+              {/* <select name="brand" value={formData.brand} onChange={handleChange} required
                 style={{ width: '100%', padding: '0.75rem 1rem', background: '#374151', border: '1px solid #4b5563',
                   borderRadius: '0.5rem', color: 'white', fontSize: '1rem', cursor: 'pointer' }}>
                 {brands.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
-              </select>
+              </select> */}
             </div>
-
             <div>
+
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#d1d5db', marginBottom: '0.5rem' }}>
-                Email
+                E-mail Betou
               </label>
               <div style={{ position: 'relative' }}>
                 <Mail size={20} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
@@ -565,10 +529,9 @@ const Login = ({ onLoginSuccess }) => {
                     borderRadius: '0.5rem', color: 'white', fontSize: '1rem' }} />
               </div>
             </div>
-
             <div>
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#d1d5db', marginBottom: '0.5rem' }}>
-                Senha
+                Senha Betou
               </label>
               <div style={{ position: 'relative' }}>
                 <Lock size={20} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
@@ -577,24 +540,37 @@ const Login = ({ onLoginSuccess }) => {
                     borderRadius: '0.5rem', color: 'white', fontSize: '1rem' }} />
               </div>
             </div>
-
-            <div style={{
+            {/* <div style={{
               display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem',
               background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)',
               borderRadius: '0.5rem', marginTop: '0.5rem'
             }}>
-              <input type="checkbox" id="devMode" checked={devMode} onChange={(e) => setDevMode(e.target.checked)}
-                style={{ width: '1.25rem', height: '1.25rem', cursor: 'pointer', accentColor: '#3b82f6' }} />
-              <label htmlFor="devMode" style={{ color: '#93c5fd', fontSize: '0.875rem', cursor: 'pointer', userSelect: 'none' }}>
-                🔧 Modo Desenvolvedor (Bypass API)
-              </label>
-            </div>
+
+            </div> */}
+          <p style={{ color: "white" }}>
+              Ainda não tem cadastro na Betou?{" "}
+              <a 
+                href="https://go.aff.betou.bet.br/bhlfl7qf?utm_medium=newapp"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  backgroundColor: "transparent",
+                  fontSize: "15px",
+                  color: "#1b8dc2ff",
+                  border: "none",
+                  cursor: "pointer",
+                  textDecoration: "underline" // se quiser parecer mais CTA
+                }}
+              >
+                Clique Aqui
+              </a>
+            </p>
 
             <button type="submit" disabled={loading}
               style={{
                 width: '100%', padding: '0.75rem 1rem',
-                background: loading ? '#6b7280' : 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-                color: 'white', fontWeight: 'bold', fontSize: '1rem', borderRadius: '0.5rem', border: 'none',
+                background: loading ? '#6b7280' : 'linear-gradient(135deg, #eab308, #eab308)',
+                color: 'black', fontWeight: 'bold', fontSize: '1rem', borderRadius: '0.5rem', border: 'none',
                 cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: loading ? 0.7 : 1
               }}>
               {loading ? (
@@ -606,7 +582,6 @@ const Login = ({ onLoginSuccess }) => {
               ) : 'Entrar'}
             </button>
           </form>
-
           <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
             <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>Dashboard Analítico de Roleta</p>
           </div>
@@ -619,7 +594,7 @@ const Login = ({ onLoginSuccess }) => {
   );
 };
 
-// Constants
+// ... (Constants, getNumberColor, ROULETTE_SOURCES, ROULETTE_GAME_IDS, filterOptions permanecem iguais) ...
 const rouletteNumbers = [
   0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10,
   5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26
@@ -639,30 +614,64 @@ const ROULETTE_SOURCES = {
   vipauto: '🚘 Vip Auto Roulette'
 };
 
-// Mapeamento dos nomes das fontes para os IDs dos jogos
 const ROULETTE_GAME_IDS = {
-  immersive: 55,  // Immersive Roulette
-  brasileira: 34, // Roleta ao Vivo (assumindo ser a Brasileira)
-  speed: 36,      // Speed Roulette
-  xxxtreme: 33,   // Lightning Roulette (assumindo ser a Xxxtreme)
-  vipauto: 31     // Auto Roulette Vip
+  immersive: 55,
+  brasileira: 34,
+  speed: 36,
+  xxxtreme: 33,
+  vipauto: 31
 };
 
-// *** NOVO *** - Opções para o filtro
 const filterOptions = [
-  { value: 'all', label: 'Histórico Completo' },
-  { value: 100, label: 'Últimos 100 spins' },
-  { value: 250, label: 'Últimos 250 spins' },
-  { value: 500, label: 'Últimos 500 spins' },
+  { value: 100, label: 'Últimas 100 Rodadas' },
+  { value: 300, label: 'Últimas 300 Rodadas' },
+  { value: 500, label: 'Últimas 500 Rodadas' },
+  { value: 1000, label: 'Últimas 1000 Rodadas' },
+  { value: 'all', label: 'Histórico Completo' }
 ];
 
+// <-- 1. FUNÇÃO HELPER PARA O TOOLTIP (FORMATO CORRIGIDO) -->
+/**
+* Formata o tooltip de "puxadas" e "anteriores" para um número, limitando a 5.
+ * @param {number} number - O número que estamos analisando.
+ * @param {Map<number, Map<number, number>>} pullStats - O mapa de números que vieram DEPOIS.
+ * @param {Map<number, Map<number, number>>} previousStats - O mapa de números que vieram ANTES.
+ * @returns {string} - A string formatada para o tooltip.
+ */
+const formatPullTooltip = (number, pullStats, previousStats) => {
+  const pullStatsMap = pullStats.get(number);
+  const prevStatsMap = previousStats.get(number);
+
+  let pullString = "(Nenhum)";
+  if (pullStatsMap && pullStatsMap.size > 0) {
+    const pulledNumbers = [...pullStatsMap.keys()];
+    const displayPull = pulledNumbers.slice(0, 5); // Pega os primeiros 5
+    pullString = displayPull.join(', ');
+    if (pulledNumbers.length > 5) {
+      pullString += ', ...'; // Adiciona "..." se houver mais de 5
+    }
+  }
+
+  let prevString = "(Nenhum)";
+  if (prevStatsMap && prevStatsMap.size > 0) {
+    const prevNumbers = [...prevStatsMap.keys()];
+    const displayPrev = prevNumbers.slice(0, 5); // Pega os primeiros 5
+    prevString = displayPrev.join(', ');
+    if (prevNumbers.length > 5) {
+      prevString += ', ...'; // Adiciona "..." se houver mais de 5
+    }
+  }
+
+  // \n é a quebra de linha no tooltip do title
+  return `Número: ${number}\nPuxou: ${pullString}\nVeio Antes: ${prevString}`;
+};
 // Main App
 const App = () => {
   // Auth States
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const [jwtToken, setJwtToken] = useState(null); // Estado para o token JWT
+  const [jwtToken, setJwtToken] = useState(null);
 
   // App States
   const [selectedRoulette, setSelectedRoulette] = useState(Object.keys(ROULETTE_SOURCES)[0]);
@@ -672,38 +681,38 @@ const App = () => {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [activePage, setActivePage] = useState('roulette');
   
-  // Estados para o lançamento do jogo
+  // Game States
   const [isLaunching, setIsLaunching] = useState(false);
   const [launchError, setLaunchError] = useState('');
-  
-  // *** NOVO ESTADO ***
-  // Armazena a URL do jogo para exibir no iframe
   const [gameUrl, setGameUrl] = useState('');
+  
+  const [entrySignals, setEntrySignals] = useState([]);
 
-  // *** NOVOS ESTADOS ***
-  const [historyFilter, setHistoryFilter] = useState(100); // Filtro (default 100)
-  const [entrySignals, setEntrySignals] = useState([]); // Para o MasterDashboard
+  // Filter State
+  const [historyFilter, setHistoryFilter] = useState(filterOptions[0].value);
+  
+  const [hoveredNumber, setHoveredNumber] = useState(null);
 
   const greenBaseRef = useRef(null);
   const [dynamicRadius, setDynamicRadius] = useState(160);
 
-  // Check Auth -- MODIFICADO --
+  // Check Auth
   useEffect(() => {
-    const token = localStorage.getItem('authToken'); // Este agora é o JWT
+    const token = localStorage.getItem('authToken');
     const email = localStorage.getItem('userEmail');
     const brand = localStorage.getItem('userBrand');
     if (token) {
       setIsAuthenticated(true);
-      setJwtToken(token); // Carrega o JWT no estado
+      setJwtToken(token);
       setUserInfo({ email, brand });
     }
     setCheckingAuth(false);
   }, []);
 
-  // Login Handler -- MODIFICADO --
+  // Login Handler
   const handleLoginSuccess = (data) => {
     setIsAuthenticated(true);
-    setJwtToken(data.jwt); // Armazena o JWT do login no estado
+    setJwtToken(data.jwt);
     setUserInfo({
       email: localStorage.getItem('userEmail'),
       brand: localStorage.getItem('userBrand'),
@@ -711,123 +720,99 @@ const App = () => {
     });
   };
 
-  // Logout Handler -- MODIFICADO --
+  // Logout Handler
   const handleLogout = () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('userEmail');
     localStorage.removeItem('userBrand');
     setIsAuthenticated(false);
     setUserInfo(null);
-    setJwtToken(null); // Limpa o JWT do estado
+    setJwtToken(null);
     setActivePage('roulette');
-    setGameUrl(''); // *** NOVO *** Garante que o jogo feche ao sair
+    setGameUrl('');
   };
   
-  // *** NOVA FUNÇÃO ***
-  // Função para fechar o iframe do jogo e voltar ao dashboard
+  // Close Game Handler
   const handleCloseGame = useCallback(() => {
     setGameUrl('');
-    setLaunchError(''); // Limpa erros de lançamento
+    setLaunchError('');
   }, []);
 
-  
-  // *** FUNÇÃO MODIFICADA ***
-  // Função para iniciar o jogo
-// Em App.jsx
-
-  // *** FUNÇÃO CORRIGIDA ***
-const handleLaunchGame = async () => {
-  setIsLaunching(true);
-  setLaunchError('');
-
-  const gameId = ROULETTE_GAME_IDS[selectedRoulette];
-  
-  if (!gameId || !jwtToken) {
-    setLaunchError('Erro interno: ID do jogo ou Token não encontrado.');
-    setIsLaunching(false);
-    return;
-  }
-
-  try {
-    const response = await fetch(`/start-game/${gameId}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${jwtToken}`
-      }
-    });
-
-    const rawResponseText = await response.text();
-    console.log('🔍 Resposta completa do start-game:', rawResponseText);
-
-    if (response.ok) {
-      try {
-        const data = JSON.parse(rawResponseText);
-        console.log('📦 Dados parseados:', data);
-
-        // MÚLTIPLAS TENTATIVAS DE ENCONTRAR A URL DO JOGO
-        let gameUrl = null;
-
-        // Tentativa 1: Estrutura mais comum
-        gameUrl = data?.launchOptions?.launch_options?.game_url;
-        
-        // Tentativa 2: Estrutura alternativa
-        if (!gameUrl) {
-          gameUrl = data?.launch_options?.game_url;
-        }
-        
-        // Tentativa 3: Estrutura direta
-        if (!gameUrl) {
-          gameUrl = data?.game_url;
-        }
-        
-        // Tentativa 4: Estrutura com URL direta
-        if (!gameUrl) {
-          gameUrl = data?.url;
-        }
-        
-        // Tentativa 5: Busca recursiva em todo o objeto
-        if (!gameUrl) {
-          const findGameUrl = (obj) => {
-            for (let key in obj) {
-              if (key === 'game_url' && typeof obj[key] === 'string') {
-                return obj[key];
-              }
-              if (typeof obj[key] === 'object' && obj[key] !== null) {
-                const result = findGameUrl(obj[key]);
-                if (result) return result;
-              }
-            }
-            return null;
-          };
-          gameUrl = findGameUrl(data);
-        }
-
-        if (gameUrl) {
-          console.log("✅ URL do jogo encontrada:", gameUrl);
-          setGameUrl(gameUrl);
-          setLaunchError('');
-        } else {
-          console.warn("❌ game_url não encontrada na resposta. Estrutura completa:", data);
-          setLaunchError('URL do jogo não encontrada na resposta da API. Estrutura: ' + JSON.stringify(data).substring(0, 200));
-        }
-
-      } catch (jsonError) {
-        console.error("❌ Erro ao parsear JSON:", jsonError);
-        console.error("📄 Resposta original:", rawResponseText);
-        setLaunchError('Resposta da API não é um JSON válido: ' + rawResponseText.substring(0, 100));
-      }
-    } else {
-      console.error("❌ Erro HTTP:", response.status, rawResponseText);
-      setLaunchError(`Erro ${response.status} do servidor: ${rawResponseText.substring(0, 100)}`);
+  // Launch Game Handler
+  const handleLaunchGame = async () => {
+    setIsLaunching(true);
+    setLaunchError('');
+    const gameId = ROULETTE_GAME_IDS[selectedRoulette];
+    
+    if (!gameId || !jwtToken) {
+      setLaunchError('Erro interno: ID do jogo ou Token não encontrado.');
+      setIsLaunching(false);
+      return;
     }
-  } catch (err) {
-    console.error('❌ Erro de rede:', err);
-    setLaunchError('Erro de conexão: ' + err.message);
-  } finally {
-    setIsLaunching(false);
-  }
-};
+  
+    try {
+      const response = await fetch(`/start-game/${gameId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${jwtToken}`
+        }
+      });
+  
+      const rawResponseText = await response.text();
+      console.log('🔍 Resposta completa do start-game:', rawResponseText);
+  
+      if (response.ok) {
+        try {
+          const data = JSON.parse(rawResponseText);
+          console.log('📦 Dados parseados:', data);
+  
+          let gameUrl = null;
+          gameUrl = data?.launchOptions?.launch_options?.game_url;
+          if (!gameUrl) gameUrl = data?.launch_options?.game_url;
+          if (!gameUrl) gameUrl = data?.game_url;
+          if (!gameUrl) gameUrl = data?.url;
+          
+          if (!gameUrl) {
+            const findGameUrl = (obj) => {
+              for (let key in obj) {
+                if (key === 'game_url' && typeof obj[key] === 'string') return obj[key];
+                if (typeof obj[key] === 'object' && obj[key] !== null) {
+                  const result = findGameUrl(obj[key]);
+                  if (result) return result;
+                }
+              }
+              return null;
+            };
+            gameUrl = findGameUrl(data);
+          }
+  
+          if (gameUrl) {
+            console.log("✅ URL do jogo encontrada:", gameUrl);
+            setGameUrl(gameUrl);
+            setLaunchError('');
+          } else {
+            console.warn("❌ game_url não encontrada na resposta. Estrutura completa:", data);
+            setLaunchError('URL do jogo não encontrada na resposta da API. Estrutura: ' + JSON.stringify(data).substring(0, 200));
+          }
+  
+        } catch (jsonError) {
+          console.error("❌ Erro ao parsear JSON:", jsonError);
+          console.error("📄 Resposta original:", rawResponseText);
+          setLaunchError('Resposta da API não é um JSON válido: ' + rawResponseText.substring(0, 100));
+        }
+      } else {
+        console.error("❌ Erro HTTP:", response.status, rawResponseText);
+        setLaunchError(`Erro ${response.status} do servidor: ${rawResponseText.substring(0, 100)}`);
+      }
+    } catch (err) {
+      console.error('❌ Erro de rede:', err);
+      setLaunchError('Erro de conexão: ' + err.message);
+    } finally {
+      setIsLaunching(false);
+    }
+  };
 
+  // Radius Effect
   useEffect(() => {
     const calculateRadius = () => {
       if (greenBaseRef.current) {
@@ -841,9 +826,9 @@ const handleLaunchGame = async () => {
     return () => window.removeEventListener('resize', calculateRadius);
   }, []);
 
+  // Fetch History
   const fetchHistory = useCallback(async () => {
     try {
-      // URL relativa para usar o proxy no mesmo host (porta 3000)
       const response = await fetch(`/api/full-history?source=${selectedRoulette}`);
       if (!response.ok) throw new Error(`Erro na API: ${response.statusText}`);
       const data = await response.json();
@@ -867,6 +852,7 @@ const handleLaunchGame = async () => {
     }
   }, [selectedRoulette]);
 
+  // Fetch History Effect
   useEffect(() => {
     if (!isAuthenticated) return;
     fetchHistory();
@@ -874,6 +860,7 @@ const handleLaunchGame = async () => {
     return () => clearInterval(intervalId);
   }, [fetchHistory, isAuthenticated]);
 
+  // Popup Handlers
   const handleNumberClick = useCallback((number) => {
     setPopupNumber(number);
     setIsPopupOpen(true);
@@ -884,53 +871,110 @@ const handleLaunchGame = async () => {
     setPopupNumber(null);
   }, []);
 
-  // ... (useMemo para stats e popupStats permanece o mesmo) ...
-  const stats = useMemo(() => {
-    const totalSpins = spinHistory.length;
-    if (totalSpins === 0) return { totalSpins: 0, colorFrequencies: { red: '0.0', black: '0.0', green: '0.0' }, latestNumbers: [] };
-    const colorCounts = spinHistory.reduce((acc, curr) => {
-      acc[curr.color] = (acc[curr.color] || 0) + 1;
-      return acc;
-    }, {});
-    return {
-      totalSpins,
-      colorFrequencies: {
-        red: ((colorCounts.red || 0) / totalSpins * 100).toFixed(1),
-        black: ((colorCounts.black || 0) / totalSpins * 100).toFixed(1),
-        green: ((colorCounts.green || 0) / totalSpins * 100).toFixed(1)
-      },
-      latestNumbers: spinHistory.slice(0, 100),
-    };
-  }, [spinHistory]);
-
-  // *** NOVO *** - Histórico filtrado com base no seletor
+  // filteredSpinHistory (useMemo)
   const filteredSpinHistory = useMemo(() => {
     if (historyFilter === 'all') {
       return spinHistory;
     }
-    return spinHistory.slice(0, historyFilter);
+    return spinHistory.slice(0, Number(historyFilter));
   }, [spinHistory, historyFilter]);
 
+  
+  // stats (useMemo)
+  const stats = useMemo(() => {
+    const historyFilter = filteredSpinHistory.length;
+    
+    if (historyFilter === 0) return { historyFilter: 0, colorFrequencies: { red: '0.0', black: '0.0', green: '0.0' }, latestNumbers: [] };
+    
+    const colorCounts = filteredSpinHistory.reduce((acc, curr) => {
+      acc[curr.color] = (acc[curr.color] || 0) + 1;
+      return acc;
+    }, {});
+    
+    return {
+      historyFilter, 
+      colorFrequencies: {
+        red: ((colorCounts.red || 0) / historyFilter * 100).toFixed(1),
+        black: ((colorCounts.black || 0) / historyFilter * 100).toFixed(1),
+        green: ((colorCounts.green || 0) / historyFilter * 100).toFixed(1)
+      },
+      latestNumbers: spinHistory.slice(0, 100), 
+    };
+  }, [filteredSpinHistory, spinHistory]);
 
+  // popupStats (useMemo)
   const popupStats = useMemo(() => {
     if (popupNumber === null || !isPopupOpen) return null;
+    
     const occurrences = [];
-    spinHistory.forEach((spin, index) => {
+    filteredSpinHistory.forEach((spin, index) => {
       if (spin.number === popupNumber) occurrences.push({ index });
     });
+    
     const count = occurrences.length;
-    const totalSpins = spinHistory.length;
-    const frequency = totalSpins > 0 ? ((count / totalSpins) * 100).toFixed(2) : '0.00';
+    const historyFilter = filteredSpinHistory.length;
+    const frequency = historyFilter > 0 ? ((count / historyFilter) * 100).toFixed(2) : '0.00';
+    
     const nextOccurrences = occurrences.slice(0, 5).map(occ => {
-      const prevSpins = spinHistory.slice(occ.index + 1, occ.index + 1 + 5).map(s => s.number);
+      const prevSpins = filteredSpinHistory.slice(occ.index + 1, occ.index + 1 + 5).map(s => s.number);
       return { spinsAgo: occ.index + 1, prevSpins };
     });
+    
     return {
-      count, frequency, nextOccurrences, totalSpins,
+      count, frequency, nextOccurrences, historyFilter,
       lastHitAgo: occurrences.length > 0 ? occurrences[0].index + 1 : null
     };
-  }, [popupNumber, isPopupOpen, spinHistory]);
+  }, [popupNumber, isPopupOpen, filteredSpinHistory]);
 
+  // <-- 2. useMemo PARA PRÉ-CALCULAR "PUXADAS" (RE-ADICIONADO) -->
+  const numberPullStats = useMemo(() => {
+    // Map<number, Map<pulledNumber, count>>
+    const pullMap = new Map();
+
+    // Inicializa o mapa para todos os 37 números
+    for (let i = 0; i <= 36; i++) {
+      pullMap.set(i, new Map());
+    }
+
+    // Itera sobre o histórico COMPLETO (spinHistory)
+    // spinHistory[i] é o número ATUAL
+    // spinHistory[i+1] é o número que veio IMEDIATAMENTE APÓS (o "puxado")
+// ✅ AGORA CORRETO - Pega números que vieram DEPOIS
+for (let i = 1; i < spinHistory.length; i++) {
+  const currentNumber = spinHistory[i].number; // Número analisado
+  const nextNumber = spinHistory[i - 1].number; // Número POSTERIOR (índice menor = mais recente)
+  
+  const numberStats = pullMap.get(currentNumber);
+  const currentPullCount = numberStats.get(nextNumber) || 0;
+  numberStats.set(nextNumber, currentPullCount + 1);
+}
+    
+    return pullMap;
+  }, [spinHistory]); // Depende apenas do histórico completo
+  // <-- FIM DA MUDANÇA -->
+  const numberPreviousStats = useMemo(() => {
+    // Map<number, Map<previousNumber, count>>
+    const prevMap = new Map();
+
+    // Inicializa o mapa para todos os 37 números
+    for (let i = 0; i <= 36; i++) {
+      prevMap.set(i, new Map());
+    }
+
+    // Itera sobre o histórico COMPLETO (spinHistory)
+    // spinHistory[i] é o número ATUAL
+    // spinHistory[i+1] é o número que veio IMEDIATAMENTE ANTES
+    for (let i = 0; i < spinHistory.length - 1; i++) {
+      const currentNumber = spinHistory[i].number;     // Número analisado (o mais recente)
+      const previousNumber = spinHistory[i + 1].number; // Número ANTERIOR (o mais antigo)
+      
+      const numberStats = prevMap.get(currentNumber);
+      const currentPrevCount = numberStats.get(previousNumber) || 0;
+      numberStats.set(previousNumber, currentPrevCount + 1);
+    }
+        
+    return prevMap;
+  }, [spinHistory])
   const getNumberPosition = useCallback((number, radius) => {
     const index = rouletteNumbers.indexOf(number);
     if (index === -1) return { x: 0, y: 0, angle: 0 };
@@ -949,7 +993,6 @@ const handleLaunchGame = async () => {
   const centerFontSize = centerDisplaySize * 0.56;
 
   if (checkingAuth) {
-    // ... (JSX de carregamento permanece o mesmo) ...
     return (
       <div style={{
         minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -965,44 +1008,34 @@ const handleLaunchGame = async () => {
     return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
-  // Renderiza o dashboard normal (o jogo agora aparece dentro do layout)
   return (
     <>
       <GlobalStyles />
-      {/* Navbar */}
-      <div style={{
-        className:'navbar',
-        background: '#111827', padding: '0.75rem 2rem', display: 'flex',
-        justifyContent: 'space-between', alignItems: 'center', gap: '1rem', borderBottom: '3px solid #a16207'
-      }}>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <div className="navbar">
+        <div className="navbar-left">
+        </div>
+        <div className="navbar-right">
           {userInfo && (
-            <div style={{
-              color: '#d1d5db', fontSize: '0.875rem', display: 'flex',
-              flexDirection: 'column', alignItems: 'flex-end'
-            }}>
-              <span style={{ fontWeight: 'bold', color: '#fde047' }}>{userInfo.email}</span>
-              <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+            <div className="user-info">
+              <span className="user-info-email">{userInfo.email}</span>
+              <span className="user-info-brand">
                 {userInfo.brand ? userInfo.brand.charAt(0).toUpperCase() + userInfo.brand.slice(1) : ''}
               </span>
             </div>
           )}
-          <button onClick={handleLogout}
-            style={{
-              ...inactiveTabStyle, background: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid #ef4444', color: '#ef4444', padding: '0.5rem 1rem'
-            }} title="Sair">
+          <button 
+            onClick={handleLogout}
+            className="logout-btn"
+            title="Sair"
+          >
             <LogOut size={18} /> Sair
           </button>
         </div>
       </div>
 
-      {/* Pages */}
       {activePage === 'roulette' && (
         <div className="container">
           
-          {/* === COLUNA 1: SIDEBAR ESQUERDA === */}
           <div className="stats-dashboard">
             <h3 className="dashboard-title">Estatísticas e Ações</h3>
             <div className="stat-card">
@@ -1019,7 +1052,7 @@ const handleLaunchGame = async () => {
                     marginBottom: '0.75rem', 
                     justifyContent: 'flex-start'
                   }}>
-                    <Layers size={20} /> Fonte de Dados
+                    <Layers size={20} /> Roletas
                   </h4>
                   <select className="roulette-selector" value={selectedRoulette}
                     onChange={(e) => {
@@ -1037,7 +1070,7 @@ const handleLaunchGame = async () => {
                     marginBottom: '0.75rem', 
                     justifyContent: 'flex-start'
                   }}>
-                    <Filter size={20} /> Filtro de Análise
+                    <Filter size={20} /> Rodadas
                   </h4>
                   <select 
                     className="roulette-selector" 
@@ -1093,101 +1126,122 @@ const handleLaunchGame = async () => {
               )}
             </div>
             
-            <hr className="divider" />
-
-            {/* Tabela de Frequência movida para a sidebar */}
             <div className="stat-card">
-              <h4 className="stat-title" style={{ justifyContent: 'flex-start' }}>
-                <BarChart3 size={20} /> Frequência (Todos)
-              </h4>
-              {stats.totalSpins > 0 ? (
-                <FrequencyTable spinHistory={spinHistory} />
-              ) : (
-                <p style={{color: '#9ca3af', fontSize: '0.875rem'}}>Aguardando dados...</p>
-              )}
+                  <div className="stat-card">
+              <h4 className="stat-title"><BarChart3 size={10} /> Total de Sinais</h4>
+             <p className="stat-value-lg">{filteredSpinHistory.length}</p>
             </div>
+                  <div style={{marginTop: '2rem', width: '100%', maxWidth: '800px'}}>
+                    {stats.historyFilter >= 50 ? (
+                      <MasterDashboard 
+                        spinHistory={filteredSpinHistory} 
+                        onSignalUpdate={setEntrySignals}
+                      />
 
+                    ) : (
+                      <div className="stat-card" style={{background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', border: '1px solid rgba(253, 224, 71, 0.2)', color: '#9ca3af', padding: '2rem', textAlign: 'center'}}>
+                        Aguardando {50 - stats.historyFilter} spins (no filtro atual) para iniciar o Master Dashboard...
+                      </div>
+                    )}
+                  </div>
+            </div>
           </div>
-          {/* === FIM DA COLUNA 1 === */}
-
-
-          {/* === COLUNA 2: CONTEÚDO CENTRAL === */}
+          
           <div className="roulette-wrapper">
-
-            {/* Sub-coluna 1: Conteúdo Principal */}
             <div className="roulette-and-results">
-              
-              <div className="title-section">
-                <h1 className="main-title">Dashboard Analítico de Roleta</h1>
-                <p className="subtitle">{ROULETTE_SOURCES[selectedRoulette]}</p>
-              </div>
 
-              {/* Container do Jogo - Aparece aqui quando gameUrl está definido */}
-              {gameUrl && (
-                <div className="game-container" style={{marginTop: '2rem', width: '100%'}}>
-                  <div className="game-header">
-                    <h3 className="game-title">
-                      <PlayCircle size={24} />
-                      {ROULETTE_SOURCES[selectedRoulette]}
-                    </h3>
-                    <button 
-                      onClick={handleCloseGame} 
-                      className="game-close-btn"
-                      title="Fechar Jogo"
-                    >
-                      <X size={20} />
-                      Fechar
-                    </button>
+                  {gameUrl && (
+                      <div className="game-iframe-wrapper">
+                        <iframe 
+                          src={gameUrl} 
+                          title="Jogo de Roleta" 
+                          className="game-iframe"
+                          allowFullScreen 
+                        />
+                      </div>
+                  )}
+                  <div className="racetrack-and-results-wrapper">
+                      <div className="racetrack-main-column">
+                        <RacingTrack 
+                          selectedResult={selectedResult}
+                          onNumberClick={handleNumberClick}
+                          entrySignals={entrySignals}
+                        />
+                      </div>
                   </div>
-                  <div className="game-iframe-wrapper">
-                    <iframe 
-                      src={gameUrl} 
-                      title="Jogo de Roleta" 
-                      className="game-iframe"
-                      allowFullScreen 
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Master Dashboard (agora no local correto) */}
-              <div style={{marginTop: '2rem', width: '100%', maxWidth: '800px'}}>
-                {filteredSpinHistory.length >= 50 ? (
-                  <MasterDashboard 
-                    spinHistory={filteredSpinHistory} 
-                    onSignalUpdate={setEntrySignals}
-                  />
-                ) : (
-                  <div className="stat-card" style={{background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', border: '1px solid rgba(253, 224, 71, 0.2)', color: '#9ca3af', padding: '2rem', textAlign: 'center'}}>
-                    Aguardando {50 - filteredSpinHistory.length} spins (no filtro atual) para iniciar o Master Dashboard...
-                  </div>
-                )}
-              </div>
             </div>
-
-            {/* Sub-coluna 2: Barra Lateral de Resultados */}
-            <div className="latest-results-compact">
-              <h4 className="latest-results-title">
-                <Clock size={20} /> Últimos Resultados (100)
-              </h4>
-              <div className="results-grid">
-                {stats.latestNumbers.map((result, index) => (
-                  <div key={index} className={`result-number-box ${result.color}`}
-                    onClick={() => handleNumberClick(result.number)}
-                    title={`Spin #${stats.totalSpins - index}`}>
-                    {result.number}
-                  </div>
-                ))}
-              </div>
-            </div>
-
           </div>
-          {/* === FIM DA COLUNA 2 === */}
+
+          {stats.historyFilter >= 50 ? (
+            <div className="analysis-panel">
+              
+              <div className="latest-results-compact">
+                <h4 className="latest-results-title">
+                  <Clock size={20} /> Últimos Resultados (100)
+                </h4>
+                  <div style={{ display:'flex', gap:'12px', alignItems:'center', fontSize:'20px' }}>
+                  <p className="stat-value-sm">Vermelho: <span style={{color: '#ef4444', fontWeight: 'bold'}}>{stats.colorFrequencies.red}%</span></p>
+                  <p className="stat-value-sm">Zero: <span style={{color: '#10b981', fontWeight: 'bold'}}>{stats.colorFrequencies.green}%</span></p>
+                  <p className="stat-value-sm">Preto: <span style={{color: '#d1d5db', fontWeight: 'bold'}}>{stats.colorFrequencies.black}%</span></p>
+              </div>
+
+                {/* <-- 3. JSX DO GRID ATUALIZADO (usando formatPullTooltip) --> */}
+                <div 
+                  className={`results-grid ${hoveredNumber !== null ? 'hover-active' : ''}`}
+                  onMouseLeave={() => setHoveredNumber(null)}
+                >
+                  {stats.latestNumbers.map((result, index) => {
+                    
+                    const isHighlighted = hoveredNumber !== null && result.number === hoveredNumber;
+                    
+                    // Usa a nova função para gerar o tooltip com AMBOS os históricos
+                    const tooltipTitle = formatPullTooltip(
+                      result.number, 
+                      numberPullStats,      // O que veio DEPOIS
+                      numberPreviousStats   // O que veio ANTES
+                    ); 
+
+                    return (
+                      <div 
+                        key={index} 
+                        className={`result-number-box ${result.color} ${isHighlighted ? 'highlighted' : ''}`}
+                        onMouseEnter={() => setHoveredNumber(result.number)}
+                        onClick={() => handleNumberClick(result.number)}
+                        title={tooltipTitle} // Usa o novo tooltip
+                      >
+                        {result.number}
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* <-- FIM DA MUDANÇA --> */}
+
+              </div>
+
+              <DeepAnalysisPanel spinHistory={filteredSpinHistory} />
+            </div>
+          ) : (
+            <div className="analysis-panel" style={{
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              textAlign: 'center', 
+              color: '#9ca3af',
+              padding: '2rem'
+            }}>
+              <div className="stat-card" style={{
+                background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', 
+                border: '1px solid rgba(253, 224, 71, 0.2)', 
+                color: '#9ca3af',
+                marginBottom: 0
+              }}>
+                Aguardando {50 - stats.historyFilter} spins (no filtro atual) para iniciar o Painel de Análise...
+              </div>
+            </div>
+          )}
 
         </div>
       )}
-      {/* === FIM DA PÁGINA 'roulette' === */}
-
 
       {activePage === 'master' && (
         <div style={{
@@ -1195,7 +1249,16 @@ const handleLaunchGame = async () => {
           background: 'linear-gradient(135deg, #064e3b 0%, #065f46 50%, #064e3b 100%)',
           minHeight: 'calc(100vh - 65px)'
         }}>
-          <MasterDashboard spinHistory={spinHistory} />
+          {stats.historyFilter >= 50 ? (
+            <MasterDashboard 
+              spinHistory={filteredSpinHistory} 
+              onSignalUpdate={setEntrySignals}
+            />
+          ) : (
+            <div className="stat-card" style={{background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', border: '1px solid rgba(253, 224, 71, 0.2)', color: '#9ca3af', padding: '2rem', textAlign: 'center', maxWidth: '800px', margin: '0 auto'}}>
+              Aguardando {50 - stats.historyFilter} spins (no filtro atual) para iniciar o Master Dashboard...
+            </div>
+          )}
         </div>
       )}
 
@@ -1204,22 +1267,7 @@ const handleLaunchGame = async () => {
   );
 };
 
-// ... (activeTabStyle e inactiveTabStyle permanecem os mesmos) ...
-const activeTabStyle = {
-  padding: '0.75rem 1.5rem', background: 'linear-gradient(135deg, #ca8a04, #eab308)',
-  color: '#111827', border: 'none', borderRadius: '0.5rem', cursor: 'pointer',
-  fontWeight: 'bold', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem',
-  boxShadow: '0 4px 10px rgba(202, 138, 4, 0.4)', transition: 'all 0.2s'
-};
-
-const inactiveTabStyle = {
-  padding: '0.75rem 1.5rem', background: 'rgba(255, 255, 255, 0.05)', color: '#d1d5db',
-  border: '1px solid #4b5563', borderRadius: '0.5rem', cursor: 'pointer',
-  fontWeight: 'bold', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem',
-  transition: 'all 0.2s'
-};
-
-// ... (Componente NumberStatsPopup permanece o mesmo) ...
+// ... (Componente NumberStatsPopup permanece exatamente igual) ...
 const NumberStatsPopup = ({ isOpen, onClose, number, stats }) => {
   if (!isOpen || !stats) return null;
   const color = getNumberColor(number);
@@ -1232,12 +1280,12 @@ const NumberStatsPopup = ({ isOpen, onClose, number, stats }) => {
         </button>
         <div className="popup-header">
           <div className={`popup-number-icon ${color}`}>{number}</div>
-          <h2 className="popup-title">Análise do Número {number}</h2>
+          <h2 className="popup-title">Análise do Número {number} (em {stats.historyFilter} spins)</h2>
         </div>
         <div className="stats-grid">
           <div className="info-card">
             <p className="info-label"><Hash size={18} /> Ocorrências:</p>
-            <p className="info-value">{stats.count} / {stats.totalSpins}</p>
+            <p className="info-value">{stats.count} / {stats.historyFilter}</p>
           </div>
           <div className="info-card">
             <p className="info-label"><Percent size={18} /> Frequência:</p>
@@ -1261,7 +1309,7 @@ const NumberStatsPopup = ({ isOpen, onClose, number, stats }) => {
                 <div className="next-numbers-list">
                   {occ.prevSpins.length > 0 ? occ.prevSpins.map((num, i) => (
                     <span key={i} className={`next-number ${getNumberColor(num)}`}
-                      title={`Spin #${stats.totalSpins - (occ.spinsAgo + i)} (${5-i}º Spin ANTES)`}>
+                      title={`Spin #${stats.historyFilter - (occ.spinsAgo + i)} (${5-i}º Spin ANTES)`}>
                       {num}
                     </span>
                   )) : <span style={{color: '#9ca3af', fontStyle: 'italic'}}>Início do histórico</span>}
@@ -1277,5 +1325,6 @@ const NumberStatsPopup = ({ isOpen, onClose, number, stats }) => {
     </div>
   );
 };
+
 
 export default App;
