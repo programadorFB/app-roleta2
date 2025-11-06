@@ -274,7 +274,28 @@
 
 @media (max-width: 480px) {
   .masterDashboardContainer {
-    height: 346px;
+    height: fit-content;
+    gap: 1rem;
+
+  }
+  .strategyMiniCard {
+    width: 62px;
+  }
+  .miniCardHeader{
+    font-size: 10px;
+    margin-left: -10px;
+  }
+  .miniCardScore{
+    font-size: 15px;
+  }
+  .masterGridContainer {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+}
+@media (max-width: 400px) {
+  .masterDashboardContainer {
+    height: fit-content;
     gap: 1rem;
 
   }

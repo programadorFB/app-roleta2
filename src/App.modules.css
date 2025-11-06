@@ -197,6 +197,7 @@ body {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 0.75rem;
   padding: 1rem;
+  height: fit-content;
   margin-top:-10px ;
   border: 1px solid #374151;
   margin-bottom: 1.5rem;
@@ -1127,7 +1128,7 @@ body {
     font-size: 1.5rem;
   }
   .stats-dashboard{
-    height: 760px;
+    height: fit-content;
   }
   .latest-results-compact{
     height: 522px;
@@ -1243,6 +1244,139 @@ body {
     width: 108%;
     height: auto;
     margin-top: -55px;
+    margin-bottom: 55px;
+    padding-bottom: 150%;
+    pointer-events:visiblePainted;
+  }
+}
+@media (max-width: 400px) {
+  .main-title {
+    font-size: 1.5rem;
+  }
+  .stats-dashboard{
+    height: fit-content;
+    margin-left: -20px;
+  }
+  .latest-results-compact{
+    height: 522px;
+  }
+  .subtitle {
+    font-size: 0.9rem;
+  }
+
+  .green-base {
+    width: 280px;
+    height: 280px;
+  }
+
+  .number-slot {
+    width: 30px;
+    height: 30px;
+    font-size: 0.75rem;
+  }
+
+  .ball {
+    width: 18px;
+    height: 18px;
+  }
+
+  .results-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .popup-content {
+    padding: 1.25rem;
+  }
+
+  .popup-number-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 1.75rem;
+  }
+
+  .popup-header {
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .popup-title {
+    font-size: 1.25rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 0.75rem;
+  }
+  .stat-card{
+    height: fit-content;
+  }
+  .info-card {
+    padding: 0.875rem;
+  }
+
+  .info-label {
+    font-size: 0.85rem;
+  }
+
+  .info-value {
+    font-size: 1.2rem;
+  }
+
+  .next-spins-title {
+    font-size: 1.1rem;
+  }
+  .racetrack-mobile-only{
+    margin-top: -30px;
+    margin-bottom: -30px;
+    margin-left: -18px;
+  }
+  .next-spins-container {
+    gap: 1rem;
+  }
+
+  .next-spins-card {
+    padding: 0.875rem;
+  }
+
+  .next-spins-label {
+    font-size: 0.9rem;
+  }
+
+  .next-number {
+    width: 28px;
+    height: 28px;
+    font-size: 0.85rem;
+  }
+
+  .popup-footer-btn {
+    font-size: 1rem;
+    padding: 0.875rem 1.25rem;
+  }
+
+  .game-title {
+    font-size: 1.1rem;
+  }
+
+  .game-close-btn {
+    padding: 0.65rem 1.25rem;
+    font-size: 0.9rem;
+  }
+
+  .game-container {
+    margin-top: 0;
+    margin-left: -150px;
+    width: 100%;
+    max-width: 430px;
+  }
+  .analysis-panel{
+    margin-top: -25px;
+    margin-left: -15px;
+  }
+  .game-iframe-wrapper {
+    width: 108%;
+    height: auto;
+    margin-top: -5px;
+    margin-left: -12px;
     padding-bottom: 150%;
   }
 }
