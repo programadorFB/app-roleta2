@@ -7,7 +7,7 @@
   min-width: 70px; /* Reduzido para um visual mais compacto */
   background: #1a1a1a; /* Fundo escuro */
   border-radius: 60px; /* Bordas bem arredondadas */
-  padding: 0px;
+  padding: 0px; 
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
   margin: 2rem auto;
   position: relative;
@@ -212,7 +212,7 @@
      border-radius: 40px;
      padding: 5px;
      background-color: transparent;
-     margin-left: -10px;
+
   }
      .racetrack-flat-inner {
      height: 100px;

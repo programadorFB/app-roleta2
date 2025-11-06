@@ -1,4 +1,4 @@
-// App.jsx (Com Histórico de Puxadas no Tooltip)
+// App.jsx (Com Tooltip Flutuante no Mobile)
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { 
     X, BarChart3, Clock, Hash, Percent, Layers, CheckSquare, Settings, 
@@ -11,7 +11,6 @@ import DeepAnalysisPanel from './components/DeepAnalysisPanel.jsx';
 import './components/NotificationsCenter.css';
 import  './App.modules.css';
 
-// ... (GlobalStyles permanece o mesmo) ...
 const GlobalStyles = () => (
   <style>{`
     * {
@@ -26,6 +25,18 @@ const GlobalStyles = () => (
         overflow-x: hidden;
     }
 
+    .container {
+        min-height: calc(100vh - 65px);
+        background: #20311f;
+        display: grid;
+        grid-template-columns: 380px 1fr 420px; 
+        gap: 1.5rem;
+        align-items: flex-start;
+        padding: 1.5rem;
+        overflow-x: hidden;
+        max-width: 2400px;
+        margin-top: -10 auto;
+    }
       .html { 
         overflow-x: hidden;
     }
@@ -399,7 +410,6 @@ const GlobalStyles = () => (
   `}</style>
 );
 
-// ... (Login Component permanece exatamente igual) ...
 const Login = ({ onLoginSuccess }) => {
   const [formData, setFormData] = useState({ email: '', password: '', brand: 'betou' });
   const [loading, setLoading] = useState(false);
@@ -476,11 +486,11 @@ const Login = ({ onLoginSuccess }) => {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: '#20311f', padding: '1rem'
+      background: '#4d4d4d', padding: '1rem'
     }}>
       <div style={{ width: '100%', maxWidth: '28rem' }}>
         <div style={{
-          background: '#1a1a1a', borderRadius: '1rem',
+          background: 'linear-gradient(135deg, #111827 0%, #1f2937 100%)', borderRadius: '1rem',
           boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)', padding: '2rem', border: '2px solid #a16207'
         }}>
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
@@ -594,7 +604,6 @@ const Login = ({ onLoginSuccess }) => {
   );
 };
 
-// ... (Constants, getNumberColor, ROULETTE_SOURCES, ROULETTE_GAME_IDS, filterOptions permanecem iguais) ...
 const rouletteNumbers = [
   0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10,
   5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26
@@ -630,7 +639,6 @@ const filterOptions = [
   { value: 'all', label: 'Histórico Completo' }
 ];
 
-// <-- 1. FUNÇÃO HELPER PARA O TOOLTIP (FORMATO CORRIGIDO) -->
 /**
 * Formata o tooltip de "puxadas" e "anteriores" para um número, limitando a 5.
  * @param {number} number - O número que estamos analisando.
@@ -665,6 +673,7 @@ const formatPullTooltip = (number, pullStats, previousStats) => {
   // \n é a quebra de linha no tooltip do title
   return `Número: ${number}\nPuxou: ${pullString}\nVeio Antes: ${prevString}`;
 };
+
 // Main App
 const App = () => {
   // Auth States
@@ -692,6 +701,14 @@ const App = () => {
   const [historyFilter, setHistoryFilter] = useState(filterOptions[0].value);
   
   const [hoveredNumber, setHoveredNumber] = useState(null);
+
+  // <-- 1. NOVO ESTADO PARA O TOOLTIP MOBILE -->
+  const [mobileTooltip, setMobileTooltip] = useState({
+    visible: false,
+    content: '',
+    x: 0,
+    y: 0
+  });
 
   const greenBaseRef = useRef(null);
   const [dynamicRadius, setDynamicRadius] = useState(160);
@@ -926,7 +943,7 @@ const App = () => {
     };
   }, [popupNumber, isPopupOpen, filteredSpinHistory]);
 
-  // <-- 2. useMemo PARA PRÉ-CALCULAR "PUXADAS" (RE-ADICIONADO) -->
+  // numberPullStats (useMemo)
   const numberPullStats = useMemo(() => {
     // Map<number, Map<pulledNumber, count>>
     const pullMap = new Map();
@@ -939,19 +956,20 @@ const App = () => {
     // Itera sobre o histórico COMPLETO (spinHistory)
     // spinHistory[i] é o número ATUAL
     // spinHistory[i+1] é o número que veio IMEDIATAMENTE APÓS (o "puxado")
-// ✅ AGORA CORRETO - Pega números que vieram DEPOIS
-for (let i = 1; i < spinHistory.length; i++) {
-  const currentNumber = spinHistory[i].number; // Número analisado
-  const nextNumber = spinHistory[i - 1].number; // Número POSTERIOR (índice menor = mais recente)
-  
-  const numberStats = pullMap.get(currentNumber);
-  const currentPullCount = numberStats.get(nextNumber) || 0;
-  numberStats.set(nextNumber, currentPullCount + 1);
-}
-    
+    // ✅ AGORA CORRETO - Pega números que vieram DEPOIS
+    for (let i = 1; i < spinHistory.length; i++) {
+      const currentNumber = spinHistory[i].number; // Número analisado
+      const nextNumber = spinHistory[i - 1].number; // Número POSTERIOR (índice menor = mais recente)
+      
+      const numberStats = pullMap.get(currentNumber);
+      const currentPullCount = numberStats.get(nextNumber) || 0;
+      numberStats.set(nextNumber, currentPullCount + 1);
+    }
+        
     return pullMap;
   }, [spinHistory]); // Depende apenas do histórico completo
-  // <-- FIM DA MUDANÇA -->
+  
+  // numberPreviousStats (useMemo)
   const numberPreviousStats = useMemo(() => {
     // Map<number, Map<previousNumber, count>>
     const prevMap = new Map();
@@ -975,6 +993,49 @@ for (let i = 1; i < spinHistory.length; i++) {
         
     return prevMap;
   }, [spinHistory])
+
+  // <-- 2. NOVAS FUNÇÕES PARA GERENCIAR O TOOLTIP MOBILE -->
+  /**
+   * Decide se abre o Popup grande (desktop) ou o Tooltip flutuante (mobile)
+   */
+  const handleResultBoxClick = (e, result) => {
+    // Breakpoint para mobile (ex: 768px). Ajuste se necessário.
+    if (window.innerWidth <= 768) { 
+      e.preventDefault();
+      e.stopPropagation(); // Impede que o clique feche o tooltip imediatamente
+
+      // Gera o mesmo conteúdo do tooltip de desktop
+      const tooltipTitle = formatPullTooltip(
+        result.number, 
+        numberPullStats, 
+        numberPreviousStats
+      );
+
+      setMobileTooltip({
+        visible: true,
+        content: tooltipTitle,
+        // Pega as coordenadas do toque
+        x: e.clientX, 
+        y: e.clientY - 10 // Um pequeno offset para aparecer acima do dedo
+      });
+
+    } else {
+      // Comportamento padrão (desktop): Abrir o popup grande
+      handleNumberClick(result.number);
+    }
+  };
+
+  /**
+   * Fecha o tooltip flutuante
+   */
+  const closeMobileTooltip = () => {
+    if (mobileTooltip.visible) {
+      setMobileTooltip(prev => ({ ...prev, visible: false }));
+    }
+  };
+  // <-- FIM DA MUDANÇA 2 -->
+
+
   const getNumberPosition = useCallback((number, radius) => {
     const index = rouletteNumbers.indexOf(number);
     if (index === -1) return { x: 0, y: 0, angle: 0 };
@@ -1011,6 +1072,42 @@ for (let i = 1; i < spinHistory.length; i++) {
   return (
     <>
       <GlobalStyles />
+      
+      {/* <-- 3. RENDERIZAÇÃO DO TOOLTIP FLUTUANTE E BACKDROP --> */}
+      {/* Backdrop para fechar o tooltip ao clicar fora */}
+      {mobileTooltip.visible && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            zIndex: 1999 // Abaixo do tooltip, acima do resto
+          }}
+          onClick={closeMobileTooltip}
+        />
+      )}
+      
+      {/* O Tooltip Flutuante */}
+      {mobileTooltip.visible && (
+        <div 
+          className="mobile-tooltip" 
+          style={{
+            position: 'fixed',
+            // Usa as coordenadas X e Y do estado
+            top: mobileTooltip.y,
+            left: mobileTooltip.x,
+            // O CSS .mobile-tooltip usa 'transform' para centralizar acima do ponto
+            zIndex: 2000,
+            opacity: 1 
+          }}
+        >
+          <div className="mobile-tooltip-content">
+            {/* O CSS já cuida da quebra de linha (white-space: pre-wrap) */}
+            <span>{mobileTooltip.content}</span>
+          </div>
+        </div>
+      )}
+      {/* <-- FIM DA MUDANÇA 3 --> */}
+
       <div className="navbar">
         <div className="navbar-left">
         </div>
@@ -1146,7 +1243,13 @@ for (let i = 1; i < spinHistory.length; i++) {
                   </div>
             </div>
           </div>
-          
+          <div className="racetrack-mobile-only">
+              <RacingTrack 
+                selectedResult={selectedResult}
+                onNumberClick={handleNumberClick}
+                entrySignals={entrySignals}
+              />
+            </div>
           <div className="roulette-wrapper">
             <div className="roulette-and-results">
 
@@ -1160,8 +1263,9 @@ for (let i = 1; i < spinHistory.length; i++) {
                         />
                       </div>
                   )}
-                  <div className="racetrack-and-results-wrapper">
-                      <div className="racetrack-main-column">
+<div className="racetrack-and-results-wrapper">
+                      {/* Adicione a classe "racetrack-desktop-only" aqui */}
+                      <div className="racetrack-main-column racetrack-desktop-only">
                         <RacingTrack 
                           selectedResult={selectedResult}
                           onNumberClick={handleNumberClick}
@@ -1179,13 +1283,13 @@ for (let i = 1; i < spinHistory.length; i++) {
                 <h4 className="latest-results-title">
                   <Clock size={20} /> Últimos Resultados (100)
                 </h4>
-                  <div style={{ display:'flex', gap:'12px', alignItems:'center', fontSize:'20px' }}>
+                  <div style={{ display:'flex', gap:'12px', alignItems:'center', fontSize:'20px', marginBottom:'15px', marginLeft:'25px' }}>
                   <p className="stat-value-sm">Vermelho: <span style={{color: '#ef4444', fontWeight: 'bold'}}>{stats.colorFrequencies.red}%</span></p>
                   <p className="stat-value-sm">Zero: <span style={{color: '#10b981', fontWeight: 'bold'}}>{stats.colorFrequencies.green}%</span></p>
                   <p className="stat-value-sm">Preto: <span style={{color: '#d1d5db', fontWeight: 'bold'}}>{stats.colorFrequencies.black}%</span></p>
               </div>
 
-                {/* <-- 3. JSX DO GRID ATUALIZADO (usando formatPullTooltip) --> */}
+                {/* <-- 4. JSX DO GRID ATUALIZADO (usando a nova função de clique) --> */}
                 <div 
                   className={`results-grid ${hoveredNumber !== null ? 'hover-active' : ''}`}
                   onMouseLeave={() => setHoveredNumber(null)}
@@ -1194,11 +1298,11 @@ for (let i = 1; i < spinHistory.length; i++) {
                     
                     const isHighlighted = hoveredNumber !== null && result.number === hoveredNumber;
                     
-                    // Usa a nova função para gerar o tooltip com AMBOS os históricos
+                    // Gera o tooltip para o 'title' (hover no desktop)
                     const tooltipTitle = formatPullTooltip(
                       result.number, 
-                      numberPullStats,      // O que veio DEPOIS
-                      numberPreviousStats   // O que veio ANTES
+                      numberPullStats,
+                      numberPreviousStats
                     ); 
 
                     return (
@@ -1206,15 +1310,18 @@ for (let i = 1; i < spinHistory.length; i++) {
                         key={index} 
                         className={`result-number-box ${result.color} ${isHighlighted ? 'highlighted' : ''}`}
                         onMouseEnter={() => setHoveredNumber(result.number)}
-                        onClick={() => handleNumberClick(result.number)}
-                        title={tooltipTitle} // Usa o novo tooltip
+                        
+                        // ATUALIZADO: Usa a nova função que diferencia mobile/desktop
+                        onClick={(e) => handleResultBoxClick(e, result)}
+                        
+                        title={tooltipTitle} // Mantém o tooltip de desktop
                       >
                         {result.number}
                       </div>
                     );
                   })}
                 </div>
-                {/* <-- FIM DA MUDANÇA --> */}
+                {/* <-- FIM DA MUDANÇA 4 --> */}
 
               </div>
 
@@ -1267,7 +1374,6 @@ for (let i = 1; i < spinHistory.length; i++) {
   );
 };
 
-// ... (Componente NumberStatsPopup permanece exatamente igual) ...
 const NumberStatsPopup = ({ isOpen, onClose, number, stats }) => {
   if (!isOpen || !stats) return null;
   const color = getNumberColor(number);

@@ -16,12 +16,45 @@ body {
   background-color: #064e3b;
   overflow-x: hidden;
 }
+/* ========================================
+   TOOLTIP FLUTUANTE (MOBILE)
+   ======================================== */
+.mobile-tooltip {
+  background: linear-gradient(135deg, #2b3a52 0%, #1a2230 100%);
+  color: #d1d5db;
+  border: 2px solid #ca8a04;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  font-size: 0.875rem;
+  line-height: 1.4;
+  font-family: 'Arial', sans-serif;
+  max-width: 250px;
+  /* pointer-events: none; O backdrop agora cuida dos cliques */
+  transition: opacity 0.2s;
+  animation: fadeIn 0.1s ease-out;
+  text-align: left;
+}
 
+.mobile-tooltip-content span {
+  white-space: pre-wrap; /* Garante a quebra de linha */
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -90%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -100%);
+  }
+}
 /* ========================================
    HEADER DE NAVEGAÇÃO
    ======================================== */
 .navbar {
-  background: #1a1a1a;
+  background: #4a4a4a;
   padding: 0.75rem 2rem;
   display: flex;
   justify-content: space-between;
@@ -114,18 +147,18 @@ body {
 /* ========================================
    CONTAINER PRINCIPAL
    ======================================== */
-
 .container {
-    min-height: calc(100vh - 65px);
-    background: #20311f;
-    display: grid;
-    grid-template-columns: 380px 1fr 420px; 
-    gap: 1.5rem;
-    align-items: flex-start;
-    padding: 1.5rem;
-    overflow-x: hidden;
-    max-width: 2400px;
-    margin-top: -10 auto;
+  min-height: 100vh ;
+  min-width:100vw ;
+  background: #20311f;
+  display: grid;
+  grid-template-columns: 320px 1fr 420px;
+  gap: 1.5rem;
+  align-items: flex-start;
+  padding: 1.5rem;
+  overflow-x: hidden;
+  max-width: 2200px;
+  margin: 0 auto;
 }
 
 /* ========================================
@@ -134,21 +167,17 @@ body {
 .stats-dashboard {
   grid-column: 1 / 2;
   background: #1a1a1a;
-  height: 800px;
-  
-  /* APLIQUEI A BORDA AQUI */
-  border: 2px solid #a16207; /* Combina largura, estilo e cor */
-  
-  border-radius: 8px;
-  padding: 1rem;
+  border-radius: 1rem;
+  padding: 1.25rem;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   
   position: sticky;
   top: 1.5rem;
-  max-height: calc(100vh );
+  max-height: calc(100vh - 3rem - 65px);
   overflow-y: hidden;
   color: white;
 }
+
 .dashboard-title {
   font-size: 1.25rem;
   font-weight: bold;
@@ -168,6 +197,7 @@ body {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 0.75rem;
   padding: 1rem;
+  margin-top:-10px ;
   border: 1px solid #374151;
   margin-bottom: 1.5rem;
   text-align: center;
@@ -193,8 +223,6 @@ body {
 
 .stat-value-sm {
   font-size: 0.9rem;
-  display: row;
-  grid-row: inherit;
   color: #d1d5db;
 }
 
@@ -516,9 +544,8 @@ body {
 .analysis-panel {
         grid-column: 3 / 4; 
         background: #1a1a1a;
-        border-radius: 8px;
+        border-radius: 15px;
         padding: 1rem;
-        border: 2px solid #a16207;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         position: sticky;
         top: 0px;
@@ -896,6 +923,23 @@ body {
 }
 
 /* ========================================
+   CONTROLE RESPONSIVO DA RACETRACK (DEFAULTS)
+   ======================================== */
+.racetrack-mobile-only {
+  display: none;
+  width: 100%;
+}
+
+.racetrack-desktop-only {
+  display: flex;
+  flex: 1; 
+  min-width: 0; 
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem; 
+}
+
+/* ========================================
    MEDIA QUERIES - RESPONSIVIDADE
    ======================================== */
 
@@ -926,6 +970,23 @@ body {
 
   .roulette-section {
     grid-column: 1 / -1;
+  }
+
+  /* ========================================
+      LÓGICA DA RACETRACK (MOBILE) - CORRIGIDA
+      ======================================== */
+  .racetrack-mobile-only {
+    display: block; /* Mostra a racetrack dentro do painel de estatísticas */
+    margin-bottom: 1.5rem; /* Adiciona um espaço abaixo dela */
+  }
+
+  /* Esta é a CORREÇÃO:
+    Ao usar ".racetrack-main-column.racetrack-desktop-only", 
+    tornamos a regra mais específica e ela "vence" a regra 
+    de "display: flex" que estava no GlobalStyles. 
+  */
+  .racetrack-main-column.racetrack-desktop-only {
+    display: none; /* Esconde a racetrack da coluna central */
   }
 }
 
@@ -1065,7 +1126,12 @@ body {
   .main-title {
     font-size: 1.5rem;
   }
-
+  .stats-dashboard{
+    height: 760px;
+  }
+  .latest-results-compact{
+    height: 522px;
+  }
   .subtitle {
     font-size: 0.9rem;
   }
@@ -1129,7 +1195,9 @@ body {
   .next-spins-title {
     font-size: 1.1rem;
   }
-
+  .racetrack-mobile-only{
+    margin-top: -35px;
+  }
   .next-spins-container {
     gap: 1rem;
   }
@@ -1168,10 +1236,13 @@ body {
     width: 100%;
     max-width: 430px;
   }
-
+  .analysis-panel{
+    margin-top: -80px;
+  }
   .game-iframe-wrapper {
-    width: 100%;
+    width: 108%;
     height: auto;
+    margin-top: -55px;
     padding-bottom: 150%;
   }
 }

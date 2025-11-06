@@ -78,11 +78,7 @@
   text-shadow: 0 2px 8px rgba(253, 224, 71, 0.3);
 }
 
-.stats-grid {
-  display: grid;
-  gap: 1rem;
-  margin-top: 1rem;
-}
+
 
 /* === GRID DE ESTRATÉGIAS === */
 .masterGridContainer {
@@ -169,7 +165,7 @@
   justify-content: center;
   min-width: 2.5rem;
   height: 2.5rem;
-  border-radius: 50%;
+  border-radius: 5px;
   font-weight: 700;
   font-size: 1rem;
   border: 2px solid rgba(255, 255, 255, 0.2);
@@ -278,15 +274,22 @@
 
 @media (max-width: 480px) {
   .masterDashboardContainer {
-    padding: 0.75rem;
+    height: 346px;
     gap: 1rem;
-  }
 
+  }
+  .strategyMiniCard {
+    width: 62px;
+  }
+  .miniCardHeader{
+    font-size: 10px;
+    margin-left: -10px;
+  }
+  .miniCardScore{
+    font-size: 15px;
+  }
   .masterGridContainer {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(5, 1fr);
   }
 
-  .stats-grid {
-    grid-template-columns: 1fr !important;
-  }
 }
