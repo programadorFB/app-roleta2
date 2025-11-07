@@ -486,11 +486,11 @@ const Login = ({ onLoginSuccess }) => {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: '#4d4d4d', padding: '1rem'
+      background: '#20311f', padding: '1rem'
     }}>
       <div style={{ width: '100%', maxWidth: '28rem' }}>
         <div style={{
-          background: 'linear-gradient(135deg, #111827 0%, #1f2937 100%)', borderRadius: '1rem',
+          background: '#1a1a1a', borderRadius: '1rem',
           boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)', padding: '2rem', border: '2px solid #a16207'
         }}>
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
@@ -579,7 +579,7 @@ const Login = ({ onLoginSuccess }) => {
             <button type="submit" disabled={loading}
               style={{
                 width: '100%', padding: '0.75rem 1rem',
-                background: loading ? '#6b7280' : 'linear-gradient(135deg, #eab308, #eab308)',
+                background: loading ? '#20311f' : 'linear-gradient(135deg, #eab308, #eab308)',
                 color: 'black', fontWeight: 'bold', fontSize: '1rem', borderRadius: '0.5rem', border: 'none',
                 cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: loading ? 0.7 : 1
               }}>
