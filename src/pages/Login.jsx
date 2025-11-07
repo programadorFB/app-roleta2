@@ -176,7 +176,7 @@ const Login = () => {
           <div className="mt-6 text-center">
             <p className="text-gray-400 text-sm">
               Não tem uma conta?{' '}
-              <a href="#" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
+              <a href="https://go.aff.betou.bet.br/tgml0e19?utm_medium=appcmd" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
                 Cadastre-se
               </a>
             </p>

@@ -27,13 +27,13 @@ const GlobalStyles = () => (
 
     .container {
         min-height: calc(100vh - 65px);
-        background: #20311f;
+        background: #4a4a4a;
         display: grid;
         grid-template-columns: 380px 1fr 420px; 
         gap: 1.5rem;
         align-items: flex-start;
         padding: 1.5rem;
-        overflow-x: hidden;
+        overflow-x: None;
         max-width: 2400px;
         margin-top: -10 auto;
     }
