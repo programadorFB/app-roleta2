@@ -560,7 +560,7 @@ const Login = ({ onLoginSuccess }) => {
           <p style={{ color: "white" }}>
               Ainda não tem cadastro na Betou?{" "}
               <a 
-                href="https://go.aff.betou.bet.br/bhlfl7qf?utm_medium=newapp"
+                href="https://go.aff.betou.bet.br/tgml0e19?utm_medium=appcmd"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
