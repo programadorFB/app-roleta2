@@ -27,7 +27,7 @@ const GlobalStyles = () => (
 
     .container {
         min-height: calc(100vh - 65px);
-        background: #4a4a4a;
+        background: #20311f;
         display: grid;
         grid-template-columns: 380px 1fr 420px; 
         gap: 1.5rem;
