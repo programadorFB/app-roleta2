@@ -617,7 +617,7 @@ const getNumberColor = (num) => {
 
 const ROULETTE_SOURCES = {
   immersive: '🌟 Roleta Immersive',
-  brasileira: '🇧🇷 Roleta Brasileira',
+  brasileira: '🇧🇷 Roleta Brasileira Pragmatic',
   speed: '💨 Speed Roulette',
   xxxtreme: '⚡ Xxxtreme Lightning',
   vipauto: '🚘 Vip Auto Roulette'
@@ -625,9 +625,9 @@ const ROULETTE_SOURCES = {
 
 const ROULETTE_GAME_IDS = {
   immersive: 55,
-  brasileira: 34,
+  brasileira: 101,
   speed: 36,
-  xxxtreme: 33,
+  xxxtreme: 103,
   vipauto: 31
 };
 
@@ -749,18 +749,18 @@ const App = () => {
     setGameUrl('');
   };
   
-  // Close Game Handler
-  const handleCloseGame = useCallback(() => {
-    setGameUrl('');
-    setLaunchError('');
-  }, []);
-
   // Launch Game Handler
   const handleLaunchGame = async () => {
     setIsLaunching(true);
     setLaunchError('');
     const gameId = ROULETTE_GAME_IDS[selectedRoulette];
     
+    // --- MUDANÇA APLICADA ---
+    // 1. Define os IDs monitorados
+    const monitoredGameIds = [55, 101, 36, 103, 31];
+    const isMonitoredGame = monitoredGameIds.includes(gameId);
+    // --- FIM DA MUDANÇA ---
+
     if (!gameId || !jwtToken) {
       setLaunchError('Erro interno: ID do jogo ou Token não encontrado.');
       setIsLaunching(false);
@@ -809,21 +809,57 @@ const App = () => {
             setLaunchError('');
           } else {
             console.warn("❌ game_url não encontrada na resposta. Estrutura completa:", data);
-            setLaunchError('URL do jogo não encontrada na resposta da API. Estrutura: ' + JSON.stringify(data).substring(0, 200));
+            
+            // --- MUDANÇA APLICADA ---
+            // 2. Adiciona o log e a mensagem de erro em caso de falha (mesmo com status 200)
+            if (isMonitoredGame) {
+                console.log("jogo não disponível, no momento. Estamos trabalhando nisso");
+                setLaunchError('Jogo não disponível, no momento. Estamos trabalhando nisso.');
+            } else {
+                setLaunchError('URL do jogo não encontrada na resposta da API. Estrutura: ' + JSON.stringify(data).substring(0, 200));
+            }
+            // --- FIM DA MUDANÇA ---
           }
   
         } catch (jsonError) {
           console.error("❌ Erro ao parsear JSON:", jsonError);
           console.error("📄 Resposta original:", rawResponseText);
-          setLaunchError('Resposta da API não é um JSON válido: ' + rawResponseText.substring(0, 100));
+          
+          // --- MUDANÇA APLICADA ---
+          // 3. Adiciona o log e a mensagem de erro em caso de JSON inválido
+          if (isMonitoredGame) {
+              console.log("jogo não disponível, no momento. Estamos trabalhando nisso");
+              setLaunchError('Jogo não disponível, no momento. Estamos trabalhando nisso.');
+          } else {
+              setLaunchError('Resposta da API não é um JSON válido: ' + rawResponseText.substring(0, 100));
+          }
+          // --- FIM DA MUDANÇA ---
         }
       } else {
         console.error("❌ Erro HTTP:", response.status, rawResponseText);
-        setLaunchError(`Erro ${response.status} do servidor: ${rawResponseText.substring(0, 100)}`);
+        
+        // --- MUDANÇA APLICADA ---
+        // 4. Adiciona o log e a mensagem de erro em caso de status HTTP de erro (4xx, 5xx)
+        if (isMonitoredGame) {
+            console.log("jogo não disponível, no momento. Estamos trabalhando nisso");
+            setLaunchError('Jogo não disponível, no momento. Estamos trabalhando nisso.');
+        } else {
+            setLaunchError(`Erro ${response.status} do servidor: ${rawResponseText.substring(0, 100)}`);
+        }
+        // --- FIM DA MUDANÇA ---
       }
     } catch (err) {
       console.error('❌ Erro de rede:', err);
-      setLaunchError('Erro de conexão: ' + err.message);
+      
+      // --- MUDANÇA APLICADA ---
+      // 5. Adiciona o log e a mensagem de erro em caso de erro de rede (fetch falhou)
+      if (isMonitoredGame) {
+          console.log("jogo não disponível, no momento. Estamos trabalhando nisso");
+          setLaunchError('Jogo não disponível, no momento. Estamos trabalhando nisso.');
+      } else {
+          setLaunchError('Erro de conexão: ' + err.message);
+      }
+      // --- FIM DA MUDANÇA ---
     } finally {
       setIsLaunching(false);
     }

@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { 
-    Flame, Snowflake, Layers, AlignCenter, TrendingUp, BarChart3, Target, PieChart, Activity, Cpu, Info 
+    Flame, Snowflake, Layers, AlignCenter, TrendingUp, BarChart3, Target, PieChart, Activity, Cpu, Info, Lock // <-- 1. ÍCONE DE CADEADO IMPORTADO
 } from 'lucide-react';
 import styles from './DeepAnalysisPanel.module.css';
 import { useNotifications } from '../contexts/NotificationContext'; // Importe o hook de notificações
@@ -245,10 +245,31 @@ const sleepers = Object.entries(lastSeenIndex)
         );
     }
 
+    // --- 2. ESTILO UNIFICADO PARA BOTÕES BLOQUEADOS ---
+    const lockedButtonStyle = {
+        flex: 1,
+        minWidth: '100px',
+        padding: '0.75rem 0.5rem',
+        background: 'rgba(255, 255, 255, 0.05)', // Cor inativa
+        color: '#6b7280', // Cor desabilitada
+        border: 'none',
+        borderRadius: '0.5rem',
+        cursor: 'not-allowed',
+        fontWeight: 'bold',
+        fontSize: '0.9rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '0.5rem',
+        transition: 'all 0.2s',
+        opacity: 0.6 // Opacidade desabilitada
+    };
+
+
     return (
         <div className={styles['strategies-info-panel']}>
             {/* Sistema de Abas (Sempre Visível) */}
-            <div style={{
+<div style={{
                 display: 'flex',
                 flexWrap: 'wrap', // Permite quebra de linha em telas menores
                 gap: '0.5rem',
@@ -256,6 +277,8 @@ const sleepers = Object.entries(lastSeenIndex)
                 borderBottom: '2px solid #374151',
                 paddingBottom: '0.5rem'
             }}>
+                
+                {/* --- BOTÃO GERAL (PERMANECE ATIVO) --- */}
                 <button
                     onClick={() => setActiveTab('statistics')}
                     style={{
@@ -277,138 +300,63 @@ const sleepers = Object.entries(lastSeenIndex)
                         boxShadow: activeTab === 'statistics' ? '0 2px 8px rgba(202, 138, 4, 0.4)' : 'none'
                     }}
                 >
-                    {/* 2. ÍCONE DE ESTATÍSTICAS MUDADO */}
                     <TrendingUp size={18} />
                     Geral
                 </button>
                 
-                {/* 3. NOVA ABA DE FREQUÊNCIA ADICIONADA */}
+                {/* --- BOTÕES BLOQUEADOS COM EMOJI DE CADEADO --- */}
                 <button
-                    onClick={() => setActiveTab('frequency')}
-                    style={{
-                        flex: 1,
-                        minWidth: '100px',
-                        padding: '0.75rem 0.5rem',
-                        background: activeTab === 'frequency' ? 'linear-gradient(135deg, #ca8a04, #eab308)' : 'rgba(255, 255, 255, 0.05)',
-                        color: activeTab === 'frequency' ? '#111827' : '#d1d5db',
-                        border: 'none',
-                        borderRadius: '0.5rem',
-                        cursor: 'pointer',
-                        fontWeight: 'bold',
-                        fontSize: '0.9rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.5rem',
-                        transition: 'all 0.2s',
-                        boxShadow: activeTab === 'frequency' ? '0 2px 8px rgba(202, 138, 4, 0.4)' : 'none'
-                    }}
+                    disabled={true}
+                    title="Em breve"
+                    style={lockedButtonStyle}
                 >
-                    <BarChart3 size={18} />
-                    Frequência
+                    <Lock size={16} /> {/* Ícone da Lucide */}
+                    Frequência 🔒 
                 </button>
 
                 <button
-                    onClick={() => setActiveTab('neighbors')}
-                    style={{
-                        flex: 1,
-                        minWidth: '100px',
-                        padding: '0.75rem 0.5rem',
-                        background: activeTab === 'neighbors' ? 'linear-gradient(135deg, #ca8a04, #eab308)' : 'rgba(255, 255, 255, 0.05)',
-                        color: activeTab === 'neighbors' ? '#111827' : '#d1d5db',
-                        border: 'none',
-                        borderRadius: '0.5rem',
-                        cursor: 'pointer',
-                        fontWeight: 'bold',
-                        fontSize: '0.9rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.5rem',
-                        transition: 'all 0.2s',
-                        boxShadow: activeTab === 'neighbors' ? '0 2px 8px rgba(202, 138, 4, 0.4)' : 'none'
-                    }}
+                    disabled={true}
+                    title="Em breve"
+                    style={lockedButtonStyle}
                 >
-                    <Layers size={18} />
-                    Vizinhança
+                    <Lock size={16} /> {/* Ícone da Lucide */}
+                    Vizinhança 🔒
                 </button>
+                
                 <button
-                    onClick={() => setActiveTab('terminals')}
-                    style={{
-                        flex: 1,
-                        minWidth: '100px',
-                        padding: '0.75rem 0.5rem',
-                        background: activeTab === 'terminals' ? 'linear-gradient(135deg, #ca8a04, #eab308)' : 'rgba(255, 255, 255, 0.05)',
-                        color: activeTab === 'terminals' ? '#111827' : '#d1d5db',
-                        border: 'none',
-                        borderRadius: '0.5rem',
-                        cursor: 'pointer',
-                        fontWeight: 'bold',
-                        fontSize: '0.9rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.5rem',
-                        transition: 'all 0.2s',
-                        boxShadow: activeTab === 'terminals' ? '0 2px 8px rgba(202, 138, 4, 0.4)' : 'none'
-                    }}
+                    disabled={true}
+                    title="Em breve"
+                    style={lockedButtonStyle}
                 >
-                    <PieChart size={18} />
-                    Cavalos
+                    <Lock size={16} /> {/* Ícone da Lucide */}
+                    Cavalos 🔒
                 </button>
        
                 <button
-                    onClick={() => setActiveTab('advanced')}
-                    style={{
-                        flex: 1,
-                        minWidth: '100px',
-                        padding: '0.75rem 0.5rem',
-                        background: activeTab === 'advanced' ? 'linear-gradient(135deg, #ca8a04, #eab308)' : 'rgba(255, 255, 255, 0.05)',
-                        color: activeTab === 'advanced' ? '#111827' : '#d1d5db',
-                        border: 'none',
-                        borderRadius: '0.5rem',
-                        cursor: 'pointer',
-                        fontWeight: 'bold',
-                        fontSize: '0.9rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.5rem',
-                        transition: 'all 0.2s',
-                        boxShadow: activeTab === 'advanced' ? '0 2px 8px rgba(202, 138, 4, 0.4)' : 'none'
-                    }}
+                    disabled={true}
+                    title="Em breve"
+                    style={lockedButtonStyle}
                 >
-                    <Cpu size={18} />
-                    Avançado
+                    <Lock size={16} /> {/* Ícone da Lucide */}
+                    Avançado 🔒
                 </button>
+
                 <button
-                    onClick={() => setActiveTab('sectors')}
-                    style={{
-                        flex: 1,
-                        minWidth: '100px',
-                        padding: '0.75rem 0.5rem',
-                        background: activeTab === 'sectors' ? 'linear-gradient(135deg, #ca8a04, #eab308)' : 'rgba(255, 255, 255, 0.05)',
-                        color: activeTab === 'sectors' ? '#111827' : '#d1d5db',
-                        border: 'none',
-                        borderRadius: '0.5rem',
-                        cursor: 'pointer',
-                        fontWeight: 'bold',
-                        fontSize: '0.9rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.5rem',
-                        transition: 'all 0.2s',
-                        boxShadow: activeTab === 'sectors' ? '0 2px 8px rgba(202, 138, 4, 0.4)' : 'none'
-                    }}
+                    disabled={true}
+                    title="Em breve"
+                    style={lockedButtonStyle}
                 >
-                    <Target size={18} />
-                    Setores Secos
+                    <Lock size={16} /> {/* Ícone da Lucide */}
+                    Setores Secos 🔒
                 </button>
                 
             </div>
 
             {/* Conteúdo da Aba */}
+            {/* O conteúdo das outras abas (frequency, neighbors, etc.)
+                nunca será exibido, já 'activeTab' nunca será setado para eles.
+                Apenas 'statistics' funcionará. */}
+
             {activeTab === 'statistics' && (
                 <>
                     <h3 className={styles['dashboard-title']}>
@@ -513,7 +461,9 @@ const sleepers = Object.entries(lastSeenIndex)
                 </>
             )}
             
-            {/* 4. CONTEÚDO DA NOVA ABA ADICIONADO */}
+            {/* O conteúdo abaixo nunca será renderizado, pois o activeTab
+                está "preso" em 'statistics' */}
+                
             {activeTab === 'frequency' && (
                 <FrequencyTable spinHistory={spinHistory} />
             )}
@@ -525,8 +475,6 @@ const sleepers = Object.entries(lastSeenIndex)
             {activeTab === 'terminals' && (
                 <TerminalAnalysis spinHistory={spinHistory} />
             )}
-            
-            
             
             {activeTab === 'advanced' && (
                 <AdvancedPatternsAnalysis spinHistory={spinHistory} />

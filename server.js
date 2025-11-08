@@ -26,6 +26,7 @@ const API_URLS = {
     vipauto: 'https://apptemporario-production.up.railway.app/api/0194b473-9044-772b-a6fc-38236eb08b42'
 };
 const FETCH_INTERVAL_MS = 5000;
+// eslint-disable-next-line no-undef
 const DEFAULT_AUTH_PROXY_TARGET = process.env.AUTH_PROXY_TARGET || 'https://api.appbackend.tech';
 
 // --- MIDDLEWARE (ORDEM CRÍTICA) ---
