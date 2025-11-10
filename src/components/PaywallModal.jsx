@@ -58,7 +58,7 @@ const plans = {
 
   const handleFreeRedirect = () => {
     // Redireciona para a versão free
-    window.location.href = 'https://fuza.onrender.com';
+    window.location.href = 'https://app-roleta2.onrender.com';
   };
 
   if (!isOpen) return null;
