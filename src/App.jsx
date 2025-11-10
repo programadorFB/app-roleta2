@@ -4,12 +4,16 @@ import {
     X, BarChart3, Clock, Hash, Percent, Layers, CheckSquare, Settings, 
     LogOut, Lock, Mail, AlertCircle, PlayCircle, Filter 
 } from 'lucide-react';
+import PaywallModal from './components/PaywallModal.jsx'; //
+import './components/PaywallModal.css';
 import NotificationCenter from './components/NotificationCenter.jsx';
 import MasterDashboard from './pages/MasterDashboard.jsx';
 import RacingTrack from './components/RacingTrack.jsx';
 import DeepAnalysisPanel from './components/DeepAnalysisPanel.jsx';
 import './components/NotificationsCenter.css';
 import  './App.modules.css';
+// Define a URL base da API
+const API_URL = import.meta.env.VITE_API_URL || ''; // <-- ISSO ESTÁ CORRETO
 
 const GlobalStyles = () => (
   <style>{`
@@ -21,7 +25,7 @@ const GlobalStyles = () => (
 
     body {
         font-family: 'Arial', sans-serif;
-        background-color: #1a1a1a;
+        background-color: #20311f;
         overflow-x: hidden;
     }
 
@@ -410,7 +414,7 @@ const GlobalStyles = () => (
   `}</style>
 );
 
-const Login = ({ onLoginSuccess }) => {
+const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => { // <-- Adicionado setIsPaywallOpen e setCheckoutUrl
   const [formData, setFormData] = useState({ email: '', password: '', brand: 'betou' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -418,7 +422,7 @@ const Login = ({ onLoginSuccess }) => {
   const brands = [
     { value: 'betou', label: 'Betou' },
     // { value: 'betfusion', label: 'BetFusion' },
-    // { value: 'sortenabet', label: 'Sortena Bet' }
+    // { value: 'sortenabet', label: 'Sorte na Bet' }
   ];
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -431,6 +435,8 @@ const Login = ({ onLoginSuccess }) => {
     localStorage.setItem('userBrand', formData.brand);
     onLoginSuccess({ jwt: devJwt, email: formData.email });
   };
+// App.jsx (substitua toda a função handleSubmit)
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -443,7 +449,9 @@ const Login = ({ onLoginSuccess }) => {
       return;
     }
     try {
-      const response = await fetch('/login', {
+      // --- CORREÇÃO 1 DE 3 ---
+      // Adicionado o prefixo ${API_URL}
+      const response = await fetch(`${API_URL}/login`, { //
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify(formData)
@@ -464,6 +472,14 @@ const Login = ({ onLoginSuccess }) => {
         try {
           const errorJson = JSON.parse(errorText);
           errorMessage = errorJson.message || `Erro ${response.status}: Resposta JSON inválida.`;
+
+          // --- CORREÇÃO AQUI (Sua correção anterior estava correta) ---
+          if (errorJson.code === 'FORBIDDEN_SUBSCRIPTION') {
+            setCheckoutUrl(errorJson.checkoutUrl || ''); 
+            setIsPaywallOpen(true); 
+          }
+          // --- FIM DA CORREÇÃO ---
+
         } catch (e) {
           console.error("Erro não-JSON recebido do backend:", errorText);
           errorMessage = `Erro ${response.status}. O servidor retornou uma resposta inesperada.`;
@@ -486,11 +502,11 @@ const Login = ({ onLoginSuccess }) => {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: '#20311f', padding: '1rem'
+      background: '#4d4d4d', padding: '1rem'
     }}>
       <div style={{ width: '100%', maxWidth: '28rem' }}>
         <div style={{
-          background: '#1a1a1a', borderRadius: '1rem',
+          background: 'linear-gradient(135deg, #111827 0%, #1f2937 100%)', borderRadius: '1rem',
           boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)', padding: '2rem', border: '2px solid #a16207'
         }}>
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
@@ -519,14 +535,14 @@ const Login = ({ onLoginSuccess }) => {
             </div>
           )}
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <div>
+            {/* <div>
 
-              {/* <select name="brand" value={formData.brand} onChange={handleChange} required
+              <select name="brand" value={formData.brand} onChange={handleChange} required
                 style={{ width: '100%', padding: '0.75rem 1rem', background: '#374151', border: '1px solid #4b5563',
                   borderRadius: '0.5rem', color: 'white', fontSize: '1rem', cursor: 'pointer' }}>
                 {brands.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
-              </select> */}
-            </div>
+              </select>
+            </div> */}
             <div>
 
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#d1d5db', marginBottom: '0.5rem' }}>
@@ -579,7 +595,7 @@ const Login = ({ onLoginSuccess }) => {
             <button type="submit" disabled={loading}
               style={{
                 width: '100%', padding: '0.75rem 1rem',
-                background: loading ? '#20311f' : 'linear-gradient(135deg, #eab308, #eab308)',
+                background: loading ? '#6b7280' : 'linear-gradient(135deg, #eab308, #eab308)',
                 color: 'black', fontWeight: 'bold', fontSize: '1rem', borderRadius: '0.5rem', border: 'none',
                 cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: loading ? 0.7 : 1
               }}>
@@ -617,7 +633,7 @@ const getNumberColor = (num) => {
 
 const ROULETTE_SOURCES = {
   immersive: '🌟 Roleta Immersive',
-  brasileira: '🇧🇷 Roleta Brasileira Pragmatic',
+  brasileira: '🇧🇷 Roleta Brasileira',
   speed: '💨 Speed Roulette',
   xxxtreme: '⚡ Xxxtreme Lightning',
   vipauto: '🚘 Vip Auto Roulette'
@@ -625,9 +641,9 @@ const ROULETTE_SOURCES = {
 
 const ROULETTE_GAME_IDS = {
   immersive: 55,
-  brasileira: 101,
+  brasileira: 34,
   speed: 36,
-  xxxtreme: 103,
+  xxxtreme: 33,
   vipauto: 31
 };
 
@@ -681,7 +697,8 @@ const App = () => {
   const [userInfo, setUserInfo] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [jwtToken, setJwtToken] = useState(null);
-
+  const [isPaywallOpen, setIsPaywallOpen] = useState(false);
+  const [checkoutUrl, setCheckoutUrl] = useState('');
   // App States
   const [selectedRoulette, setSelectedRoulette] = useState(Object.keys(ROULETTE_SOURCES)[0]);
   const [spinHistory, setSpinHistory] = useState([]);
@@ -749,18 +766,18 @@ const App = () => {
     setGameUrl('');
   };
   
+  // Close Game Handler
+  const handleCloseGame = useCallback(() => {
+    setGameUrl('');
+    setLaunchError('');
+  }, []);
+
   // Launch Game Handler
   const handleLaunchGame = async () => {
     setIsLaunching(true);
     setLaunchError('');
     const gameId = ROULETTE_GAME_IDS[selectedRoulette];
     
-    // --- MUDANÇA APLICADA ---
-    // 1. Define os IDs monitorados
-    const monitoredGameIds = [55, 101, 36, 103, 31];
-    const isMonitoredGame = monitoredGameIds.includes(gameId);
-    // --- FIM DA MUDANÇA ---
-
     if (!gameId || !jwtToken) {
       setLaunchError('Erro interno: ID do jogo ou Token não encontrado.');
       setIsLaunching(false);
@@ -768,7 +785,9 @@ const App = () => {
     }
   
     try {
-      const response = await fetch(`/start-game/${gameId}`, {
+      // --- CORREÇÃO 2 DE 3 ---
+      // Adicionado o prefixo ${API_URL}
+      const response = await fetch(`${API_URL}/start-game/${gameId}`, { //
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${jwtToken}`
@@ -809,57 +828,21 @@ const App = () => {
             setLaunchError('');
           } else {
             console.warn("❌ game_url não encontrada na resposta. Estrutura completa:", data);
-            
-            // --- MUDANÇA APLICADA ---
-            // 2. Adiciona o log e a mensagem de erro em caso de falha (mesmo com status 200)
-            if (isMonitoredGame) {
-                console.log("jogo não disponível, no momento. Estamos trabalhando nisso");
-                setLaunchError('Jogo não disponível, no momento. Estamos trabalhando nisso.');
-            } else {
-                setLaunchError('URL do jogo não encontrada na resposta da API. Estrutura: ' + JSON.stringify(data).substring(0, 200));
-            }
-            // --- FIM DA MUDANÇA ---
+            setLaunchError('URL do jogo não encontrada na resposta da API. Estrutura: ' + JSON.stringify(data).substring(0, 200));
           }
   
         } catch (jsonError) {
           console.error("❌ Erro ao parsear JSON:", jsonError);
           console.error("📄 Resposta original:", rawResponseText);
-          
-          // --- MUDANÇA APLICADA ---
-          // 3. Adiciona o log e a mensagem de erro em caso de JSON inválido
-          if (isMonitoredGame) {
-              console.log("jogo não disponível, no momento. Estamos trabalhando nisso");
-              setLaunchError('Jogo não disponível, no momento. Estamos trabalhando nisso.');
-          } else {
-              setLaunchError('Resposta da API não é um JSON válido: ' + rawResponseText.substring(0, 100));
-          }
-          // --- FIM DA MUDANÇA ---
+          setLaunchError('Resposta da API não é um JSON válido: ' + rawResponseText.substring(0, 100));
         }
       } else {
         console.error("❌ Erro HTTP:", response.status, rawResponseText);
-        
-        // --- MUDANÇA APLICADA ---
-        // 4. Adiciona o log e a mensagem de erro em caso de status HTTP de erro (4xx, 5xx)
-        if (isMonitoredGame) {
-            console.log("jogo não disponível, no momento. Estamos trabalhando nisso");
-            setLaunchError('Jogo não disponível, no momento. Estamos trabalhando nisso.');
-        } else {
-            setLaunchError(`Erro ${response.status} do servidor: ${rawResponseText.substring(0, 100)}`);
-        }
-        // --- FIM DA MUDANÇA ---
+        setLaunchError(`Erro ${response.status} do servidor: ${rawResponseText.substring(0, 100)}`);
       }
     } catch (err) {
       console.error('❌ Erro de rede:', err);
-      
-      // --- MUDANÇA APLICADA ---
-      // 5. Adiciona o log e a mensagem de erro em caso de erro de rede (fetch falhou)
-      if (isMonitoredGame) {
-          console.log("jogo não disponível, no momento. Estamos trabalhando nisso");
-          setLaunchError('Jogo não disponível, no momento. Estamos trabalhando nisso.');
-      } else {
-          setLaunchError('Erro de conexão: ' + err.message);
-      }
-      // --- FIM DA MUDANÇA ---
+      setLaunchError('Erro de conexão: ' + err.message);
     } finally {
       setIsLaunching(false);
     }
@@ -881,9 +864,27 @@ const App = () => {
 
   // Fetch History
   const fetchHistory = useCallback(async () => {
+    if (!userInfo || !userInfo.email) {
+      console.warn("fetchHistory: Aguardando userInfo com email.");
+      return; // Não fazer a chamada se não tivermos o email
+    }
     try {
-      const response = await fetch(`/api/full-history?source=${selectedRoulette}`);
-      if (!response.ok) throw new Error(`Erro na API: ${response.statusText}`);
+      // --- CORREÇÃO 3 DE 3 ---
+      // Adicionado o prefixo ${API_URL}
+      const response = await fetch(`${API_URL}/api/full-history?source=${selectedRoulette}&userEmail=${encodeURIComponent(userInfo.email)}`); //
+      if (!response.ok) {
+        const errData = await response.json(); // Pega o JSON do erro
+        
+        // O middleware retorna 'requiresSubscription' em caso de falha 403
+        if (response.status === 403 || errData.requiresSubscription) {
+          console.warn('Assinatura inválida ou expirada. Abrindo paywall e deslogando.');
+          setCheckoutUrl(errData.checkoutUrl || '');
+          setIsPaywallOpen(true);
+
+        }
+        
+        throw new Error(errData.message || `Erro na API: ${response.statusText}`);
+      }
       const data = await response.json();
       const convertedData = data.map(item => {
         const num = parseInt(item.signal, 10);
@@ -903,15 +904,16 @@ const App = () => {
       setSpinHistory([]);
       setSelectedResult(null);
     }
-  }, [selectedRoulette]);
+  }, [selectedRoulette, userInfo]);
 
   // Fetch History Effect
   useEffect(() => {
     if (!isAuthenticated) return;
+    if (!userInfo) return;
     fetchHistory();
     const intervalId = setInterval(fetchHistory, 5000);
     return () => clearInterval(intervalId);
-  }, [fetchHistory, isAuthenticated]);
+  }, [fetchHistory, isAuthenticated, userInfo]);
 
   // Popup Handlers
   const handleNumberClick = useCallback((number) => {
@@ -1102,7 +1104,12 @@ const App = () => {
   }
 
   if (!isAuthenticated) {
-    return <Login onLoginSuccess={handleLoginSuccess} />;
+    // Corrigido: Passando os setters para o componente Login
+    return <Login 
+              onLoginSuccess={handleLoginSuccess} 
+              setIsPaywallOpen={setIsPaywallOpen}
+              setCheckoutUrl={setCheckoutUrl}
+           />;
   }
 
   return (
@@ -1405,7 +1412,15 @@ const App = () => {
         </div>
       )}
 
-      <NumberStatsPopup isOpen={isPopupOpen} onClose={closePopup} number={popupNumber} stats={popupStats} />
+      {/* <NumberStatsPopup isOpen={isPopupOpen} onClose={closePopup} number={popupNumber} stats={popupStats} /> */}
+      <PaywallModal
+        isOpen={isPaywallOpen}
+        onClose={() => {setIsPaywallOpen(false);handleLogout();}}
+        // O modal espera 'userId', mas nosso sistema usa 'userEmail'
+        // Vamos passar o email para o prop 'userId' que o modal espera.
+        userId={userInfo?.email} 
+        checkoutUrl={checkoutUrl}
+      />
     </>
   );
 };

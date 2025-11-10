@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Lock, Mail, AlertCircle } from 'lucide-react';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = 'https://phantom-roleta.sortehub.online';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -14,8 +14,8 @@ const Login = () => {
 
   const brands = [
     { value: 'betou', label: 'Betou' },
-    { value: 'betfusion', label: 'BetFusion' },
-    { value: 'sortenabet', label: 'Sortena Bet' }
+    // { value: 'betfusion', label: 'BetFusion' },
+    // { value: 'sortenabet', label: 'Sortena Bet' }
   ];
 
   const handleChange = (e) => {
@@ -102,11 +102,11 @@ const Login = () => {
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 required
               >
-                {brands.map(brand => (
+                {/* {brands.map(brand => (
                   <option key={brand.value} value={brand.value}>
                     {brand.label}
                   </option>
-                ))}
+                ))} */}
               </select>
             </div>
 
@@ -176,7 +176,7 @@ const Login = () => {
           <div className="mt-6 text-center">
             <p className="text-gray-400 text-sm">
               Não tem uma conta?{' '}
-              <a href="https://go.aff.betou.bet.br/tgml0e19?utm_medium=appcmd" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
+              <a href="#" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
                 Cadastre-se
               </a>
             </p>

@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { 
-    Flame, Snowflake, Layers, AlignCenter, TrendingUp, BarChart3, Target, PieChart, Activity, Cpu, Info, Lock // <-- 1. ÍCONE DE CADEADO IMPORTADO
+    Flame, Snowflake, Layers, AlignCenter, TrendingUp, BarChart3, Target, PieChart, Activity, Cpu, Info // <-- 1. ÍCONE DE CADEADO REMOVIDO
 } from 'lucide-react';
 import styles from './DeepAnalysisPanel.module.css';
 import { useNotifications } from '../contexts/NotificationContext'; // Importe o hook de notificações
@@ -245,16 +245,17 @@ const sleepers = Object.entries(lastSeenIndex)
         );
     }
 
-    // --- 2. ESTILO UNIFICADO PARA BOTÕES BLOQUEADOS ---
-    const lockedButtonStyle = {
+    // --- 2. ESTILO UNIFICADO PARA BOTÕES DE ABA (REMOVIDO lockedButtonStyle) ---
+    // Função para gerar o estilo da aba dinamicamente
+    const getTabStyle = (tabName) => ({
         flex: 1,
-        minWidth: '100px',
+        minWidth: '100px', // Largura mínima para botões
         padding: '0.75rem 0.5rem',
-        background: 'rgba(255, 255, 255, 0.05)', // Cor inativa
-        color: '#6b7280', // Cor desabilitada
+        background: activeTab === tabName ? 'linear-gradient(135deg, #ca8a04, #eab308)' : 'rgba(255, 255, 255, 0.05)',
+        color: activeTab === tabName ? '#111827' : '#d1d5db',
         border: 'none',
         borderRadius: '0.5rem',
-        cursor: 'not-allowed',
+        cursor: 'pointer',
         fontWeight: 'bold',
         fontSize: '0.9rem',
         display: 'flex',
@@ -262,14 +263,14 @@ const sleepers = Object.entries(lastSeenIndex)
         justifyContent: 'center',
         gap: '0.5rem',
         transition: 'all 0.2s',
-        opacity: 0.6 // Opacidade desabilitada
-    };
+        boxShadow: activeTab === tabName ? '0 2px 8px rgba(202, 138, 4, 0.4)' : 'none'
+    });
 
 
     return (
         <div className={styles['strategies-info-panel']}>
             {/* Sistema de Abas (Sempre Visível) */}
-<div style={{
+            <div style={{
                 display: 'flex',
                 flexWrap: 'wrap', // Permite quebra de linha em telas menores
                 gap: '0.5rem',
@@ -278,85 +279,68 @@ const sleepers = Object.entries(lastSeenIndex)
                 paddingBottom: '0.5rem'
             }}>
                 
-                {/* --- BOTÃO GERAL (PERMANECE ATIVO) --- */}
+                {/* --- BOTÕES DE ABA FUNCIONAIS --- */}
                 <button
                     onClick={() => setActiveTab('statistics')}
-                    style={{
-                        flex: 1,
-                        minWidth: '100px', // Largura mínima para botões
-                        padding: '0.75rem 0.5rem',
-                        background: activeTab === 'statistics' ? 'linear-gradient(135deg, #ca8a04, #eab308)' : 'rgba(255, 255, 255, 0.05)',
-                        color: activeTab === 'statistics' ? '#111827' : '#d1d5db',
-                        border: 'none',
-                        borderRadius: '0.5rem',
-                        cursor: 'pointer',
-                        fontWeight: 'bold',
-                        fontSize: '0.9rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.5rem',
-                        transition: 'all 0.2s',
-                        boxShadow: activeTab === 'statistics' ? '0 2px 8px rgba(202, 138, 4, 0.4)' : 'none'
-                    }}
+                    style={getTabStyle('statistics')}
                 >
                     <TrendingUp size={18} />
                     Geral
                 </button>
                 
-                {/* --- BOTÕES BLOQUEADOS COM EMOJI DE CADEADO --- */}
                 <button
-                    disabled={true}
-                    title="Em breve"
-                    style={lockedButtonStyle}
+                    onClick={() => setActiveTab('frequency')}
+                    style={getTabStyle('frequency')}
                 >
-                    <Lock size={16} /> {/* Ícone da Lucide */}
-                    Frequência 🔒 
+                    <BarChart3 size={18} />
+                    Frequência
                 </button>
 
                 <button
-                    disabled={true}
-                    title="Em breve"
-                    style={lockedButtonStyle}
+                    onClick={() => setActiveTab('neighbors')}
+                    style={getTabStyle('neighbors')}
                 >
-                    <Lock size={16} /> {/* Ícone da Lucide */}
-                    Vizinhança 🔒
+                    <PieChart size={18} />
+                    Vizinhança
                 </button>
                 
                 <button
-                    disabled={true}
-                    title="Em breve"
-                    style={lockedButtonStyle}
+                    onClick={() => setActiveTab('terminals')}
+                    style={getTabStyle('terminals')}
                 >
-                    <Lock size={16} /> {/* Ícone da Lucide */}
-                    Cavalos 🔒
+                    <Target size={18} />
+                    Cavalos
                 </button>
        
                 <button
-                    disabled={true}
-                    title="Em breve"
-                    style={lockedButtonStyle}
+                    onClick={() => setActiveTab('advanced')}
+                    style={getTabStyle('advanced')}
                 >
-                    <Lock size={16} /> {/* Ícone da Lucide */}
-                    Avançado 🔒
+                    <Cpu size={18} />
+                    Avançado
                 </button>
 
                 <button
-                    disabled={true}
-                    title="Em breve"
-                    style={lockedButtonStyle}
+                    onClick={() => setActiveTab('sectors')}
+                    style={getTabStyle('sectors')}
                 >
-                    <Lock size={16} /> {/* Ícone da Lucide */}
-                    Setores Secos 🔒
+                    <Layers size={18} />
+                    Setores
+                </button>
+
+                {/* Você também pode querer um botão para a aba 'visual' */}
+                <button
+                    onClick={() => setActiveTab('visual')}
+                    style={getTabStyle('visual')}
+                >
+                    <Activity size={18} />
+                    Status
                 </button>
                 
             </div>
 
             {/* Conteúdo da Aba */}
-            {/* O conteúdo das outras abas (frequency, neighbors, etc.)
-                nunca será exibido, já 'activeTab' nunca será setado para eles.
-                Apenas 'statistics' funcionará. */}
-
+            
             {activeTab === 'statistics' && (
                 <>
                     <h3 className={styles['dashboard-title']}>
@@ -461,8 +445,7 @@ const sleepers = Object.entries(lastSeenIndex)
                 </>
             )}
             
-            {/* O conteúdo abaixo nunca será renderizado, pois o activeTab
-                está "preso" em 'statistics' */}
+            {/* O conteúdo abaixo agora será renderizado com base na aba ativa */}
                 
             {activeTab === 'frequency' && (
                 <FrequencyTable spinHistory={spinHistory} />

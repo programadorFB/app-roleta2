@@ -209,13 +209,17 @@
 @media (max-width: 480px) {
     .racetrack-flat-container {
       width: 390px;
-     border-radius: 40px;
+     border-radius: 20px;
      padding: 5px;
      background-color: transparent;
 
   }
+  .racetrack-flat-col {
+  display: flex;
+  height: 70px;
+}
      .racetrack-flat-inner {
-     height: 100px;
+     height: 70px;
      width: 380px;
   }
 }

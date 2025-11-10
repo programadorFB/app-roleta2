@@ -7,19 +7,17 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      // Redireciona chamadas de login para o server.js
+      // Garanta que o target seja este:
       '/login': {
-        target: 'http://localhost:3000',
+        target: 'https://phantom-roleta.sortehub.online',
         changeOrigin: true,
       },
-      // Redireciona chamadas do jogo para o server.js
       '/start-game': {
-        target: 'http://localhost:3000',
+        target: 'https://phantom-roleta.sortehub.online',
         changeOrigin: true,
       },
-      // Redireciona chamadas da API (histórico) para o server.js
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'https://phantom-roleta.sortehub.online',
         changeOrigin: true,
       }
     }

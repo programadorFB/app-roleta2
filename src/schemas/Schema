@@ -1,0 +1,151 @@
+-- schema.sql
+-- Schema do banco de dados para integração Hubla
+
+-- Extensões úteis
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Tabela de assinaturas
+CREATE TABLE IF NOT EXISTS subscriptions (
+    id SERIAL PRIMARY KEY,
+    user_id VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    hubla_customer_id VARCHAR(255),
+    subscription_id VARCHAR(255),
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    plan_name VARCHAR(100) DEFAULT 'default',
+    expires_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    CONSTRAINT unique_user_id UNIQUE (user_id),
+    CONSTRAINT unique_email UNIQUE (email),
+    CONSTRAINT valid_status CHECK (status IN (
+        'pending', 'active', 'paid', 'trialing', 
+        'canceled', 'failed', 'expired'
+    ))
+);
+
+-- Índices para performance
+CREATE INDEX IF NOT EXISTS idx_subscriptions_email 
+    ON subscriptions(email);
+
+CREATE INDEX IF NOT EXISTS idx_subscriptions_hubla_customer_id 
+    ON subscriptions(hubla_customer_id);
+
+CREATE INDEX IF NOT EXISTS idx_subscriptions_status 
+    ON subscriptions(status);
+
+CREATE INDEX IF NOT EXISTS idx_subscriptions_expires_at 
+    ON subscriptions(expires_at);
+
+-- Tabela de logs de webhooks
+CREATE TABLE IF NOT EXISTS webhook_logs (
+    id SERIAL PRIMARY KEY,
+    event_type VARCHAR(100) NOT NULL,
+    payload JSONB NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'success',
+    error_message TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    CONSTRAINT valid_log_status CHECK (status IN (
+        'success', 'error', 'ignored'
+    ))
+);
+
+-- Índices para logs
+CREATE INDEX IF NOT EXISTS idx_webhook_logs_event_type 
+    ON webhook_logs(event_type);
+
+CREATE INDEX IF NOT EXISTS idx_webhook_logs_created_at 
+    ON webhook_logs(created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_webhook_logs_status 
+    ON webhook_logs(status);
+
+-- Função para atualizar updated_at automaticamente
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Trigger para updated_at
+CREATE TRIGGER update_subscriptions_updated_at 
+    BEFORE UPDATE ON subscriptions 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- View de assinaturas ativas
+CREATE OR REPLACE VIEW active_subscriptions AS
+SELECT 
+    id,
+    user_id,
+    email,
+    hubla_customer_id,
+    subscription_id,
+    status,
+    plan_name,
+    expires_at,
+    created_at,
+    updated_at,
+    CASE 
+        WHEN expires_at IS NULL THEN 'lifetime'
+        WHEN expires_at > CURRENT_TIMESTAMP THEN 'valid'
+        ELSE 'expired'
+    END as expiry_status
+FROM subscriptions
+WHERE status IN ('active', 'trialing', 'paid')
+    AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP);
+
+-- View de estatísticas
+CREATE OR REPLACE VIEW subscription_stats AS
+SELECT 
+    COUNT(*) as total_subscriptions,
+    COUNT(CASE WHEN status IN ('active', 'trialing', 'paid') 
+               AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP) 
+               THEN 1 END) as active,
+    COUNT(CASE WHEN status = 'canceled' THEN 1 END) as canceled,
+    COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending,
+    COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed,
+    COUNT(CASE WHEN expires_at IS NOT NULL 
+               AND expires_at < CURRENT_TIMESTAMP 
+               THEN 1 END) as expired,
+    COUNT(DISTINCT plan_name) as total_plans
+FROM subscriptions;
+
+-- Comentários nas tabelas
+COMMENT ON TABLE subscriptions IS 'Gerenciamento de assinaturas dos usuários integrado com Hubla';
+COMMENT ON TABLE webhook_logs IS 'Log de eventos recebidos via webhook da Hubla';
+
+COMMENT ON COLUMN subscriptions.user_id IS 'ID único do usuário no sistema';
+COMMENT ON COLUMN subscriptions.email IS 'Email do usuário';
+COMMENT ON COLUMN subscriptions.hubla_customer_id IS 'ID do cliente na Hubla';
+COMMENT ON COLUMN subscriptions.subscription_id IS 'ID da assinatura na Hubla';
+COMMENT ON COLUMN subscriptions.status IS 'Status atual: pending, active, paid, trialing, canceled, failed, expired';
+COMMENT ON COLUMN subscriptions.plan_name IS 'Nome do plano contratado';
+COMMENT ON COLUMN subscriptions.expires_at IS 'Data de expiração da assinatura (NULL para vitalício)';
+
+-- Queries úteis para monitoramento
+
+-- Total de assinaturas por status
+-- SELECT status, COUNT(*) as total FROM subscriptions GROUP BY status;
+
+-- Assinaturas que expiram nos próximos 7 dias
+-- SELECT * FROM subscriptions 
+-- WHERE expires_at BETWEEN CURRENT_TIMESTAMP AND CURRENT_TIMESTAMP + INTERVAL '7 days'
+-- ORDER BY expires_at;
+
+-- Últimos 50 webhooks recebidos
+-- SELECT event_type, status, created_at FROM webhook_logs 
+-- ORDER BY created_at DESC LIMIT 50;
+
+-- Taxa de sucesso de webhooks por tipo
+-- SELECT 
+--   event_type,
+--   COUNT(*) as total,
+--   SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success,
+--   ROUND(100.0 * SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) / COUNT(*), 2) as success_rate
+-- FROM webhook_logs
+-- GROUP BY event_type;

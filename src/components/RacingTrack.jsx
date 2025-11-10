@@ -54,7 +54,7 @@ const RacingTrack = ({ selectedResult, onNumberClick, entrySignals = [] }) => {
               <NumberBox key={num} num={num} onClick={onNumberClick} isActive={isActive(num)} isEntrySignal={isEntry(num)} />
             ))}
           </div>
-            <div style={{height:"50px", backgroundColor:"#20311f"}}></div>
+            <div style={{height:"20px", backgroundColor:"#20311f"}}></div>
           {/* (Miolo removido como solicitado) */}
             
           <div className="racetrack-flat-row">

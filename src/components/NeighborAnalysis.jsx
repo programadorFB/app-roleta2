@@ -131,10 +131,10 @@ const NeighborAnalysis = ({ spinHistory }) => {
             className={styles.strategySelect} // Reutilizando um estilo
             style={{width: 'auto', background: '#1f2937', color: '#fde047', border: '1px solid #4b5563'}}
           >
-            <option value={2}>5 Números (2+C+2)</option>
-            <option value={3}>7 Números (3+C+3)</option>
-            <option value={4}>9 Números (4+C+4)</option>
-            <option value={5}>11 Números (5+C+5)</option>
+            <option value={2}>2 Vizinhos (2+C+2)</option>
+            <option value={3}>3 Vizinhos (3+C+3)</option>
+            <option value={4}>4 Vizinhos (4+C+4)</option>
+            <option value={5}>5 Vizinhos (5+C+5)</option>
           </select>
         </div>
       </StatCard>

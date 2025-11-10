@@ -117,7 +117,7 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate }) => {
       {/* 1. PAINEL MASTER - STATUS GERAL */}
       <div className={styles.strategyCard} >
         
-          <h4 className={styles['card-title']}>Indicações</h4>
+          {/* <h4 className={styles['card-title']}>Indicações</h4> */}
         
 
         {/* 'stats-grid' REALOCADO AQUI. */}

@@ -1,0 +1,627 @@
+/* PaywallModal.css - Arquivo CSS Completo com nova paleta de cores verde */
+
+/* Cores base para a nova paleta de verde escuro */
+:root {
+  --primary-green: #1A361A; /* Cor principal de destaque (verde escuro) */
+  --light-green: #2E5D2E;   /* Verde um pouco mais claro para gradientes e bordas */
+  --dark-background: #0f1c0f; /* Fundo mais escuro, quase preto-verde */
+  --medium-background: #152715; /* Fundo médio */
+  --light-text: #e0e0e0;     /* Texto mais claro */
+  --dark-text: #b0b0b0;     /* Texto padrão */
+  --border-color: #244b24;   /* Cor da borda, um verde mais profundo */
+  --overlay-background: rgba(0, 0, 0, 0.9); /* Overlay escuro */
+  --success-green-bright: #4ade80; /* Verde brilhante para sucesso/economia */
+  --danger-red: #ff6b6b;   /* Vermelho para perigo/cancelado */
+}
+
+.paywall-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--overlay-background);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.paywall-modal {
+  background: linear-gradient(135deg, var(--dark-background) 0%, var(--medium-background) 100%);
+  border-radius: 24px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--border-color);
+  animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Header */
+.paywall-header {
+  padding: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.paywall-close {
+  background: rgba(255, 255, 255, 0.05);
+  border: none;
+  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--light-text);
+  transition: all 0.2s;
+}
+
+.paywall-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.05);
+}
+
+/* Content */
+.paywall-content {
+  padding: 0 40px 40px;
+}
+
+/* Loading State */
+.paywall-loading {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--dark-text);
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--primary-green); /* Usando a cor principal aqui */
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Badge */
+.paywall-badge {
+  width: 96px;
+  height: 96px;
+  background: linear-gradient(135deg, var(--primary-green) 0%, var(--light-green) 100%); /* Gradiente de verde */
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+  box-shadow: 0 10px 30px rgba(26, 54, 26, 0.3); /* Sombra verde */
+}
+
+.badge-icon {
+  color: #fff;
+}
+
+/* Title & Subtitle */
+.paywall-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  margin: 0 0 12px;
+  line-height: 1.2;
+}
+
+.paywall-subtitle {
+  font-size: 16px;
+  color: var(--dark-text);
+  text-align: center;
+  margin: 0 0 32px;
+  line-height: 1.5;
+}
+
+/* Status Section */
+.paywall-status {
+  margin-bottom: 32px;
+}
+
+.status-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+}
+
+.status-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 8px;
+}
+
+.status-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--danger-red); /* Mantém vermelho para status de cancelamento */
+  margin: 0;
+}
+
+/* Features Section */
+.paywall-features {
+  margin-bottom: 24px;
+}
+
+.features-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 16px;
+}
+
+.features-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: var(--light-text);
+}
+
+.feature-item:last-child {
+  border-bottom: none;
+}
+
+.feature-icon {
+  color: var(--primary-green); /* Ícone com a cor principal */
+  flex-shrink: 0;
+}
+
+/* Plan Selector */
+.plan-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.plan-option {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+  text-align: left;
+  width: 100%;
+}
+
+.plan-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--primary-green); /* Borda da cor principal */
+  transform: translateY(-2px);
+}
+
+.plan-option.active {
+  background: linear-gradient(135deg, rgba(26, 54, 26, 0.1) 0%, rgba(46, 93, 46, 0.1) 100%); /* Gradiente sutil de verde */
+  border-color: var(--primary-green);
+  box-shadow: 0 8px 24px rgba(26, 54, 26, 0.2);
+  transform: translateY(-2px);
+}
+
+.plan-badge-popular {
+  position: absolute;
+  top: -10px;
+  right: 16px;
+  background: linear-gradient(135deg, var(--primary-green) 0%, var(--light-green) 100%); /* Gradiente de verde */
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 4px 12px rgba(26, 54, 26, 0.3); /* Sombra verde */
+}
+
+.plan-option-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.plan-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.plan-savings {
+  font-size: 12px;
+  color: var(--success-green-bright);
+  font-weight: 600;
+  background: rgba(74, 222, 128, 0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(74, 222, 128, 0.2);
+}
+
+.plan-price {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--primary-green); /* Preço com a cor principal */
+  margin-bottom: 4px;
+}
+
+.plan-monthly {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Pricing Section */
+.paywall-pricing {
+  margin-bottom: 24px;
+}
+
+.price-card {
+  background: linear-gradient(135deg, rgba(26, 54, 26, 0.1) 0%, rgba(46, 93, 46, 0.1) 100%); /* Gradiente sutil de verde */
+  border: 2px solid var(--primary-green);
+  border-radius: 16px;
+  padding: 24px;
+  position: relative;
+}
+
+.savings-badge {
+  text-align: center;
+  color: var(--success-green-bright);
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  padding: 8px;
+  background: rgba(74, 222, 128, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(74, 222, 128, 0.2);
+}
+
+.price-badge {
+  position: absolute;
+  top: -12px;
+  right: 20px;
+  background: linear-gradient(135deg, var(--primary-green) 0%, var(--light-green) 100%); /* Gradiente de verde */
+  color: #fff;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.price-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 16px;
+  text-align: center;
+}
+
+.price-value {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.price-currency {
+  font-size: 24px;
+  color: var(--dark-text);
+  margin-right: 4px;
+}
+
+.price-amount {
+  font-size: 56px;
+  font-weight: 700;
+  color: var(--primary-green); /* Valor do preço com a cor principal */
+  line-height: 1;
+}
+
+.price-period {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-left: 4px;
+}
+
+.price-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.price-features li {
+  padding: 8px 0;
+  color: var(--light-text);
+  font-size: 14px;
+}
+
+/* CTA Button */
+.paywall-cta {
+  width: 100%;
+  background: linear-gradient(135deg, var(--primary-green) 0%, var(--light-green) 100%); /* Gradiente de verde */
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 18px 32px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  transition: all 0.3s;
+  box-shadow: 0 10px 30px rgba(26, 54, 26, 0.3); /* Sombra verde */
+  margin-bottom: 12px;
+}
+
+.paywall-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 40px rgba(26, 54, 26, 0.4); /* Sombra verde mais intensa */
+}
+
+.paywall-cta:active {
+  transform: translateY(0);
+}
+
+.paywall-cta:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Define a animação do pulso amarelo */
+@keyframes pulse-yellow {
+  0% {
+    /* Começa sem sombra, mas com cor definida */
+    box-shadow: 0 0 0 0px rgba(255, 255, 0, 0.7);
+  }
+  100% {
+    /* Expande a sombra e a torna transparente (efeito de "sumir") */
+    box-shadow: 0 0 0 12px rgba(255, 255, 0, 0);
+  }
+}
+
+/* Free CTA Button */
+.paywall-cta-free {
+  width: 100%;
+  background: transparent;
+  color: var(--dark-text);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 18px 32px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  transition: all 0.3s;
+  margin-bottom: 24px;
+
+  /* --- LINHA ADICIONADA --- */
+  /* Aplica a animação, com duração de 2s, em loop infinito */
+  animation: pulse-yellow 2s infinite;
+}
+
+.paywall-cta-free:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.5);
+
+  /* --- LINHA ADICIONADA --- */
+  /* Pausa a animação de pulso para focar no efeito hover */
+  animation: none;
+}
+
+
+/* Trust Badges */
+.paywall-trust {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.trust-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.trust-item svg {
+  color: var(--primary-green); /* Ícones de confiança com a cor principal */
+}
+
+/* Footer */
+.paywall-footer {
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Scrollbar Customization */
+.paywall-modal::-webkit-scrollbar {
+  width: 8px;
+}
+
+.paywall-modal::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.paywall-modal::-webkit-scrollbar-thumb {
+  background: rgba(26, 54, 26, 0.3); /* Scrollbar com verde */
+  border-radius: 4px;
+}
+
+.paywall-modal::-webkit-scrollbar-thumb:hover {
+  background: rgba(26, 54, 26, 0.5); /* Scrollbar com verde mais intenso */
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .paywall-modal {
+    margin: 0;
+    border-radius: 24px 24px 0 0;
+    max-height: 95vh;
+  }
+
+  .paywall-content {
+    padding: 0 24px 24px;
+  }
+
+  .paywall-title {
+    font-size: 24px;
+  }
+
+  .paywall-subtitle {
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+
+  .price-amount {
+    font-size: 42px;
+  }
+
+  .price-currency {
+    font-size: 20px;
+  }
+
+  .price-period {
+    font-size: 16px;
+  }
+  
+  .plan-name {
+    font-size: 16px;
+  }
+  
+  .plan-price {
+    font-size: 20px;
+  }
+
+  .plan-monthly {
+    font-size: 13px;
+  }
+
+  .plan-option {
+    padding: 14px 16px;
+  }
+
+  .paywall-cta {
+    padding: 16px 24px;
+    font-size: 16px;
+  }
+
+  .paywall-cta-free {
+    padding: 16px 24px;
+    font-size: 15px;
+  }
+
+  .paywall-trust {
+    gap: 16px;
+  }
+
+  .trust-item {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .paywall-overlay {
+    padding: 0;
+  }
+
+  .paywall-modal {
+    border-radius: 20px 20px 0 0;
+  }
+
+  .paywall-header {
+    padding: 16px;
+  }
+
+  .paywall-badge {
+    width: 80px;
+    height: 80px;
+  }
+
+  .badge-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .plan-savings {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+
+  .plan-badge-popular {
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+}
+
+/* Dark mode adjustments (if needed) */
+@media (prefers-color-scheme: dark) {
+  .paywall-modal {
+    background: linear-gradient(135deg, #0a140a 0%, #0e1b0e 100%); /* Fundo ainda mais escuro para dark mode */
+  }
+}
