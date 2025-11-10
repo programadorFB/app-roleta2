@@ -502,7 +502,7 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => { // <--
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: '#4d4d4d', padding: '1rem'
+      background: '#064e3b', padding: '1rem'
     }}>
       <div style={{ width: '100%', maxWidth: '28rem' }}>
         <div style={{
