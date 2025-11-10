@@ -641,12 +641,11 @@ const ROULETTE_SOURCES = {
 
 const ROULETTE_GAME_IDS = {
   immersive: 55,
-  brasileira: 34,
+  brasileira: 101,
   speed: 36,
-  xxxtreme: 33,
+  xxxtreme: 103,
   vipauto: 31
 };
-
 const filterOptions = [
   { value: 100, label: 'Últimas 100 Rodadas' },
   { value: 300, label: 'Últimas 300 Rodadas' },

@@ -2,12 +2,12 @@
 
 /* Cores base para a nova paleta de verde escuro */
 :root {
-  --primary-green: #1A361A; /* Cor principal de destaque (verde escuro) */
+  --primary-green: #4ade80; /* Cor principal de destaque (verde escuro) */
   --light-green: #2E5D2E;   /* Verde um pouco mais claro para gradientes e bordas */
   --dark-background: #0f1c0f; /* Fundo mais escuro, quase preto-verde */
   --medium-background: #152715; /* Fundo médio */
   --light-text: #e0e0e0;     /* Texto mais claro */
-  --dark-text: #b0b0b0;     /* Texto padrão */
+  --dark-text: #fcfcfc;     /* Texto padrão */
   --border-color: #244b24;   /* Cor da borda, um verde mais profundo */
   --overlay-background: rgba(0, 0, 0, 0.9); /* Overlay escuro */
   --success-green-bright: #4ade80; /* Verde brilhante para sucesso/economia */
