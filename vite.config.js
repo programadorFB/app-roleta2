@@ -7,17 +7,19 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      // Garanta que o target seja este:
+      // Redireciona para o SEU BACKEND LOCAL
       '/login': {
-        target: 'https://phantom-roleta.sortehub.online',
+        target: 'http://localhost:3000', // <-- CORREÇÃO
         changeOrigin: true,
       },
+      // Redireciona para o SEU BACKEND LOCAL
       '/start-game': {
-        target: 'https://phantom-roleta.sortehub.online',
+        target: 'http://localhost:3000', // <-- CORREÇÃO
         changeOrigin: true,
       },
+      // Redireciona para o SEU BACKEND LOCAL
       '/api': {
-        target: 'https://phantom-roleta.sortehub.online',
+        target: 'http://localhost:3000', // <-- CORREÇÃO
         changeOrigin: true,
       }
     }

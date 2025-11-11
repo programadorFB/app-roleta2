@@ -1,27 +1,21 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { 
-    Flame, Snowflake, Layers, AlignCenter, TrendingUp, BarChart3, Target, PieChart, Activity, Cpu, Info // <-- 1. ÍCONE DE CADEADO REMOVIDO
+    Flame, Snowflake, Layers, AlignCenter, TrendingUp, BarChart3, Target, PieChart, Activity, Cpu, Info, Lock, Crown // <-- 1. Adicionado Lock e Crown
 } from 'lucide-react';
 import styles from './DeepAnalysisPanel.module.css';
-import { useNotifications } from '../contexts/NotificationContext'; // Importe o hook de notificações
-import { checkConvergenceAlert, checkPatternBrokenAlert } from '../services/alertLogic'; // Importe a lógica de alerta
+import { useNotifications } from '../contexts/NotificationContext';
+import { checkConvergenceAlert, checkPatternBrokenAlert } from '../services/alertLogic';
 
 // Importe todos os seus componentes de aba
 import SectorsAnalysis from './SectorAnalysis';
 import NeighborAnalysis from './NeighborAnalysis';
 import TerminalAnalysis from './TerminalAnalysis';
 import AdvancedPatternsAnalysis from './AdvancedPatternsAnalysis';
-import FrequencyTable from './FrequencyTable'; // <-- 1. IMPORTADO AQUI
+import FrequencyTable from './FrequencyTable';
 
 import { UpdateCountdown } from './VisualIndicators';
 
-// Importe as lógicas de análise para os alertas
-// (Você precisará centralizar isso ou importar as funções individuais)
 import { analyzeCroupierPattern } from '../services/CroupieDetection.jsx';
-// Supondo que você crie serviços de lógica centralizados:
-// import { analyzeTerminals } from '../services/terminalAnalysis';
-// import { analyzeFiboNasa } from '../services/fiboNasaAnalysis';
-// import { analyzeHidden } from '../services/advancedAnalysis';
 
 
 // --- Constantes e Funções Utilitárias ---
@@ -52,12 +46,18 @@ const getColumn = (num) => {
 };
 
 // --- Componente Principal com Abas ---
-const DeepAnalysisPanel = ({ spinHistory }) => {
+// Assumindo que você passa o setter do Paywall e o status Premium do App.jsx
+const DeepAnalysisPanel = ({ spinHistory, setIsPaywallOpen }) => { 
     const [activeTab, setActiveTab] = useState('statistics');
-    const { addNotification } = useNotifications(); // Hook de notificações
-    const prevAnalysesRef = useRef(); // Ref para alertas
+    const { addNotification } = useNotifications();
+    const prevAnalysesRef = useRef(); 
+    
+    // 2. ESTADO DE BLOQUEIO (Simulando que o usuário NÃO tem Premium)
+    // No seu App.jsx final, este valor viria de uma prop: const isPremium = user.isPremium;
+    const isPremium = false; 
 
     const analysis = useMemo(() => {
+        // ... (Lógica useMemo inalterada) ...
         const totalSpins = spinHistory.length;
         if (totalSpins === 0) {
             return {
@@ -122,24 +122,23 @@ const DeepAnalysisPanel = ({ spinHistory }) => {
         });
 
         const sortedNumbers = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-        const hotNumbers = sortedNumbers.slice(0, 5);
+        const hotNumbers = sortedNumbers.slice(0, 5).map(([num, count]) => ({ num: parseInt(num), count }));
         
         const lastSeenIndex = rouletteNumbers.reduce((acc, num) => {
-            acc[num] = spinHistory.findIndex(s => s.number === num);
+            const index = [...spinHistory].reverse().findIndex(s => s.number === num);
+            acc[num] = index;
             return acc;
         }, {});
 
-const sleepers = Object.entries(lastSeenIndex)
+        const sleepers = Object.entries(lastSeenIndex)
             .sort(([,a], [,b]) => {
-                // Trata -1 (nunca saiu) como o valor mais "antigo" (totalSpins)
                 const aValue = (a === -1) ? totalSpins : a;
                 const bValue = (b === -1) ? totalSpins : b;
-                
-                // Ordena de forma descendente (maior "ago" primeiro)
                 return bValue - aValue;
             })
-            .map(([num, index]) => ({ num, ago: index === -1 ? totalSpins : index }))
+            .map(([num, index]) => ({ num: parseInt(num), ago: index === -1 ? totalSpins : index }))
             .slice(0, 5);
+
         return {
             hotNumbers, 
             sleepers, 
@@ -155,43 +154,32 @@ const sleepers = Object.entries(lastSeenIndex)
         };
     }, [spinHistory]);
 
-    // --- LÓGICA DE GATILHO DE ALERTA ---
-    // (Esta é uma versão simplificada; idealmente, você centralizaria
-    // todas as lógicas de 'useMemo' de todas as abas aqui)
+    // --- LÓGICA DE GATILHO DE ALERTA (inalterada) ---
     useEffect(() => {
-        if (spinHistory.length < 30) return; // Não dispare alertas sem dados suficientes
+        if (spinHistory.length < 30) return;
 
-        // Simulação de coleta de dados de análise
         const allAnalyses = {
             croupierAnalysis: analyzeCroupierPattern(spinHistory, 30),
-            // Adicione outras análises reais aqui
-            // terminalAnalysis: ..., 
-            // fiboNasaAnalysis: ...,
-            // hiddenAnalysis: ...,
         };
 
-        // 1. Verificar Sinal Verde
         const convergenceAlert = checkConvergenceAlert(allAnalyses);
         if (convergenceAlert) {
-            // Evitar spam: idealmente, você guardaria o ID do alerta e não o enviaria novamente
             addNotification(convergenceAlert);
         }
 
-        // 2. Verificar Padrão Quebrado
         const brokenPatternAlert = checkPatternBrokenAlert(allAnalyses, prevAnalysesRef.current);
         if (brokenPatternAlert) {
             addNotification(brokenPatternAlert);
         }
 
-        // 3. Salvar análise atual para a próxima comparação
         prevAnalysesRef.current = allAnalyses;
 
     }, [spinHistory, addNotification]);
     // ------------------------------------
 
-    // --- Componentes Auxiliares ---
-
+    // --- Componentes Auxiliares (inalterados) ---
     const StatCard = ({ title, icon, children }) => (
+        // ... (JSX de StatCard)
         <div className={styles['strategy-card']}>
             <div className={styles['strategy-header']}>
                 {icon}
@@ -228,7 +216,73 @@ const sleepers = Object.entries(lastSeenIndex)
             </div>
         );
     };
+    // ------------------------------------
+    
+    // 3. ESTILOS CONDICIONAIS E HANDLER DE BLOQUEIO
+    
+    // Estilo para o botão Premium/Compra
+    const premiumButtonStyle = {
+        flex: 1,
+        minWidth: '100px',
+        padding: '0.75rem 0.5rem',
+        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+        border: '2px solid #10b981',
+        color: '#FFFFFF',
+        border: 'none',
+        borderRadius: '0.5rem',
+        cursor: 'pointer',
+        fontWeight: 'bold',
+        fontSize: '0.9rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '0.5rem',
+        transition: 'all 0.2s',
+        boxShadow: '0 2px 8px #10b981',
+    };
+    
+    // Estilo para a aba bloqueada
+    const lockedButtonStyle = {
+        background: 'rgba(255, 255, 255, 0.02)', // Fundo mais escuro
+        color: '#9ca3af', // Texto acinzentado
+        border: '1px dashed #4b5563', // Borda tracejada
+        cursor: 'not-allowed',
+        boxShadow: 'none'
+    };
 
+    // Função para gerar o estilo da aba dinamicamente
+    const getTabStyle = (tabName, isLocked) => ({
+        flex: 1,
+        minWidth: '100px', 
+        padding: '0.75rem 0.5rem',
+        // Se a aba estiver ativa e desbloqueada: Dourado
+        background: activeTab === tabName && !isLocked ? 'linear-gradient(135deg, #ca8a04, #eab308)' : (isLocked ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.05)'),
+        // Se a aba estiver ativa e desbloqueada: Preto; Se bloqueada: Cinza; Senão: Branco/Cinza Claro
+        color: activeTab === tabName && !isLocked ? '#111827' : (isLocked ? '#9ca3af' : '#d1d5db'),
+        border: isLocked ? '1px dashed #4b5563' : 'none',
+        borderRadius: '0.5rem',
+        cursor: isLocked ? 'not-allowed' : 'pointer',
+        fontWeight: 'bold',
+        fontSize: '0.9rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '0.5rem',
+        transition: 'all 0.2s',
+        boxShadow: activeTab === tabName && !isLocked ? '0 2px 8px rgba(202, 138, 4, 0.4)' : 'none'
+    });
+    
+    // Handler para abas bloqueadas
+    const handleLockedClick = (e) => {
+        e.preventDefault();
+        // Alerta simples. Substitua por setIsPaywallOpen(true) se a prop estiver disponível
+        if (setIsPaywallOpen) {
+            setIsPaywallOpen(true);
+        } else {
+             alert('🔑 Conteúdo Premium! Assine para desbloquear esta análise avançada.');
+        }
+    };
+    
     // --- Renderização Principal ---
 
     if (analysis.totalSpins === 0) {
@@ -245,122 +299,81 @@ const sleepers = Object.entries(lastSeenIndex)
         );
     }
 
-    // --- 2. ESTILO UNIFICADO PARA BOTÕES DE ABA (REMOVIDO lockedButtonStyle) ---
-    // Função para gerar o estilo da aba dinamicamente
-    const getTabStyle = (tabName) => ({
-        flex: 1,
-        minWidth: '100px', // Largura mínima para botões
-        padding: '0.75rem 0.5rem',
-        background: activeTab === tabName ? 'linear-gradient(135deg, #ca8a04, #eab308)' : 'rgba(255, 255, 255, 0.05)',
-        color: activeTab === tabName ? '#111827' : '#d1d5db',
-        border: 'none',
-        borderRadius: '0.5rem',
-        cursor: 'pointer',
-        fontWeight: 'bold',
-        fontSize: '0.9rem',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '0.5rem',
-        transition: 'all 0.2s',
-        boxShadow: activeTab === tabName ? '0 2px 8px rgba(202, 138, 4, 0.4)' : 'none'
-    });
+
+    // 4. MAPEAMENTO DE ABAS E BLOQUEIO
+    const tabs = [
+        { name: 'statistics', label: 'Geral', icon: TrendingUp, isLocked: false },
+        { name: 'frequency', label: 'Frequência', icon: BarChart3, isLocked: !isPremium },
+        { name: 'neighbors', label: 'Vizinhança', icon: PieChart, isLocked: !isPremium },
+        { name: 'terminals', label: 'Cavalos', icon: Target, isLocked: !isPremium },
+        { name: 'advanced', label: 'Avançado', icon: Cpu, isLocked: !isPremium },
+        { name: 'sectors', label: 'Setores', icon: Layers, isLocked: !isPremium },
+        // { name: 'visual', label: 'Status', icon: Activity, isLocked: !isPremium },
+    ];
 
 
     return (
         <div className={styles['strategies-info-panel']}>
-            {/* Sistema de Abas (Sempre Visível) */}
+            {/* Sistema de Abas */}
             <div style={{
                 display: 'flex',
-                flexWrap: 'wrap', // Permite quebra de linha em telas menores
+                flexWrap: 'wrap',
                 gap: '0.5rem',
                 marginBottom: '1rem',
                 borderBottom: '2px solid #374151',
                 paddingBottom: '0.5rem'
             }}>
                 
-                {/* --- BOTÕES DE ABA FUNCIONAIS --- */}
-                <button
-                    onClick={() => setActiveTab('statistics')}
-                    style={getTabStyle('statistics')}
-                >
-                    <TrendingUp size={18} />
-                    Geral
-                </button>
                 
-                <button
-                    onClick={() => setActiveTab('frequency')}
-                    style={getTabStyle('frequency')}
-                >
-                    <BarChart3 size={18} />
-                    Frequência
-                </button>
-
-                <button
-                    onClick={() => setActiveTab('neighbors')}
-                    style={getTabStyle('neighbors')}
-                >
-                    <PieChart size={18} />
-                    Vizinhança
-                </button>
+                {/* Renderização Dinâmica das Abas */}
+                {tabs.map(tab => (
+                    <button
+                        key={tab.name}
+                        onClick={tab.isLocked ? handleLockedClick : () => setActiveTab(tab.name)}
+                        style={getTabStyle(tab.name, tab.isLocked)}
+                    >
+                        {tab.icon && <tab.icon size={18} />}
+                        {tab.label}
+                        {tab.isLocked && <Lock size={14} style={{ marginLeft: '0.2rem' }} />}
+                    </button>
+                ))}
                 
+                {/* Botão Premium (Abre o Paywall) */}
                 <button
-                    onClick={() => setActiveTab('terminals')}
-                    style={getTabStyle('terminals')}
+                    onClick={handleLockedClick} // Abre o Paywall
+                    style={premiumButtonStyle}
                 >
-                    <Target size={18} />
-                    Cavalos
+                    <Crown size={18} />
+                    Premium
                 </button>
-       
-                <button
-                    onClick={() => setActiveTab('advanced')}
-                    style={getTabStyle('advanced')}
-                >
-                    <Cpu size={18} />
-                    Avançado
-                </button>
-
-                <button
-                    onClick={() => setActiveTab('sectors')}
-                    style={getTabStyle('sectors')}
-                >
-                    <Layers size={18} />
-                    Setores
-                </button>
-
-                {/* Você também pode querer um botão para a aba 'visual' */}
-                <button
-                    onClick={() => setActiveTab('visual')}
-                    style={getTabStyle('visual')}
-                >
-                    <Activity size={18} />
-                    Status
-                </button>
-                
             </div>
 
-            {/* Conteúdo da Aba */}
+            {/* 5. Conteúdo da Aba Renderizado Condicionalmente */}
             
             {activeTab === 'statistics' && (
+                // ABA GERAL (DESBLOQUEADA)
                 <>
                     <h3 className={styles['dashboard-title']}>
                         Análise Estatística ({analysis.totalSpins} Sinais)
                     </h3>
-
+                    
+                    {/* ... (StatCards de Números Quentes, Frio, Sequências, Dúzias, etc.) ... */}
                     <StatCard 
                         title="Números Quentes" 
                         icon={<Flame size={24} className={styles['dangerIcon']} />}
                     >
-                        {analysis.hotNumbers.map(([num, count]) => (
-                            <div className={styles['stat-row']} key={num}>
-                                <span className={styles['stat-label']}>
-                                    Número <NumberChip number={parseInt(num)} />
-                                </span>
-                                <span className={styles['stat-value']}>
-                                    {count} vezes ({(count/analysis.totalSpins * 100).toFixed(1)}%)
-                                </span>
-                            </div>
-                        ))}
+                        {analysis.hotNumbers.map(({ num, count }) => ( 
+    <div className={styles['stat-row']} key={num}>
+        <span className={styles['stat-label']}>
+            {/* O NumberChip recebe apenas o número */}
+            Número <NumberChip number={num} /> 
+        </span>
+        <span className={styles['stat-value']}>
+            {/* Usa a contagem correta */}
+            {count} vezes ({(count / analysis.totalSpins * 100).toFixed(1)}%)
+        </span>
+    </div>
+))}
                     </StatCard>
                     
                     <StatCard 
@@ -378,7 +391,7 @@ const sleepers = Object.entries(lastSeenIndex)
                             </div>
                         ))}
                     </StatCard>
-
+                    
                     <StatCard 
                         title="Sequências de Cores" 
                         icon={<TrendingUp size={24} className={styles['warningIcon']} />}
@@ -445,35 +458,54 @@ const sleepers = Object.entries(lastSeenIndex)
                 </>
             )}
             
-            {/* O conteúdo abaixo agora será renderizado com base na aba ativa */}
-                
-            {activeTab === 'frequency' && (
+            {/* ABAS AVANÇADAS (BLOQUEADAS) */}
+            
+            {(activeTab !== 'statistics' && !isPremium) && (
+                <div style={{ padding: '3rem', textAlign: 'center', background: 'rgba(0, 0, 0, 0.3)', borderRadius: '1rem' }}>
+                    <Lock size={48} style={{ color: '#ca8a04', marginBottom: '1rem' }} />
+                    <h3 className={styles['dashboard-title']} style={{ color: '#fde047' }}>
+                        Análise Premium
+                    </h3>
+                    <p style={{ color: '#d1d5db', marginBottom: '1.5rem' }}>
+                        Desbloqueie {tabs.find(t => t.name === activeTab).label} e outras ferramentas avançadas assinando agora.
+                    </p>
+                    <button 
+                        onClick={handleLockedClick} 
+                        style={{ ...premiumButtonStyle, width: '70%', margin: '0 auto', fontSize: '1rem' }}
+                    >
+                        <Crown size={20} /> Assinar Premium
+                    </button>
+                </div>
+            )}
+            
+            {/* Conteúdo das Abas Desbloqueadas (Só será renderizado se isPremium for true) */}
+            
+            {isPremium && activeTab === 'frequency' && (
                 <FrequencyTable spinHistory={spinHistory} />
             )}
 
-            {activeTab === 'neighbors' && (
+            {isPremium && activeTab === 'neighbors' && (
                 <NeighborAnalysis spinHistory={spinHistory} />
             )}
 
-            {activeTab === 'terminals' && (
+            {isPremium && activeTab === 'terminals' && (
                 <TerminalAnalysis spinHistory={spinHistory} />
             )}
             
-            {activeTab === 'advanced' && (
+            {isPremium && activeTab === 'advanced' && (
                 <AdvancedPatternsAnalysis spinHistory={spinHistory} />
             )}
 
-            {activeTab === 'sectors' && (
+            {isPremium && activeTab === 'sectors' && (
                 <SectorsAnalysis spinHistory={spinHistory} />
             )}
             
-            {activeTab === 'visual' && (
+            {isPremium && activeTab === 'visual' && (
                 <>
                     <h3 className={styles['dashboard-title']}>
                         Indicadores Visuais
                     </h3>
                     <StatCard title="Contador de Atualização" icon={<Activity size={24} className={styles.infoIcon} />}>
-                        {/* 5000ms = 5 segundos (deve bater com seu 'fetchHistory' do App.jsx) */}
                         <UpdateCountdown countdownKey={spinHistory.length} duration={5000} />
                     </StatCard>
                    
