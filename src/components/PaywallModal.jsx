@@ -58,7 +58,7 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
   };
 
   const handleFreeRedirect = () => {
-    window.location.href = 'https://app-roleta2.onrender.com';
+    window.location.href = 'https://gratis.smartanalise.com.br';
   };
 
   if (!isOpen) return null;
