@@ -89,13 +89,13 @@ const GlobalStyles = () => (
 
     body {
         font-family: 'Arial', sans-serif;
-        background-color: #20311f;
+        background-color: #4a4a4a;
         overflow-x: hidden;
     }
 
     .container {
         min-height: calc(100vh - 65px);
-        background: #20311f;
+        background: #4a4a4a;
         display: grid;
         grid-template-columns: 380px 1fr 420px; 
         gap: 1.5rem;
@@ -566,7 +566,7 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: '#20311f', padding: '1rem'
+      background: '#4a4a4a', padding: '1rem'
     }}>
       <div style={{ width: '100%', maxWidth: '28rem' }}>
         <div style={{
