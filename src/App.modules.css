@@ -151,7 +151,7 @@ body {
 .container {
   min-height: 100vh ;
   min-width:100vw ;
-  background: #20311f;
+  background: #4a4a4a;
   display: grid;
   grid-template-columns: 320px 1fr 420px;
   gap: 1.5rem;

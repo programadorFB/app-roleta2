@@ -170,15 +170,19 @@ export async function processHublaWebhook(eventType, payload) {
     try {
         let result;
         
+        // <-- CORREÇÃO: Nomes dos eventos atualizados para (v2)
         switch (eventType) {
-            case 'member.access_granted':
+            
+            // Eventos de Membro (v2) -
+            case 'customer.member_added': // Antigo 'member.access_granted'
                 result = await handleAccessGranted(payload);
                 break;
             
-            case 'member.access_removed':
+            case 'customer.member_removed': // Antigo 'member.access_removed'
                 result = await handleAccessRemoved(payload);
                 break;
             
+            // Eventos de Fatura (v2) -
             case 'invoice.payment_succeeded':
                 result = await handlePaymentSucceeded(payload);
                 break;
@@ -187,18 +191,33 @@ export async function processHublaWebhook(eventType, payload) {
                 result = await handleInvoiceStatusUpdated(payload);
                 break;
             
+            // Eventos de Assinatura (v2) -
             case 'subscription.created':
                 result = await handleSubscriptionCreated(payload);
                 break;
             
-            case 'subscription.canceled':
+            case 'subscription.deactivated': // Antigo 'subscription.canceled'
                 result = await handleSubscriptionCanceled(payload);
                 break;
             
-            case 'subscription.renewed':
+            case 'subscription.activated': // Antigo 'subscription.renewed'
                 result = await handleSubscriptionRenewed(payload);
                 break;
             
+            // Eventos antigos (mantidos por segurança, caso a Hubla mude)
+            case 'member.access_granted':
+                result = await handleAccessGranted(payload);
+                break;
+            case 'member.access_removed':
+                result = await handleAccessRemoved(payload);
+                break;
+            case 'subscription.canceled':
+                result = await handleSubscriptionCanceled(payload);
+                break;
+            case 'subscription.renewed':
+                result = await handleSubscriptionRenewed(payload);
+                break;
+
             default:
                 console.log(`⚠️ [HUBLA WEBHOOK] Evento não tratado: ${eventType}`);
                 await logWebhookEvent(eventType, payload, 'ignored', 'Evento não tratado');
@@ -226,7 +245,7 @@ async function handleAccessGranted(payload) {
     const subscription = payload.event?.subscription || payload.subscription;
     
     if (!member?.email) {
-        throw new Error('Email do membro não encontrado no payload');
+        throw new Error('Email do membro não encontrado no payload (handleAccessGranted)');
     }
     
     const userId = member.id || member.email.split('@')[0];
@@ -252,7 +271,7 @@ async function handleAccessRemoved(payload) {
     const member = payload.event?.member || payload.member;
     
     if (!member?.email) {
-        throw new Error('Email do membro não encontrado no payload');
+        throw new Error('Email do membro não encontrado no payload (handleAccessRemoved)');
     }
     
     const existing = await getSubscriptionByEmail(member.email);
@@ -275,14 +294,14 @@ async function handlePaymentSucceeded(payload) {
     const customer = invoice?.customer;
     
     if (!customer?.email) {
-        throw new Error('Email do cliente não encontrado no payload');
+        throw new Error('Email do cliente não encontrado no payload (handlePaymentSucceeded)');
     }
     
     const existing = await getSubscriptionByEmail(customer.email);
     if (existing) {
         const result = await upsertSubscription({
             userId: existing.user_id,
-            status: 'paid'
+            status: 'paid' // 'paid' ou 'active'
         });
         
         console.log(`💰 [HUBLA] Pagamento confirmado para: ${customer.email}`);
@@ -298,7 +317,7 @@ async function handleInvoiceStatusUpdated(payload) {
     const customer = invoice?.customer;
     
     if (!customer?.email) {
-        return { status: 'ignored', message: 'Email não encontrado' };
+        return { status: 'ignored', message: 'Email não encontrado (handleInvoiceStatusUpdated)' };
     }
     
     const existing = await getSubscriptionByEmail(customer.email);
@@ -331,7 +350,7 @@ async function handleSubscriptionCreated(payload) {
     const customer = subscription?.customer;
     
     if (!customer?.email) {
-        throw new Error('Email do cliente não encontrado no payload');
+        throw new Error('Email do cliente não encontrado no payload (handleSubscriptionCreated)');
     }
     
     const userId = customer.id || customer.email.split('@')[0];
@@ -358,7 +377,7 @@ async function handleSubscriptionCanceled(payload) {
     const customer = subscription?.customer;
     
     if (!customer?.email) {
-        throw new Error('Email do cliente não encontrado no payload');
+        throw new Error('Email do cliente não encontrado no payload (handleSubscriptionCanceled)');
     }
     
     const existing = await getSubscriptionByEmail(customer.email);
@@ -381,7 +400,7 @@ async function handleSubscriptionRenewed(payload) {
     const customer = subscription?.customer;
     
     if (!customer?.email) {
-        throw new Error('Email do cliente não encontrado no payload');
+        throw new Error('Email do cliente não encontrado no payload (handleSubscriptionRenewed)');
     }
     
     const existing = await getSubscriptionByEmail(customer.email);
@@ -401,9 +420,11 @@ async function handleSubscriptionRenewed(payload) {
  * Verifica a assinatura do token de webhook da Hubla
  */
 export function verifyHublaWebhook(hublaToken, expectedToken) {
+    // <-- CORREÇÃO DE SEGURANÇA CRÍTICA
     if (!expectedToken) {
-        console.warn('⚠️ [HUBLA] Token de verificação não configurado no servidor');
-        return true; // Aceita temporariamente se não houver token configurado
+        console.error('❌ [HUBLA] CRÍTICO: HUBLA_WEBHOOK_TOKEN não definido no .env');
+        console.error('❌ [HUBLA] Recusando todos os webhooks por segurança.');
+        return false; // <-- CORRIGIDO
     }
     
     const isValid = hublaToken === expectedToken;
