@@ -94,7 +94,7 @@
   padding-left: 10px;
     display: flex;
   width: 61px;
-  backdrop-filter: blur(20px);
+  /* backdrop-filter: blur(20px); */
   margin-left: -10px;
   flex-direction: column;
   gap: unset;
