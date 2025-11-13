@@ -1,4 +1,4 @@
-// App.jsx (Com Tooltip Flutuante no Mobile)
+// App.jsx (Com Tooltip Flutuante no Mobile e Dashboard sob Demanda)
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { 
     X, BarChart3, Clock, Hash, Percent, Layers, CheckSquare, Settings, 
@@ -25,7 +25,7 @@ const GlobalStyles = () => (
 
     body {
         font-family: 'Arial', sans-serif;
-        background-color: #4a4a4a;
+        background-color: #1a1a1a;
         overflow-x: hidden;
     }
 
@@ -422,7 +422,7 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => { // <--
   const brands = [
     { value: 'betou', label: 'Betou' },
     // { value: 'betfusion', label: 'BetFusion' },
-    // { value: 'sortenabet', label: 'Sorte na Bet' }
+    { value: 'sortenabet', label: 'Sorte na Bet' }
   ];
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -502,7 +502,7 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => { // <--
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: '#4a4a4a', padding: '1rem'
+      background: '#4d4d4d', padding: '1rem'
     }}>
       <div style={{ width: '100%', maxWidth: '28rem' }}>
         <div style={{
@@ -632,21 +632,44 @@ const getNumberColor = (num) => {
 };
 
 const ROULETTE_SOURCES = {
-  immersive: '🌟 Roleta Immersive',
+  immersive: '🌟 Immersive Roulette',
   brasileira: '🇧🇷 Roleta Brasileira',
   speed: '💨 Speed Roulette',
-  xxxtreme: '⚡ Xxxtreme Lightning',
-  vipauto: '🚘 Vip Auto Roulette'
+  xxxtreme: '⚡ XXXtreme Lightning',
+  vipauto: '🚘 Auto Roulette Vip',
+
+  vip: '💎 Roleta Vip',
+  lightning: '⚡ Lightning Roulette',
+  aovivo: '🔴 Roleta ao Vivo',
+  speedauto: '💨 Speed Auto Roulette',
+  viproulette: '💎 Vip Roulette', // (Diferente de 'Roleta Vip')
+  relampago: '⚡ Roleta Relâmpago',
+  malta: '🇲🇹 Casino Malta Roulette'
 };
 
 const ROULETTE_GAME_IDS = {
+  // --- IDs de Jogo para os 16 itens (do JSON) ---
+  auto: 120,
+  vipauto: 31,
+  bacbo: 54,
+  malta: 80,
+  footballstudio: 53,
   immersive: 55,
+  lightning: 33,
+  reddoor: 35,
+  aovivo: 34,
+  brasileira_playtech: 102,
   brasileira: 101,
+  relampago: 81,
+  speedauto: 82,
   speed: 36,
-  xxxtreme: 103,
-  vipauto: 31
+  viproulette: 32,
+  xxxtreme: 83
 };
+
 const filterOptions = [
+  
+  { value: 50, label: 'Últimas 50 Rodadas' },
   { value: 100, label: 'Últimas 100 Rodadas' },
   { value: 300, label: 'Últimas 300 Rodadas' },
   { value: 500, label: 'Últimas 500 Rodadas' },
@@ -698,6 +721,10 @@ const App = () => {
   const [jwtToken, setJwtToken] = useState(null);
   const [isPaywallOpen, setIsPaywallOpen] = useState(false);
   const [checkoutUrl, setCheckoutUrl] = useState('');
+  
+  // <-- 1. NOVO ESTADO PARA CONTROLAR A VISIBILIDADE DO DASHBOARD -->
+  const [isDashboardVisible, setIsDashboardVisible] = useState(false);
+
   // App States
   const [selectedRoulette, setSelectedRoulette] = useState(Object.keys(ROULETTE_SOURCES)[0]);
   const [spinHistory, setSpinHistory] = useState([]);
@@ -718,7 +745,7 @@ const App = () => {
   
   const [hoveredNumber, setHoveredNumber] = useState(null);
 
-  // <-- 1. NOVO ESTADO PARA O TOOLTIP MOBILE -->
+  // <-- ESTADO PARA O TOOLTIP MOBILE -->
   const [mobileTooltip, setMobileTooltip] = useState({
     visible: false,
     content: '',
@@ -763,6 +790,9 @@ const App = () => {
     setJwtToken(null);
     setActivePage('roulette');
     setGameUrl('');
+    
+    // <-- 2. RESETAR O ESTADO AO SAIR -->
+    setIsDashboardVisible(false);
   };
   
   // Close Game Handler
@@ -773,6 +803,9 @@ const App = () => {
 
   // Launch Game Handler
   const handleLaunchGame = async () => {
+    // <-- 3. EXIBIR O DASHBOARD IMEDIATAMENTE AO CLICAR -->
+    setIsDashboardVisible(true);
+    
     setIsLaunching(true);
     setLaunchError('');
     const gameId = ROULETTE_GAME_IDS[selectedRoulette];
@@ -806,6 +839,11 @@ const App = () => {
           if (!gameUrl) gameUrl = data?.launch_options?.game_url;
           if (!gameUrl) gameUrl = data?.game_url;
           if (!gameUrl) gameUrl = data?.url;
+          
+          // --- CORREÇÃO ADICIONADA ---
+          // Verifica a chave 'gameURL' (com U maiúsculo) que a sua API está retornando
+          if (!gameUrl) gameUrl = data?.gameURL; 
+          // --- FIM DA CORREÇÃO ---
           
           if (!gameUrl) {
             const findGameUrl = (obj) => {
@@ -1031,7 +1069,7 @@ const App = () => {
     return prevMap;
   }, [spinHistory])
 
-  // <-- 2. NOVAS FUNÇÕES PARA GERENCIAR O TOOLTIP MOBILE -->
+  // <-- FUNÇÕES PARA GERENCIAR O TOOLTIP MOBILE -->
   /**
    * Decide se abre o Popup grande (desktop) ou o Tooltip flutuante (mobile)
    */
@@ -1070,7 +1108,7 @@ const App = () => {
       setMobileTooltip(prev => ({ ...prev, visible: false }));
     }
   };
-  // <-- FIM DA MUDANÇA 2 -->
+  // <-- FIM DA MUDANÇA MOBILE -->
 
 
   const getNumberPosition = useCallback((number, radius) => {
@@ -1111,11 +1149,12 @@ const App = () => {
            />;
   }
 
+  // --- RENDERIZAÇÃO PRINCIPAL APÓS LOGIN ---
   return (
     <>
       <GlobalStyles />
       
-      {/* <-- 3. RENDERIZAÇÃO DO TOOLTIP FLUTUANTE E BACKDROP --> */}
+      {/* RENDERIZAÇÃO DO TOOLTIP FLUTUANTE E BACKDROP */}
       {/* Backdrop para fechar o tooltip ao clicar fora */}
       {mobileTooltip.visible && (
         <div 
@@ -1148,7 +1187,7 @@ const App = () => {
           </div>
         </div>
       )}
-      {/* <-- FIM DA MUDANÇA 3 --> */}
+      {/* FIM DO TOOLTIP */}
 
       <div className="navbar">
         <div className="navbar-left">
@@ -1175,6 +1214,7 @@ const App = () => {
       {activePage === 'roulette' && (
         <div className="container">
           
+          {/* 4. ESTA COLUNA (ESQUERDA) ESTARÁ SEMPRE VISÍVEL APÓS O LOGIN */}
           <div className="stats-dashboard">
             <h3 className="dashboard-title">Estatísticas e Ações</h3>
             <div className="stat-card">
@@ -1197,6 +1237,7 @@ const App = () => {
                     onChange={(e) => {
                       setSelectedRoulette(e.target.value);
                       setLaunchError('');
+                      // Não mostramos o dashboard aqui, esperamos o clique no botão
                     }}>
                     {Object.keys(ROULETTE_SOURCES).map(key => (
                       <option key={key} value={key}>{ROULETTE_SOURCES[key]}</option>
@@ -1223,6 +1264,7 @@ const App = () => {
                 </div>
               </div>
 
+              {/* Este é o botão que aciona a visibilidade do dashboard */}
               <button
                 onClick={handleLaunchGame}
                 disabled={isLaunching || !ROULETTE_GAME_IDS[selectedRoulette]}
@@ -1285,106 +1327,142 @@ const App = () => {
                   </div>
             </div>
           </div>
-          <div className="racetrack-mobile-only">
-              <RacingTrack 
-                selectedResult={selectedResult}
-                onNumberClick={handleNumberClick}
-                entrySignals={entrySignals}
-              />
-            </div>
-          <div className="roulette-wrapper">
-            <div className="roulette-and-results">
 
-                  {gameUrl && (
-                      <div className="game-iframe-wrapper">
-                        <iframe 
-                          src={gameUrl} 
-                          title="Jogo de Roleta" 
-                          className="game-iframe"
-                          allowFullScreen 
-                        />
-                      </div>
-                  )}
-<div className="racetrack-and-results-wrapper">
-                      {/* Adicione a classe "racetrack-desktop-only" aqui */}
-                      <div className="racetrack-main-column racetrack-desktop-only">
-                        <RacingTrack 
-                          selectedResult={selectedResult}
-                          onNumberClick={handleNumberClick}
-                          entrySignals={entrySignals}
-                        />
-                      </div>
-                  </div>
-            </div>
-          </div>
-
-          {stats.historyFilter >= 50 ? (
-            <div className="analysis-panel">
+          {/* 5. O CONTEÚDO ABAIXO SÓ APARECE DEPOIS DE CLICAR EM "INICIAR ROLETA" */}
+          {isDashboardVisible && (
+            <>
+              <div className="racetrack-mobile-only">
+                <RacingTrack 
+                  selectedResult={selectedResult}
+                  onNumberClick={handleNumberClick}
+                  entrySignals={entrySignals}
+                />
+              </div>
               
-              <div className="latest-results-compact">
-                <h4 className="latest-results-title">
-                  <Clock size={20} /> Últimos Resultados (100)
-                </h4>
-                  <div style={{ display:'flex', gap:'12px', alignItems:'center', fontSize:'20px', marginBottom:'15px', marginLeft:'25px' }}>
-                  <p className="stat-value-sm">Vermelho: <span style={{color: '#ef4444', fontWeight: 'bold'}}>{stats.colorFrequencies.red}%</span></p>
-                  <p className="stat-value-sm">Zero: <span style={{color: '#10b981', fontWeight: 'bold'}}>{stats.colorFrequencies.green}%</span></p>
-                  <p className="stat-value-sm">Preto: <span style={{color: '#d1d5db', fontWeight: 'bold'}}>{stats.colorFrequencies.black}%</span></p>
-              </div>
+              <div className="roulette-wrapper">
+                <div className="roulette-and-results">
 
-                {/* <-- 4. JSX DO GRID ATUALIZADO (usando a nova função de clique) --> */}
-                <div 
-                  className={`results-grid ${hoveredNumber !== null ? 'hover-active' : ''}`}
-                  onMouseLeave={() => setHoveredNumber(null)}
-                >
-                  {stats.latestNumbers.map((result, index) => {
-                    
-                    const isHighlighted = hoveredNumber !== null && result.number === hoveredNumber;
-                    
-                    // Gera o tooltip para o 'title' (hover no desktop)
-                    const tooltipTitle = formatPullTooltip(
-                      result.number, 
-                      numberPullStats,
-                      numberPreviousStats
-                    ); 
-
-                    return (
-                      <div 
-                        key={index} 
-                        className={`result-number-box ${result.color} ${isHighlighted ? 'highlighted' : ''}`}
-                        onMouseEnter={() => setHoveredNumber(result.number)}
-                        
-                        // ATUALIZADO: Usa a nova função que diferencia mobile/desktop
-                        onClick={(e) => handleResultBoxClick(e, result)}
-                        
-                        title={tooltipTitle} // Mantém o tooltip de desktop
-                      >
-                        {result.number}
+                      {gameUrl && (
+                          <div className="game-iframe-wrapper">
+                            <iframe 
+                              src={gameUrl} 
+                              title="Jogo de Roleta" 
+                              className="game-iframe"
+                              allowFullScreen
+                              
+                              // ✅ CORREÇÕES PARA PREVENIR TELA VERDE EM TODOS OS NAVEGADORES
+                              sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-presentation"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen; web-share"
+                              loading="lazy"
+                              referrerPolicy="no-referrer-when-downgrade"
+                              
+                              // Estilos inline para forçar renderização correta
+                              style={{
+                                transform: 'translateZ(0)',
+                                WebkitTransform: 'translateZ(0)',
+                                MozTransform: 'translateZ(0)',
+                                msTransform: 'translateZ(0)',
+                                OTransform: 'translateZ(0)',
+                                backfaceVisibility: 'hidden',
+                                WebkitBackfaceVisibility: 'hidden',
+                                MozBackfaceVisibility: 'hidden',
+                                willChange: 'transform',
+                                imageRendering: 'auto'
+                              }}
+                            />
+                          </div>
+                      )}
+                  <div className="racetrack-and-results-wrapper">
+                          {/* Adicione a classe "racetrack-desktop-only" aqui */}
+                          <div className="racetrack-main-column racetrack-desktop-only">
+                            <RacingTrack 
+                              selectedResult={selectedResult}
+                              onNumberClick={handleNumberClick}
+                              entrySignals={entrySignals}
+                            />
+                          </div>
                       </div>
-                    );
-                  })}
                 </div>
-                {/* <-- FIM DA MUDANÇA 4 --> */}
-
               </div>
 
-              <DeepAnalysisPanel spinHistory={filteredSpinHistory} />
-            </div>
-          ) : (
-            <div className="analysis-panel" style={{
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              textAlign: 'center', 
-              color: '#9ca3af',
-              padding: '2rem'
-            }}>
-              <div className="stat-card" style={{
-                background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', 
-                border: '1px solid rgba(253, 224, 71, 0.2)', 
-                color: '#9ca3af',
-                marginBottom: 0
-              }}>
-                Aguardando {50 - stats.historyFilter} spins (no filtro atual) para iniciar o Painel de Análise...
+              {stats.historyFilter >= 50 ? (
+                <div className="analysis-panel">
+                  
+                  <div className="latest-results-compact">
+                    <h4 className="latest-results-title">
+                      <Clock size={20} /> Últimos Resultados (100)
+                    </h4>
+                      <div style={{ display:'flex', gap:'12px', alignItems:'center', fontSize:'20px', marginBottom:'15px', marginLeft:'25px' }}>
+                      <p className="stat-value-sm">Vermelho: <span style={{color: '#ef4444', fontWeight: 'bold'}}>{stats.colorFrequencies.red}%</span></p>
+                      <p className="stat-value-sm">Zero: <span style={{color: '#10b981', fontWeight: 'bold'}}>{stats.colorFrequencies.green}%</span></p>
+                      <p className="stat-value-sm">Preto: <span style={{color: '#d1d5db', fontWeight: 'bold'}}>{stats.colorFrequencies.black}%</span></p>
+                  </div>
+
+                    <div 
+                      className={`results-grid ${hoveredNumber !== null ? 'hover-active' : ''}`}
+                      onMouseLeave={() => setHoveredNumber(null)}
+                    >
+                      {stats.latestNumbers.map((result, index) => {
+                        
+                        const isHighlighted = hoveredNumber !== null && result.number === hoveredNumber;
+                        
+                        // Gera o tooltip para o 'title' (hover no desktop)
+                        const tooltipTitle = formatPullTooltip(
+                          result.number, 
+                          numberPullStats,
+                          numberPreviousStats
+                        ); 
+
+                        return (
+                          <div 
+                            key={index} 
+                            className={`result-number-box ${result.color} ${isHighlighted ? 'highlighted' : ''}`}
+                            onMouseEnter={() => setHoveredNumber(result.number)}
+                            
+                            // ATUALIZADO: Usa a nova função que diferencia mobile/desktop
+                            onClick={(e) => handleResultBoxClick(e, result)}
+                            
+                            title={tooltipTitle} // Mantém o tooltip de desktop
+                          >
+                            {result.number}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <DeepAnalysisPanel spinHistory={filteredSpinHistory} />
+                </div>
+              ) : (
+                <div className="analysis-panel" style={{
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  textAlign: 'center', 
+                  color: '#9ca3af',
+                  padding: '2rem'
+                }}>
+                  <div className="stat-card" style={{
+                    background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', 
+                    border: '1px solid rgba(253, 224, 71, 0.2)', 
+                    color: '#9ca3af',
+                    marginBottom: 0
+                  }}>
+                    Aguardando {50 - stats.historyFilter} spins (no filtro atual) para iniciar o Painel de Análise...
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* 6. MENSAGEM INICIAL ANTES DE INICIAR O JOGO */}
+          {!isDashboardVisible && (
+            <div className='WellCome'>
+              <div style={{ maxWidth: '400px' }}>
+                <h2 style={{ color: '#fde047', marginBottom: '1rem', fontSize: '1.5rem' }}>Bem-vindo, {userInfo?.email}</h2>
+                <p style={{ fontSize: '1.1rem', lineHeight: '1.6' }}>
+                  Selecione uma roleta e clique em "Iniciar" no painel à esquerda para carregar o jogo e exibir o dashboard de análise.
+                </p>
               </div>
             </div>
           )}
@@ -1392,6 +1470,7 @@ const App = () => {
         </div>
       )}
 
+      {/* Página Master (se aplicável) */}
       {activePage === 'master' && (
         <div style={{
           padding: '2rem',
@@ -1411,7 +1490,10 @@ const App = () => {
         </div>
       )}
 
-      {/* <NumberStatsPopup isOpen={isPopupOpen} onClose={closePopup} number={popupNumber} stats={popupStats} /> */}
+      {/* Popup de Análise de Número (renderizado mas oculto) */}
+      <NumberStatsPopup isOpen={isPopupOpen} onClose={closePopup} number={popupNumber} stats={popupStats} />
+      
+      {/* Modal de Paywall (renderizado mas oculto) */}
       <PaywallModal
         isOpen={isPaywallOpen}
         onClose={() => {setIsPaywallOpen(false);handleLogout();}}
