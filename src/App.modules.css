@@ -39,7 +39,19 @@ body {
 .mobile-tooltip-content span {
   white-space: pre-wrap; /* Garante a quebra de linha */
 }
-
+.WellCome{
+  /* position: fixed; */
+  /* grid-column: 2 / span 2; */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 1rem;
+  color: #d1d5db;
+  padding: 2rem;
+  text-align: center;
+  border: 2px dashed #4b5563;
+  min-height: '400px'}
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -151,7 +163,7 @@ body {
 .container {
   min-height: 100vh ;
   min-width:100vw ;
-  background: #4a4a4a;
+  background: #20311f;
   display: grid;
   grid-template-columns: 320px 1fr 420px;
   gap: 1.5rem;
@@ -906,9 +918,32 @@ body {
   padding-bottom: 56.25%;
   background: #000;
   border-radius: 0.5rem;
-  
   overflow: hidden;
   box-shadow: inset 0 0 10px rgba(0, 0, 0, 1.5);
+  
+  /* ✅ CORREÇÕES PARA PREVENIR TELA VERDE EM TODOS OS NAVEGADORES */
+  
+  /* Isolamento de camada para evitar conflitos de renderização */
+  isolation: isolate;
+  
+  /* Contenção para melhorar performance */
+  contain: layout style paint;
+  
+  /* Força composição de camada */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  -moz-transform: translateZ(0);
+  -ms-transform: translateZ(0);
+  -o-transform: translateZ(0);
+  
+  /* Previne flickering */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  -moz-backface-visibility: hidden;
+  
+  /* Melhora renderização em dispositivos de alta DPI */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .game-iframe {
@@ -918,6 +953,41 @@ body {
   width: 100%;
   height: 100%;
   border: none;
+  
+  /* ✅ CORREÇÕES PARA PREVENIR TELA VERDE EM TODOS OS NAVEGADORES */
+  
+  /* Força composição de camada GPU */
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+  -moz-transform: translate3d(0, 0, 0);
+  -ms-transform: translate3d(0, 0, 0);
+  -o-transform: translate3d(0, 0, 0);
+  
+  /* Previne problemas de renderização */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  -moz-backface-visibility: hidden;
+  
+  /* Otimização de animações */
+  will-change: transform;
+  
+  /* Melhora qualidade de imagem */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  image-rendering: auto;
+  
+  /* Previne seleção acidental */
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  
+  /* Desabilita highlight em toque */
+  -webkit-tap-highlight-color: transparent;
+  
+  /* Força aceleração de hardware de forma controlada */
+  -webkit-perspective: 1000;
+  perspective: 1000;
 }
 
 .iframe-wrapper {
@@ -1267,7 +1337,8 @@ body {
   }
   .stats-dashboard{
     height: fit-content;
-    
+    margin-left: -5px;
+    margin-right: -15px;
   }
   .latest-results-compact{
     height: 522px;
@@ -1275,12 +1346,16 @@ body {
   .subtitle {
     font-size: 0.9rem;
   }
-
+  .analysis-panel{
+    margin-left: 100px;
+  }
   .green-base {
     width: 280px;
     height: 280px;
   }
-
+  .WellCome{
+    margin-left: 13px;
+  }
   .number-slot {
     width: 30px;
     height: 30px;
@@ -1342,7 +1417,7 @@ body {
   .racetrack-mobile-only{
     margin-top: -30px;
     margin-bottom: -30px;
-    margin-left: 0px;
+    margin-left: 5px;
   }
   .next-spins-container {
     gap: 1rem;
@@ -1390,7 +1465,99 @@ body {
     width: 108%;
     height: auto;
     margin-top: -5px;
-    margin-left: 0px;
+    margin-left: 15px;
     padding-bottom: 150%;
+  }
+}
+/* ===============================================
+   FALLBACKS E OTIMIZAÇÕES CROSS-BROWSER
+   Adicionado para prevenir tela verde
+   =============================================== */
+
+/* Fallback para navegadores que não suportam isolation */
+@supports not (isolation: isolate) {
+  .game-iframe-wrapper {
+    z-index: 0;
+    position: relative;
+  }
+}
+
+/* Otimizações específicas para Chrome/Edge (Chromium) */
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+  .game-iframe {
+    -webkit-transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    -webkit-perspective: 1000;
+  }
+}
+
+/* Otimizações para Firefox */
+@-moz-document url-prefix() {
+  .game-iframe {
+    -moz-transform: translateZ(0);
+    -moz-backface-visibility: hidden;
+  }
+}
+
+/* Loading state - Melhora UX enquanto carrega */
+.game-iframe-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50px;
+  height: 50px;
+  border: 5px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #eab308;
+  border-radius: 50%;
+  animation: iframe-spin 1s linear infinite;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.game-iframe-wrapper.loaded::before {
+  display: none;
+}
+
+@keyframes iframe-spin {
+  to { 
+    transform: translate(-50%, -50%) rotate(360deg); 
+  }
+}
+
+/* Estado de erro do iframe */
+.game-iframe-wrapper.error {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.game-iframe-wrapper.error::after {
+  content: '⚠️ Erro ao carregar o jogo';
+  position: absolute;
+  color: #ef4444;
+  font-size: 1.25rem;
+  font-weight: bold;
+  z-index: 10;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 0.5rem;
+}
+
+/* Modo escuro / claro */
+@media (prefers-color-scheme: dark) {
+  .game-iframe-wrapper {
+    background: #000;
+    box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.8);
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  .game-iframe-wrapper {
+    background: #1a1a1a;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
   }
 }
