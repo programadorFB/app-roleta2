@@ -12,6 +12,12 @@ import RacingTrack from './components/RacingTrack.jsx';
 import DeepAnalysisPanel from './components/DeepAnalysisPanel.jsx';
 import './components/NotificationsCenter.css';
 import  './App.modules.css';
+import { 
+  processErrorResponse, 
+  translateNetworkError, 
+  displayError,
+  registerLogoutCallback  // 🆕 Logout automático em erro 401
+} from './errorHandler.js';
 // Define a URL base da API
 const API_URL = import.meta.env.VITE_API_URL || ''; // <-- ISSO ESTÁ CORRETO
 
@@ -437,68 +443,56 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => { // <--
   };
 // App.jsx (substitua toda a função handleSubmit)
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    if (devMode) {
-      setTimeout(() => {
-        handleDevLogin();
-        setLoading(false);
-      }, 500);
-      return;
-    }
-    try {
-      // --- CORREÇÃO 1 DE 3 ---
-      // Adicionado o prefixo ${API_URL}
-      const response = await fetch(`${API_URL}/login`, { //
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify(formData)
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data.jwt) {
-          localStorage.setItem('authToken', data.jwt);
-          localStorage.setItem('userEmail', formData.email);
-          localStorage.setItem('userBrand', formData.brand);
-          onLoginSuccess(data);
-        } else {
-          setError('Login bem-sucedido, mas o token (jwt) não foi recebido.');
-        }
-      } else {
-        const errorText = await response.text();
-        let errorMessage;
-        try {
-          const errorJson = JSON.parse(errorText);
-          errorMessage = errorJson.message || `Erro ${response.status}: Resposta JSON inválida.`;
-
-          // --- CORREÇÃO AQUI (Sua correção anterior estava correta) ---
-          if (errorJson.code === 'FORBIDDEN_SUBSCRIPTION') {
-            setCheckoutUrl(errorJson.checkoutUrl || ''); 
-            setIsPaywallOpen(true); 
-          }
-          // --- FIM DA CORREÇÃO ---
-
-        } catch (e) {
-          console.error("Erro não-JSON recebido do backend:", errorText);
-          errorMessage = `Erro ${response.status}. O servidor retornou uma resposta inesperada.`;
-        }
-        setError(errorMessage);
-      }
-    } catch (err) {
-      console.error('Erro de fetch:', err);
-      let errorMessage = 'Erro de conexão. ';
-      if (err.message.includes('Failed to fetch')) {
-        errorMessage += 'API offline ou CORS bloqueado. Ative Modo DEV para testar.';
-      } else {
-        errorMessage += err.message;
-      }
-      setError(errorMessage);
-    } finally {
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  setError('');
+  if (devMode) {
+    setTimeout(() => {
+      handleDevLogin();
       setLoading(false);
+    }, 500);
+    return;
+  }
+  try {
+    // --- CORREÇÃO 1 DE 3 ---
+    // Adicionado o prefixo ${API_URL}
+    const response = await fetch(`${API_URL}/login`, { //
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(formData)
+    });
+    if (response.ok) {
+      const data = await response.json();
+      if (data.jwt) {
+        localStorage.setItem('authToken', data.jwt);
+        localStorage.setItem('userEmail', formData.email);
+        localStorage.setItem('userBrand', formData.brand);
+        onLoginSuccess(data);
+      } else {
+        setError('Login bem-sucedido, mas o token (jwt) não foi recebido.');
+      }
+    } else {
+      const errorData = await response.json().catch(() => ({}));
+      setError(errorData.message || `Erro de login: ${response.statusText}`);
+      if (response.status === 403 && errorData.checkoutUrl) {
+        setCheckoutUrl(errorData.checkoutUrl);
+        setIsPaywallOpen(true);
+      }
     }
-  };
+  } catch (err) {
+    console.error('Erro de fetch:', err);
+    let errorMessage = 'Erro de conexão. ';
+    if (err.message.includes('Failed to fetch')) {
+      errorMessage += 'API offline ou CORS bloqueado. Ative Modo DEV para testar.';
+    } else {
+      errorMessage += err.message;
+    }
+    setError(errorMessage);
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -576,7 +570,7 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => { // <--
           <p style={{ color: "white" }}>
               Ainda não tem cadastro na Betou?{" "}
               <a 
-                href="https://go.aff.betou.bet.br/tgml0e19?utm_medium=appcmd"
+                href="https://go.aff.betou.bet.br/tgml0e19?utm_medium=appcmdc:\Users\programador-fb\Desktop\roleta3\src\errorHandler.js"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
@@ -780,8 +774,18 @@ const App = () => {
     });
   };
 
+  // 🆕 Registra callback de logout automático em erro 401
+  useEffect(() => {
+    if (isAuthenticated && handleLogout) {
+      registerLogoutCallback(handleLogout);
+      console.log('✅ Logout automático em erro 401 ativado');
+    }
+  }, [isAuthenticated]);
+
   // Logout Handler
   const handleLogout = () => {
+    console.warn('🔒 Sessão expirada. Fazendo logout...'); // 🆕 Feedback visual
+    
     localStorage.removeItem('authToken');
     localStorage.removeItem('userEmail');
     localStorage.removeItem('userBrand');
@@ -801,8 +805,7 @@ const App = () => {
     setLaunchError('');
   }, []);
 
-  // Launch Game Handler
-  const handleLaunchGame = async () => {
+const handleLaunchGame = async () => {
     // <-- 3. EXIBIR O DASHBOARD IMEDIATAMENTE AO CLICAR -->
     setIsDashboardVisible(true);
     
@@ -817,8 +820,7 @@ const App = () => {
     }
   
     try {
-      // --- CORREÇÃO 2 DE 3 ---
-      // Adicionado o prefixo ${API_URL}
+      // --- CORREÇÃO 2 DE 3 (Existente) ---
       const response = await fetch(`${API_URL}/start-game/${gameId}`, { //
         method: 'GET',
         headers: {
@@ -833,6 +835,18 @@ const App = () => {
         try {
           const data = JSON.parse(rawResponseText);
           console.log('📦 Dados parseados:', data);
+
+          // --- 💡 NOVA CORREÇÃO ADICIONADA AQUI 💡 ---
+          // Verifica se a API retornou 200 OK, mas com um payload de ERRO
+          // (Ex: {"status":"error","message":"Error in generate V3..."})
+          if (data && data.status === 'error') {
+            console.error("❌ API retornou 200 OK, mas com erro interno:", data.message);
+            // Define o erro usando a mensagem da API
+            setLaunchError(data.message || 'API retornou um erro inesperado.');
+            setIsLaunching(false); // Garante que o loading pare
+            return; // Interrompe a função aqui
+          }
+          // --- FIM DA NOVA CORREÇÃO ---
   
           let gameUrl = null;
           gameUrl = data?.launchOptions?.launch_options?.game_url;
@@ -840,8 +854,7 @@ const App = () => {
           if (!gameUrl) gameUrl = data?.game_url;
           if (!gameUrl) gameUrl = data?.url;
           
-          // --- CORREÇÃO ADICIONADA ---
-          // Verifica a chave 'gameURL' (com U maiúsculo) que a sua API está retornando
+          // --- CORREÇÃO ADICIONADA (Existente) ---
           if (!gameUrl) gameUrl = data?.gameURL; 
           // --- FIM DA CORREÇÃO ---
           
@@ -874,17 +887,23 @@ const App = () => {
           setLaunchError('Resposta da API não é um JSON válido: ' + rawResponseText.substring(0, 100));
         }
       } else {
-        console.error("❌ Erro HTTP:", response.status, rawResponseText);
-        setLaunchError(`Erro ${response.status} do servidor: ${rawResponseText.substring(0, 100)}`);
-      }
-    } catch (err) {
-      console.error('❌ Erro de rede:', err);
-      setLaunchError('Erro de conexão: ' + err.message);
-    } finally {
+        // ✨ NOVO: Traduz erro automaticamente
+        const errorInfo = await processErrorResponse(response, 'game');
+        displayError(errorInfo, setLaunchError, { showIcon: true });
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Game Launch Error:', errorInfo.originalError);
+          }
+        }
+      } catch (err) {
+        // ✨ NOVO: Trata erro de rede
+        const errorInfo = translateNetworkError(err);
+        displayError(errorInfo, setLaunchError, { showIcon: true });
+        console.error('Network Error:', err);
+      } finally {
       setIsLaunching(false);
     }
   };
-
   // Radius Effect
   useEffect(() => {
     const calculateRadius = () => {
@@ -909,19 +928,25 @@ const App = () => {
       // --- CORREÇÃO 3 DE 3 ---
       // Adicionado o prefixo ${API_URL}
       const response = await fetch(`${API_URL}/api/full-history?source=${selectedRoulette}&userEmail=${encodeURIComponent(userInfo.email)}`); //
-      if (!response.ok) {
-        const errData = await response.json(); // Pega o JSON do erro
-        
-        // O middleware retorna 'requiresSubscription' em caso de falha 403
-        if (response.status === 403 || errData.requiresSubscription) {
-          console.warn('Assinatura inválida ou expirada. Abrindo paywall e deslogando.');
-          setCheckoutUrl(errData.checkoutUrl || '');
-          setIsPaywallOpen(true);
-
-        }
-        
-        throw new Error(errData.message || `Erro na API: ${response.statusText}`);
-      }
+if (!response.ok) {
+  // ✨ NOVO: Traduz erro automaticamente
+  const errorInfo = await processErrorResponse(response, 'history');
+  
+  // Trata paywall se necessário
+  if (errorInfo.requiresPaywall) {
+    console.warn('🔒 Assinatura inválida detectada');
+    setCheckoutUrl(errorInfo.checkoutUrl || '');
+    setIsPaywallOpen(true);
+  }
+  
+  // Log do erro (sem poluir UI)
+  console.error('History Error:', errorInfo.message);
+  
+  // Limpa dados
+  setSpinHistory([]);
+  setSelectedResult(null);
+  return; // Importante: sai da função aqui
+}
       const data = await response.json();
       const convertedData = data.map(item => {
         const num = parseInt(item.signal, 10);
