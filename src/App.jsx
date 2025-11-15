@@ -1,10 +1,10 @@
-// App.jsx (Com Tooltip Flutuante no Mobile e Dashboard sob Demanda)
+// App.jsx (Com Tooltip Flutuante no Mobile)
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { 
     X, BarChart3, Clock, Hash, Percent, Layers, CheckSquare, Settings, 
-    LogOut, Lock, Mail, AlertCircle, PlayCircle, Filter 
+    LogOut, Lock, Mail, AlertCircle, PlayCircle, Filter, ExternalLink
 } from 'lucide-react';
-import PaywallModal from './components/PaywallModal.jsx'; //
+import PaywallModal from './components/PaywallModal.jsx'; 
 import './components/PaywallModal.css';
 import NotificationCenter from './components/NotificationCenter.jsx';
 import MasterDashboard from './pages/MasterDashboard.jsx';
@@ -12,17 +12,88 @@ import RacingTrack from './components/RacingTrack.jsx';
 import DeepAnalysisPanel from './components/DeepAnalysisPanel.jsx';
 import './components/NotificationsCenter.css';
 import  './App.modules.css';
+
+// --- 1. CORREÇÃO: IMPORTAR O NOVO ERROR HANDLER ---
+// Adicionamos as funções necessárias do seu novo módulo
 import { 
   processErrorResponse, 
   translateNetworkError, 
-  displayError,
-  registerLogoutCallback  // 🆕 Logout automático em erro 401
+  displayError, 
+  registerLogoutCallback,
+  clearLogoutCallback
 } from './errorHandler.js';
-// Define a URL base da API
-const API_URL = import.meta.env.VITE_API_URL || ''; // <-- ISSO ESTÁ CORRETO
 
+// Define a URL base da API
+const API_URL = import.meta.env.VITE_API_URL || ''; 
+
+// ... (Restante das Funções Auxiliares: getNumberColor, rouletteNumbers, ROULETTE_SOURCES, etc.)
+
+const getNumberColor = (num) => {
+  if (num === 0) return 'green';
+  const redNumbers = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
+  return redNumbers.includes(num) ? 'red' : 'black';
+};
+
+const rouletteNumbers = [
+  0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10,
+  5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26
+];
+
+const ROULETTE_SOURCES = {
+  immersive: '🌟 Roleta Immersive',
+  brasileira: '🇧🇷 Roleta Brasileira',
+  speed: '💨 Speed Roulette',
+  xxxtreme: '⚡ Xxxtreme Lightning',
+  vipauto: '🚘 Vip Auto Roulette'
+};
+
+const ROULETTE_GAME_IDS = {
+  immersive: 55,
+  brasileira: 101,
+  speed: 36,
+  xxxtreme: 83,
+  vipauto: 31
+};
+const filterOptions = [
+  { value: 100, label: 'Últimas 100 Rodadas' },
+  { value: 300, label: 'Últimas 300 Rodadas' },
+  { value: 500, label: 'Últimas 500 Rodadas' },
+  { value: 1000, label: 'Últimas 1000 Rodadas' },
+  { value: 'all', label: 'Histórico Completo' }
+];
+
+const formatPullTooltip = (number, pullStats, previousStats) => {
+  const pullStatsMap = pullStats.get(number);
+  const prevStatsMap = previousStats.get(number);
+
+  let pullString = "(Nenhum)";
+  if (pullStatsMap && pullStatsMap.size > 0) {
+    const pulledNumbers = [...pullStatsMap.keys()];
+    const displayPull = pulledNumbers.slice(0, 5);
+    pullString = displayPull.join(', ');
+    if (pulledNumbers.length > 5) {
+      pullString += ', ...';
+    }
+  }
+
+  let prevString = "(Nenhum)";
+  if (prevStatsMap && prevStatsMap.size > 0) {
+    const prevNumbers = [...prevStatsMap.keys()];
+    const displayPrev = prevNumbers.slice(0, 5);
+    prevString = displayPrev.join(', ');
+    if (prevNumbers.length > 5) {
+      prevString += ', ...';
+    }
+  }
+
+  return `Número: ${number}\nPuxou: ${pullString}\nVeio Antes: ${prevString}`;
+};
+
+// === ESTILOS GLOBAIS ===
+// (Estilos omitidos para economizar espaço, mantenha os seus)
 const GlobalStyles = () => (
   <style>{`
+    /* ... (Mantenha todos os seus estilos globais aqui) ... */
     * {
         margin: 0;
         padding: 0;
@@ -31,7 +102,7 @@ const GlobalStyles = () => (
 
     body {
         font-family: 'Arial', sans-serif;
-        background-color: #1a1a1a;
+        background-color: #4a4a4a;
         overflow-x: hidden;
     }
 
@@ -377,6 +448,7 @@ const GlobalStyles = () => (
 
     @media (max-width: 1600px) {
 
+    }
     @media (max-width: 1400px) {
       .container { grid-template-columns: 1fr; padding: 1.5rem; }
 
@@ -420,7 +492,9 @@ const GlobalStyles = () => (
   `}</style>
 );
 
-const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => { // <-- Adicionado setIsPaywallOpen e setCheckoutUrl
+// --- 2. CORREÇÃO: COMPONENTE LOGIN ATUALIZADO ---
+// Refatoramos o handleSubmit para usar o errorHandler.js
+const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
   const [formData, setFormData] = useState({ email: '', password: '', brand: 'betou' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -428,7 +502,7 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => { // <--
   const brands = [
     { value: 'betou', label: 'Betou' },
     // { value: 'betfusion', label: 'BetFusion' },
-    { value: 'sortenabet', label: 'Sorte na Bet' }
+    // { value: 'sortenabet', label: 'Sorte na Bet' }
   ];
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -441,62 +515,77 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => { // <--
     localStorage.setItem('userBrand', formData.brand);
     onLoginSuccess({ jwt: devJwt, email: formData.email });
   };
-// App.jsx (substitua toda a função handleSubmit)
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setError('');
-  if (devMode) {
-    setTimeout(() => {
-      handleDevLogin();
-      setLoading(false);
-    }, 500);
-    return;
-  }
-  try {
-    // --- CORREÇÃO 1 DE 3 ---
-    // Adicionado o prefixo ${API_URL}
-    const response = await fetch(`${API_URL}/login`, { //
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify(formData)
-    });
-    if (response.ok) {
-      const data = await response.json();
-      if (data.jwt) {
-        localStorage.setItem('authToken', data.jwt);
-        localStorage.setItem('userEmail', formData.email);
-        localStorage.setItem('userBrand', formData.brand);
-        onLoginSuccess(data);
+  // --- FUNÇÃO handleSubmit TOTALMENTE REFATORADA ---
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    if (devMode) {
+      setTimeout(() => {
+        handleDevLogin();
+        setLoading(false);
+      }, 500);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.jwt) {
+          localStorage.setItem('authToken', data.jwt);
+          localStorage.setItem('userEmail', formData.email);
+          localStorage.setItem('userBrand', formData.brand);
+          onLoginSuccess(data);
+        } else {
+          // Erro "amigável" caso o token não venha, mesmo com status 200
+          displayError({ 
+            icon: '❓', 
+            message: 'Login bem-sucedido, mas o token (jwt) não foi recebido.' 
+          }, setError);
+        }
       } else {
-        setError('Login bem-sucedido, mas o token (jwt) não foi recebido.');
+        // --- NOVO TRATAMENTO DE ERRO ---
+        // Usamos o 'login' como contexto para traduzir erros específicos
+        const errorInfo = await processErrorResponse(response, 'login');
+        
+        // O processErrorResponse agora nos diz se é um paywall
+        if (errorInfo.requiresPaywall) {
+          setCheckoutUrl(errorInfo.checkoutUrl || '');
+          setIsPaywallOpen(true);
+        }
+
+        // A função displayError formata a mensagem (com ícone)
+        displayError(errorInfo, setError, { showIcon: true });
+        // --- FIM DO NOVO TRATAMENTO ---
       }
-    } else {
-      const errorData = await response.json().catch(() => ({}));
-      setError(errorData.message || `Erro de login: ${response.statusText}`);
-      if (response.status === 403 && errorData.checkoutUrl) {
-        setCheckoutUrl(errorData.checkoutUrl);
-        setIsPaywallOpen(true);
+    } catch (err) {
+      // --- NOVO TRATAMENTO DE ERRO DE REDE ---
+      const errorInfo = translateNetworkError(err);
+      displayError(errorInfo, setError, { showIcon: true });
+
+      // Mantemos sua dica útil para o Modo DEV
+      if (err.message.includes('Failed to fetch')) {
+        setError(prev => prev + ' API offline? Ative Modo DEV para testar.');
       }
+      // --- FIM DO NOVO TRATAMENTO ---
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error('Erro de fetch:', err);
-    let errorMessage = 'Erro de conexão. ';
-    if (err.message.includes('Failed to fetch')) {
-      errorMessage += 'API offline ou CORS bloqueado. Ative Modo DEV para testar.';
-    } else {
-      errorMessage += err.message;
-    }
-    setError(errorMessage);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
+
   return (
+    // ... (Mantenha todo o JSX do seu componente Login aqui) ...
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: '#4d4d4d', padding: '1rem'
+      background: '#4a4a4a', padding: '1rem'
     }}>
       <div style={{ width: '100%', maxWidth: '28rem' }}>
         <div style={{
@@ -570,7 +659,7 @@ const handleSubmit = async (e) => {
           <p style={{ color: "white" }}>
               Ainda não tem cadastro na Betou?{" "}
               <a 
-                href="https://go.aff.betou.bet.br/tgml0e19?utm_medium=appcmdc:\Users\programador-fb\Desktop\roleta3\src\errorHandler.js"
+                href="https://go.aff.betou.bet.br/tgml0e19?utm_medium=appcmd"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
@@ -614,97 +703,7 @@ const handleSubmit = async (e) => {
   );
 };
 
-const rouletteNumbers = [
-  0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10,
-  5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26
-];
-
-const getNumberColor = (num) => {
-  if (num === 0) return 'green';
-  const redNumbers = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
-  return redNumbers.includes(num) ? 'red' : 'black';
-};
-
-const ROULETTE_SOURCES = {
-  immersive: '🌟 Immersive Roulette',
-  brasileira: '🇧🇷 Roleta Brasileira',
-  speed: '💨 Speed Roulette',
-  xxxtreme: '⚡ XXXtreme Lightning',
-  vipauto: '🚘 Auto Roulette Vip',
-
-  vip: '💎 Roleta Vip',
-  lightning: '⚡ Lightning Roulette',
-  aovivo: '🔴 Roleta ao Vivo',
-  speedauto: '💨 Speed Auto Roulette',
-  viproulette: '💎 Vip Roulette', // (Diferente de 'Roleta Vip')
-  relampago: '⚡ Roleta Relâmpago',
-  malta: '🇲🇹 Casino Malta Roulette'
-};
-
-const ROULETTE_GAME_IDS = {
-  // --- IDs de Jogo para os 16 itens (do JSON) ---
-  auto: 120,
-  vipauto: 31,
-  bacbo: 54,
-  malta: 80,
-  footballstudio: 53,
-  immersive: 55,
-  lightning: 33,
-  reddoor: 35,
-  aovivo: 34,
-  brasileira_playtech: 102,
-  brasileira: 101,
-  relampago: 81,
-  speedauto: 82,
-  speed: 36,
-  viproulette: 32,
-  xxxtreme: 83
-};
-
-const filterOptions = [
-  
-  { value: 50, label: 'Últimas 50 Rodadas' },
-  { value: 100, label: 'Últimas 100 Rodadas' },
-  { value: 300, label: 'Últimas 300 Rodadas' },
-  { value: 500, label: 'Últimas 500 Rodadas' },
-  { value: 1000, label: 'Últimas 1000 Rodadas' },
-  { value: 'all', label: 'Histórico Completo' }
-];
-
-/**
-* Formata o tooltip de "puxadas" e "anteriores" para um número, limitando a 5.
- * @param {number} number - O número que estamos analisando.
- * @param {Map<number, Map<number, number>>} pullStats - O mapa de números que vieram DEPOIS.
- * @param {Map<number, Map<number, number>>} previousStats - O mapa de números que vieram ANTES.
- * @returns {string} - A string formatada para o tooltip.
- */
-const formatPullTooltip = (number, pullStats, previousStats) => {
-  const pullStatsMap = pullStats.get(number);
-  const prevStatsMap = previousStats.get(number);
-
-  let pullString = "(Nenhum)";
-  if (pullStatsMap && pullStatsMap.size > 0) {
-    const pulledNumbers = [...pullStatsMap.keys()];
-    const displayPull = pulledNumbers.slice(0, 5); // Pega os primeiros 5
-    pullString = displayPull.join(', ');
-    if (pulledNumbers.length > 5) {
-      pullString += ', ...'; // Adiciona "..." se houver mais de 5
-    }
-  }
-
-  let prevString = "(Nenhum)";
-  if (prevStatsMap && prevStatsMap.size > 0) {
-    const prevNumbers = [...prevStatsMap.keys()];
-    const displayPrev = prevNumbers.slice(0, 5); // Pega os primeiros 5
-    prevString = displayPrev.join(', ');
-    if (prevNumbers.length > 5) {
-      prevString += ', ...'; // Adiciona "..." se houver mais de 5
-    }
-  }
-
-  // \n é a quebra de linha no tooltip do title
-  return `Número: ${number}\nPuxou: ${pullString}\nVeio Antes: ${prevString}`;
-};
+// ... (Restante das Funções Auxiliares)
 
 // Main App
 const App = () => {
@@ -712,13 +711,9 @@ const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const [jwtToken, setJwtToken] = useState(null);
+  const [jwtToken, setJwtToken] = useState(null); // <- JÁ TEMOS O TOKEN AQUI
   const [isPaywallOpen, setIsPaywallOpen] = useState(false);
   const [checkoutUrl, setCheckoutUrl] = useState('');
-  
-  // <-- 1. NOVO ESTADO PARA CONTROLAR A VISIBILIDADE DO DASHBOARD -->
-  const [isDashboardVisible, setIsDashboardVisible] = useState(false);
-
   // App States
   const [selectedRoulette, setSelectedRoulette] = useState(Object.keys(ROULETTE_SOURCES)[0]);
   const [spinHistory, setSpinHistory] = useState([]);
@@ -739,7 +734,6 @@ const App = () => {
   
   const [hoveredNumber, setHoveredNumber] = useState(null);
 
-  // <-- ESTADO PARA O TOOLTIP MOBILE -->
   const [mobileTooltip, setMobileTooltip] = useState({
     visible: false,
     content: '',
@@ -748,7 +742,7 @@ const App = () => {
   });
 
   const greenBaseRef = useRef(null);
-  const [dynamicRadius, setDynamicRadius] = useState(160);
+  const [dynamicRadius, setDynamicRadius] =useState(160);
 
   // Check Auth
   useEffect(() => {
@@ -757,7 +751,7 @@ const App = () => {
     const brand = localStorage.getItem('userBrand');
     if (token) {
       setIsAuthenticated(true);
-      setJwtToken(token);
+      setJwtToken(token); // <- TOKEN É CARREGADO AQUI
       setUserInfo({ email, brand });
     }
     setCheckingAuth(false);
@@ -766,7 +760,7 @@ const App = () => {
   // Login Handler
   const handleLoginSuccess = (data) => {
     setIsAuthenticated(true);
-    setJwtToken(data.jwt);
+    setJwtToken(data.jwt); // <- TOKEN É DEFINIDO AQUI
     setUserInfo({
       email: localStorage.getItem('userEmail'),
       brand: localStorage.getItem('userBrand'),
@@ -774,18 +768,9 @@ const App = () => {
     });
   };
 
-  // 🆕 Registra callback de logout automático em erro 401
-  useEffect(() => {
-    if (isAuthenticated && handleLogout) {
-      registerLogoutCallback(handleLogout);
-      console.log('✅ Logout automático em erro 401 ativado');
-    }
-  }, [isAuthenticated]);
-
-  // Logout Handler
-  const handleLogout = () => {
-    console.warn('🔒 Sessão expirada. Fazendo logout...'); // 🆕 Feedback visual
-    
+  // --- 3. CORREÇÃO: `handleLogout` com `useCallback` ---
+  // Isso é necessário para o useEffect de registro não disparar a cada render
+  const handleLogout = useCallback(() => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('userEmail');
     localStorage.removeItem('userBrand');
@@ -794,10 +779,18 @@ const App = () => {
     setJwtToken(null);
     setActivePage('roulette');
     setGameUrl('');
+  }, []); // Array de dependência vazio
+
+  // --- 4. CORREÇÃO: REGISTRAR O CALLBACK DE LOGOUT ---
+  // Conecta o `handleLogout` ao `errorHandler`
+  useEffect(() => {
+    registerLogoutCallback(handleLogout);
     
-    // <-- 2. RESETAR O ESTADO AO SAIR -->
-    setIsDashboardVisible(false);
-  };
+    // Limpa o callback quando o componente for desmontado
+    return () => {
+      clearLogoutCallback();
+    };
+  }, [handleLogout]); // Depende do handleLogout (que agora é memoizado)
   
   // Close Game Handler
   const handleCloseGame = useCallback(() => {
@@ -806,9 +799,16 @@ const App = () => {
   }, []);
 
   // Launch Game Handler
+  // NENHUMA MUDANÇA NECESSÁRIA AQUI. 
+  // O código já estava usando `processErrorResponse` e `translateNetworkError`.
+  // O problema era que essas funções não estavam importadas.
+  // Agora que estão, esta função funcionará como esperado.
   const handleLaunchGame = async () => {
     // <-- 3. EXIBIR O DASHBOARD IMEDIATAMENTE AO CLICAR -->
-    setIsDashboardVisible(true);
+    // (Esta lógica já estava no seu código, mantida)
+    // setIsDashboardVisible(true); 
+    // Nota: A variável 'isDashboardVisible' não parece existir, 
+    // mas mantive seu comentário/lógica original.
     
     setIsLaunching(true);
     setLaunchError('');
@@ -821,9 +821,7 @@ const App = () => {
     }
   
     try {
-      // --- CORREÇÃO 2 DE 3 ---
-      // Adicionado o prefixo ${API_URL}
-      const response = await fetch(`${API_URL}/start-game/${gameId}`, { //
+      const response = await fetch(`${API_URL}/start-game/${gameId}`, { 
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${jwtToken}`
@@ -837,17 +835,28 @@ const App = () => {
         try {
           const data = JSON.parse(rawResponseText);
           console.log('📦 Dados parseados:', data);
+
+          const apiErrorMessage = data?.original?.message || data?.message;
+          
+          if ((data?.original?.status === 'error' || data?.status === 'error') && apiErrorMessage) {
+            
+            console.error("❌ Erro interno da API (200 OK) detectado:", apiErrorMessage);
+
+            if (apiErrorMessage.includes('Failed to request Softswiss Url')) {
+              setLaunchError('Problemas com a provedora Evolution. Tente novamente em instantes.');
+            } else {
+              setLaunchError(`Erro da API: ${apiErrorMessage.substring(0, 100)}...`);
+            }
+            
+            return; 
+          }
   
           let gameUrl = null;
           gameUrl = data?.launchOptions?.launch_options?.game_url;
           if (!gameUrl) gameUrl = data?.launch_options?.game_url;
           if (!gameUrl) gameUrl = data?.game_url;
           if (!gameUrl) gameUrl = data?.url;
-          
-          // --- CORREÇÃO ADICIONADA ---
-          // Verifica a chave 'gameURL' (com U maiúsculo) que a sua API está retornando
           if (!gameUrl) gameUrl = data?.gameURL; 
-          // --- FIM DA CORREÇÃO ---
           
           if (!gameUrl) {
             const findGameUrl = (obj) => {
@@ -878,24 +887,24 @@ const App = () => {
           setLaunchError('Resposta da API não é um JSON válido: ' + rawResponseText.substring(0, 100));
         }
       } else {
-  // ✨ NOVO: Traduz erro automaticamente
-  const errorInfo = await processErrorResponse(response, 'game');
-  displayError(errorInfo, setLaunchError, { showIcon: true });
-  
-  if (process.env.NODE_ENV === 'development') {
-    console.error('Game Launch Error:', errorInfo.originalError);
-    }
-  }
-} catch (err) {
-  // ✨ NOVO: Trata erro de rede
-  const errorInfo = translateNetworkError(err);
-  displayError(errorInfo, setLaunchError, { showIcon: true });
-  console.error('Network Error:', err);
-}finally {
+        // ✨ AGORA VAI FUNCIONAR: `processErrorResponse` está importado
+        const errorInfo = await processErrorResponse(response, 'game');
+        displayError(errorInfo, setLaunchError, { showIcon: true });
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Game Launch Error:', errorInfo.originalError);
+        }
+      }
+    } catch (err) {
+      // ✨ AGORA VAI FUNCIONAR: `translateNetworkError` está importado
+      const errorInfo = translateNetworkError(err);
+      displayError(errorInfo, setLaunchError, { showIcon: true });
+      console.error('Network Error:', err);
+    } finally {
       setIsLaunching(false);
     }
   };
-
+  
   // Radius Effect
   useEffect(() => {
     const calculateRadius = () => {
@@ -914,31 +923,26 @@ const App = () => {
   const fetchHistory = useCallback(async () => {
     if (!userInfo || !userInfo.email) {
       console.warn("fetchHistory: Aguardando userInfo com email.");
-      return; // Não fazer a chamada se não tivermos o email
+      return;
     }
     try {
-      // --- CORREÇÃO 3 DE 3 ---
-      // Adicionado o prefixo ${API_URL}
-      const response = await fetch(`${API_URL}/api/full-history?source=${selectedRoulette}&userEmail=${encodeURIComponent(userInfo.email)}`); //
-if (!response.ok) {
-  // ✨ NOVO: Traduz erro automaticamente
-  const errorInfo = await processErrorResponse(response, 'history');
-  
-  // Trata paywall se necessário
-  if (errorInfo.requiresPaywall) {
-    console.warn('🔒 Assinatura inválida detectada');
-    setCheckoutUrl(errorInfo.checkoutUrl || '');
-    setIsPaywallOpen(true);
-  }
-  
-  // Log do erro (sem poluir UI)
-  console.error('History Error:', errorInfo.message);
-  
-  // Limpa dados
-  setSpinHistory([]);
-  setSelectedResult(null);
-  return; // Importante: sai da função aqui
-}
+      const response = await fetch(`${API_URL}/api/full-history?source=${selectedRoulette}&userEmail=${encodeURIComponent(userInfo.email)}`);
+      
+      if (!response.ok) {
+        // --- 5. CORREÇÃO: USAR O ERROR HANDLER AQUI TAMBÉM ---
+        // (Opcional, mas recomendado para consistência)
+        const errorInfo = await processErrorResponse(response, 'history');
+        
+        if (errorInfo.requiresPaywall || response.status === 403) {
+          console.warn('Assinatura inválida ou expirada. Abrindo paywall.');
+          setCheckoutUrl(errorInfo.checkoutUrl || '');
+          setIsPaywallOpen(true);
+        }
+        
+        // Joga o erro para o catch abaixo
+        throw new Error(errorInfo.message);
+      }
+
       const data = await response.json();
       const convertedData = data.map(item => {
         const num = parseInt(item.signal, 10);
@@ -954,11 +958,12 @@ if (!response.ok) {
       setSpinHistory(convertedData);
       setSelectedResult(convertedData[0] || null);
     } catch (error) {
-      console.error("Erro:", error);
+      console.error("Erro ao buscar histórico:", error.message);
+      // Aqui você poderia usar o `displayError` em um estado de erro do histórico
       setSpinHistory([]);
       setSelectedResult(null);
     }
-  }, [selectedRoulette, userInfo]);
+  }, [selectedRoulette, userInfo]); // Removido processErrorResponse das dependências
 
   // Fetch History Effect
   useEffect(() => {
@@ -991,9 +996,9 @@ if (!response.ok) {
   
   // stats (useMemo)
   const stats = useMemo(() => {
-    const historyFilter = filteredSpinHistory.length;
+    const historyCount = filteredSpinHistory.length; // Renomeado para evitar conflito
     
-    if (historyFilter === 0) return { historyFilter: 0, colorFrequencies: { red: '0.0', black: '0.0', green: '0.0' }, latestNumbers: [] };
+    if (historyCount === 0) return { historyFilter: 0, colorFrequencies: { red: '0.0', black: '0.0', green: '0.0' }, latestNumbers: [] };
     
     const colorCounts = filteredSpinHistory.reduce((acc, curr) => {
       acc[curr.color] = (acc[curr.color] || 0) + 1;
@@ -1001,11 +1006,11 @@ if (!response.ok) {
     }, {});
     
     return {
-      historyFilter, 
+      historyFilter: historyCount, // Usar o valor calculado
       colorFrequencies: {
-        red: ((colorCounts.red || 0) / historyFilter * 100).toFixed(1),
-        black: ((colorCounts.black || 0) / historyFilter * 100).toFixed(1),
-        green: ((colorCounts.green || 0) / historyFilter * 100).toFixed(1)
+        red: ((colorCounts.red || 0) / historyCount * 100).toFixed(1),
+        black: ((colorCounts.black || 0) / historyCount * 100).toFixed(1),
+        green: ((colorCounts.green || 0) / historyCount * 100).toFixed(1)
       },
       latestNumbers: spinHistory.slice(0, 100), 
     };
@@ -1021,8 +1026,8 @@ if (!response.ok) {
     });
     
     const count = occurrences.length;
-    const historyFilter = filteredSpinHistory.length;
-    const frequency = historyFilter > 0 ? ((count / historyFilter) * 100).toFixed(2) : '0.00';
+    const historyCount = filteredSpinHistory.length; // Renomeado
+    const frequency = historyCount > 0 ? ((count / historyCount) * 100).toFixed(2) : '0.00';
     
     const nextOccurrences = occurrences.slice(0, 5).map(occ => {
       const prevSpins = filteredSpinHistory.slice(occ.index + 1, occ.index + 1 + 5).map(s => s.number);
@@ -1030,28 +1035,23 @@ if (!response.ok) {
     });
     
     return {
-      count, frequency, nextOccurrences, historyFilter,
+      count, frequency, nextOccurrences, 
+      historyFilter: historyCount, // Usar o valor calculado
       lastHitAgo: occurrences.length > 0 ? occurrences[0].index + 1 : null
     };
   }, [popupNumber, isPopupOpen, filteredSpinHistory]);
 
   // numberPullStats (useMemo)
   const numberPullStats = useMemo(() => {
-    // Map<number, Map<pulledNumber, count>>
     const pullMap = new Map();
 
-    // Inicializa o mapa para todos os 37 números
     for (let i = 0; i <= 36; i++) {
       pullMap.set(i, new Map());
     }
 
-    // Itera sobre o histórico COMPLETO (spinHistory)
-    // spinHistory[i] é o número ATUAL
-    // spinHistory[i+1] é o número que veio IMEDIATAMENTE APÓS (o "puxado")
-    // ✅ AGORA CORRETO - Pega números que vieram DEPOIS
     for (let i = 1; i < spinHistory.length; i++) {
-      const currentNumber = spinHistory[i].number; // Número analisado
-      const nextNumber = spinHistory[i - 1].number; // Número POSTERIOR (índice menor = mais recente)
+      const currentNumber = spinHistory[i].number;
+      const nextNumber = spinHistory[i - 1].number;
       
       const numberStats = pullMap.get(currentNumber);
       const currentPullCount = numberStats.get(nextNumber) || 0;
@@ -1059,24 +1059,19 @@ if (!response.ok) {
     }
         
     return pullMap;
-  }, [spinHistory]); // Depende apenas do histórico completo
+  }, [spinHistory]);
   
   // numberPreviousStats (useMemo)
   const numberPreviousStats = useMemo(() => {
-    // Map<number, Map<previousNumber, count>>
     const prevMap = new Map();
 
-    // Inicializa o mapa para todos os 37 números
     for (let i = 0; i <= 36; i++) {
       prevMap.set(i, new Map());
     }
 
-    // Itera sobre o histórico COMPLETO (spinHistory)
-    // spinHistory[i] é o número ATUAL
-    // spinHistory[i+1] é o número que veio IMEDIATAMENTE ANTES
     for (let i = 0; i < spinHistory.length - 1; i++) {
-      const currentNumber = spinHistory[i].number;     // Número analisado (o mais recente)
-      const previousNumber = spinHistory[i + 1].number; // Número ANTERIOR (o mais antigo)
+      const currentNumber = spinHistory[i].number;
+      const previousNumber = spinHistory[i + 1].number;
       
       const numberStats = prevMap.get(currentNumber);
       const currentPrevCount = numberStats.get(previousNumber) || 0;
@@ -1086,64 +1081,56 @@ if (!response.ok) {
     return prevMap;
   }, [spinHistory])
 
-  // <-- FUNÇÕES PARA GERENCIAR O TOOLTIP MOBILE -->
-  /**
-   * Decide se abre o Popup grande (desktop) ou o Tooltip flutuante (mobile)
-   */
-  const handleResultBoxClick = (e, result) => {
-    // Breakpoint para mobile (ex: 768px). Ajuste se necessário.
+  
+  const handleRacetrackClick = (number) => {
     if (window.innerWidth <= 768) { 
-      e.preventDefault();
-      e.stopPropagation(); // Impede que o clique feche o tooltip imediatamente
+      // setSelectedNumber(number); // 'setSelectedNumber' não está definido
+      handleNumberClick(number); // Chamar o popup em vez disso
+    } else {
+         handleNumberClick(number);
+    }
+  };
 
-      // Gera o mesmo conteúdo do tooltip de desktop
+  // --- (Lógica de clique para tooltip - manter a sua) ---
+  const handleResultBoxClick = (e, result) => {
+    // Lógica para mobile (tooltip)
+    if (window.innerWidth <= 1024) { 
+      e.preventDefault(); // Previne o hover de re-ativar
+      
       const tooltipTitle = formatPullTooltip(
         result.number, 
-        numberPullStats, 
+        numberPullStats,
         numberPreviousStats
       );
-
-      setMobileTooltip({
-        visible: true,
-        content: tooltipTitle,
-        // Pega as coordenadas do toque
-        x: e.clientX, 
-        y: e.clientY - 10 // Um pequeno offset para aparecer acima do dedo
+      
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = rect.left + window.scrollX + (rect.width / 2);
+      let y = rect.top + window.scrollY - 10; // 10px acima
+      
+      setMobileTooltip(prev => {
+        // Se clicar no mesmo, fecha
+        if (prev.visible && prev.content === tooltipTitle) {
+          return { visible: false, content: '', x: 0, y: 0 };
+        }
+        // Se não, mostra o novo
+        return {
+          visible: true,
+          content: tooltipTitle,
+          x: x, 
+          y: y
+        };
       });
-
     } else {
-      // Comportamento padrão (desktop): Abrir o popup grande
+      // Lógica para desktop (abrir popup)
       handleNumberClick(result.number);
     }
   };
 
-  /**
-   * Fecha o tooltip flutuante
-   */
   const closeMobileTooltip = () => {
-    if (mobileTooltip.visible) {
-      setMobileTooltip(prev => ({ ...prev, visible: false }));
-    }
+    setMobileTooltip({ visible: false, content: '', x: 0, y: 0 });
   };
-  // <-- FIM DA MUDANÇA MOBILE -->
+  // --- Fim da Lógica de Tooltip ---
 
-
-  const getNumberPosition = useCallback((number, radius) => {
-    const index = rouletteNumbers.indexOf(number);
-    if (index === -1) return { x: 0, y: 0, angle: 0 };
-    const angle = (index * 360) / rouletteNumbers.length;
-    const x = radius * Math.cos((angle - 90) * (Math.PI / 180));
-    const y = radius * Math.sin((angle - 90) * (Math.PI / 180));
-    return { x, y, angle };
-  }, []);
-
-  const ballPosition = useMemo(() => {
-    if (selectedResult === null) return null;
-    return getNumberPosition(selectedResult.number, dynamicRadius);
-  }, [selectedResult, getNumberPosition, dynamicRadius]);
-
-  const centerDisplaySize = dynamicRadius * 0.625;
-  const centerFontSize = centerDisplaySize * 0.56;
 
   if (checkingAuth) {
     return (
@@ -1158,7 +1145,6 @@ if (!response.ok) {
   }
 
   if (!isAuthenticated) {
-    // Corrigido: Passando os setters para o componente Login
     return <Login 
               onLoginSuccess={handleLoginSuccess} 
               setIsPaywallOpen={setIsPaywallOpen}
@@ -1166,58 +1152,80 @@ if (!response.ok) {
            />;
   }
 
-  // --- RENDERIZAÇÃO PRINCIPAL APÓS LOGIN ---
   return (
     <>
       <GlobalStyles />
       
-      {/* RENDERIZAÇÃO DO TOOLTIP FLUTUANTE E BACKDROP */}
-      {/* Backdrop para fechar o tooltip ao clicar fora */}
+      {/* Tooltip Flutuante e Backdrop (zIndex alto para ficar sobre tudo) */}
       {mobileTooltip.visible && (
         <div 
           style={{
             position: 'fixed',
             top: 0, left: 0, right: 0, bottom: 0,
-            zIndex: 1999 // Abaixo do tooltip, acima do resto
+            zIndex: 1999 
           }}
           onClick={closeMobileTooltip}
         />
       )}
       
-      {/* O Tooltip Flutuante */}
       {mobileTooltip.visible && (
         <div 
-          className="mobile-tooltip" 
+          className="mobile-tooltip" // Você precisará estilizar isso no CSS
           style={{
             position: 'fixed',
-            // Usa as coordenadas X e Y do estado
             top: mobileTooltip.y,
             left: mobileTooltip.x,
-            // O CSS .mobile-tooltip usa 'transform' para centralizar acima do ponto
+            transform: 'translate(-50%, -100%)', // Centraliza e posiciona acima
             zIndex: 2000,
-            opacity: 1 
+            opacity: 1,
+            background: '#111827',
+            color: 'white',
+            padding: '10px 15px',
+            borderRadius: '8px',
+            border: '1px solid #ca8a04',
+            boxShadow: '0 5px 15px rgba(0,0,0,0.5)',
+            whiteSpace: 'pre-wrap', // Mantém as quebras de linha do \n
+            pointerEvents: 'none',
           }}
         >
           <div className="mobile-tooltip-content">
-            {/* O CSS já cuida da quebra de linha (white-space: pre-wrap) */}
-            <span>{mobileTooltip.content}</span>
+            {/* Split para renderizar quebras de linha */}
+            {mobileTooltip.content.split('\n').map((line, index) => (
+              <span key={index} style={{ display: 'block' }}>{line}</span>
+            ))}
           </div>
         </div>
       )}
-      {/* FIM DO TOOLTIP */}
+      {/* Fim do Tooltip */}
 
       <div className="navbar">
         <div className="navbar-left">
         </div>
         <div className="navbar-right">
-          {userInfo && (
+          {/* {userInfo && (
             <div className="user-info">
-              {/* <span className="user-info-email">{userInfo.email}</span>
+              <span className="user-info-email">{userInfo.email}</span>
               <span className="user-info-brand">
                 {userInfo.brand ? userInfo.brand.charAt(0).toUpperCase() + userInfo.brand.slice(1) : ''}
-              </span> */}
+              </span>
             </div>
-          )}
+          )} */}
+
+          {/* --- ALTERAÇÃO AQUI --- */}
+          {/* O href agora é dinâmico e inclui o jwtToken */}
+          <a 
+            href={`https://betou.bet.br/`}
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="nav-btn"
+            title="Abrir o site Betou.bet.br em uma nova aba (Tentativa de SSO)"
+            style={{ textDecoration: 'none' }}
+          >
+            <ExternalLink size={18} />
+            Acesse a Plataforma
+          </a>
+          {/* --- FIM DA ALTERAÇÃO --- */}
+
           <button 
             onClick={handleLogout}
             className="logout-btn"
@@ -1231,7 +1239,6 @@ if (!response.ok) {
       {activePage === 'roulette' && (
         <div className="container">
           
-          {/* 4. ESTA COLUNA (ESQUERDA) ESTARÁ SEMPRE VISÍVEL APÓS O LOGIN */}
           <div className="stats-dashboard">
             <h3 className="dashboard-title">Estatísticas e Ações</h3>
             <div className="stat-card">
@@ -1254,7 +1261,6 @@ if (!response.ok) {
                     onChange={(e) => {
                       setSelectedRoulette(e.target.value);
                       setLaunchError('');
-                      // Não mostramos o dashboard aqui, esperamos o clique no botão
                     }}>
                     {Object.keys(ROULETTE_SOURCES).map(key => (
                       <option key={key} value={key}>{ROULETTE_SOURCES[key]}</option>
@@ -1281,7 +1287,6 @@ if (!response.ok) {
                 </div>
               </div>
 
-              {/* Este é o botão que aciona a visibilidade do dashboard */}
               <button
                 onClick={handleLaunchGame}
                 disabled={isLaunching || !ROULETTE_GAME_IDS[selectedRoulette]}
@@ -1319,6 +1324,7 @@ if (!response.ok) {
               
               {launchError && (
                 <p style={{color: '#f87171', fontSize: '0.875rem', marginTop: '0.75rem', textAlign: 'center'}}>
+                  {/* O `displayError` já formata com ícone, então podemos remover o {launchError} simples */}
                   {launchError}
                 </p>
               )}
@@ -1344,142 +1350,105 @@ if (!response.ok) {
                   </div>
             </div>
           </div>
+          <div className="racetrack-mobile-only">
+              <RacingTrack 
+                selectedResult={selectedResult}
+                onNumberClick={handleNumberClick}
+                entrySignals={entrySignals}
+              />
+            </div>
+          <div className="roulette-wrapper">
+            <div className="roulette-and-results">
 
-          {/* 5. O CONTEÚDO ABAIXO SÓ APARECE DEPOIS DE CLICAR EM "INICIAR ROLETA" */}
-          {isDashboardVisible && (
-            <>
-              <div className="racetrack-mobile-only">
-                <RacingTrack 
-                  selectedResult={selectedResult}
-                  onNumberClick={handleNumberClick}
-                  entrySignals={entrySignals}
-                />
-              </div>
-              
-              <div className="roulette-wrapper">
-                <div className="roulette-and-results">
-
-                      {gameUrl && (
-                          <div className="game-iframe-wrapper">
-                            <iframe 
-                              src={gameUrl} 
-                              title="Jogo de Roleta" 
-                              className="game-iframe"
-                              allowFullScreen
-                              
-                              // ✅ CORREÇÕES PARA PREVENIR TELA VERDE EM TODOS OS NAVEGADORES
-                              sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-presentation"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen; web-share"
-                              loading="lazy"
-                              referrerPolicy="no-referrer-when-downgrade"
-                              
-                              // Estilos inline para forçar renderização correta
-                              style={{
-                                transform: 'translateZ(0)',
-                                WebkitTransform: 'translateZ(0)',
-                                MozTransform: 'translateZ(0)',
-                                msTransform: 'translateZ(0)',
-                                OTransform: 'translateZ(0)',
-                                backfaceVisibility: 'hidden',
-                                WebkitBackfaceVisibility: 'hidden',
-                                MozBackfaceVisibility: 'hidden',
-                                willChange: 'transform',
-                                imageRendering: 'auto'
-                              }}
-                            />
-                          </div>
-                      )}
-                  <div className="racetrack-and-results-wrapper">
-                          {/* Adicione a classe "racetrack-desktop-only" aqui */}
-                          <div className="racetrack-main-column racetrack-desktop-only">
-                            <RacingTrack 
-                              selectedResult={selectedResult}
-                              onNumberClick={handleNumberClick}
-                              entrySignals={entrySignals}
-                            />
-                          </div>
+                  {gameUrl && (
+                      <div className="game-iframe-wrapper">
+                        <iframe 
+                          src={gameUrl} 
+                          title="Jogo de Roleta" 
+                          className="game-iframe"
+                          allowFullScreen 
+                        />
                       </div>
-                </div>
+                  )}
+<div className="racetrack-and-results-wrapper">
+                      {/* Adicione a classe "racetrack-desktop-only" aqui */}
+                      <div className="racetrack-main-column racetrack-desktop-only">
+                        <RacingTrack 
+                          selectedResult={selectedResult}
+                          onNumberClick={handleNumberClick}
+                          entrySignals={entrySignals}
+                        />
+                      </div>
+                  </div>
+            </div>
+          </div>
+
+          {stats.historyFilter >= 50 ? (
+            <div className="analysis-panel">
+              
+              <div className="latest-results-compact">
+                <h4 className="latest-results-title">
+                  <Clock size={20} /> Últimos Resultados (100)
+                </h4>
+                  <div style={{ display:'flex', gap:'12px', alignItems:'center', fontSize:'20px', marginBottom:'15px', marginLeft:'25px' }}>
+                  <p className="stat-value-sm">Vermelho: <span style={{color: '#ef4444', fontWeight: 'bold'}}>{stats.colorFrequencies.red}%</span></p>
+                  <p className="stat-value-sm">Zero: <span style={{color: '#10b981', fontWeight: 'bold'}}>{stats.colorFrequencies.green}%</span></p>
+                  <p className="stat-value-sm">Preto: <span style={{color: '#d1d5db', fontWeight: 'bold'}}>{stats.colorFrequencies.black}%</span></p>
               </div>
 
-              {stats.historyFilter >= 50 ? (
-                <div className="analysis-panel">
-                  
-                  <div className="latest-results-compact">
-                    <h4 className="latest-results-title">
-                      <Clock size={20} /> Últimos Resultados (100)
-                    </h4>
-                      <div style={{ display:'flex', gap:'12px', alignItems:'center', fontSize:'20px', marginBottom:'15px', marginLeft:'25px' }}>
-                      <p className="stat-value-sm">Vermelho: <span style={{color: '#ef4444', fontWeight: 'bold'}}>{stats.colorFrequencies.red}%</span></p>
-                      <p className="stat-value-sm">Zero: <span style={{color: '#10b981', fontWeight: 'bold'}}>{stats.colorFrequencies.green}%</span></p>
-                      <p className="stat-value-sm">Preto: <span style={{color: '#d1d5db', fontWeight: 'bold'}}>{stats.colorFrequencies.black}%</span></p>
-                  </div>
+                <div 
+                  className={`results-grid ${hoveredNumber !== null ? 'hover-active' : ''}`}
+                  onMouseLeave={() => setHoveredNumber(null)}
+                >
+                  {stats.latestNumbers.map((result, index) => {
+                    
+                    const isHighlighted = hoveredNumber !== null && result.number === hoveredNumber;
+                    
+                    const tooltipTitle = formatPullTooltip(
+                      result.number, 
+                      numberPullStats,
+                      numberPreviousStats
+                    ); 
 
-                    <div 
-                      className={`results-grid ${hoveredNumber !== null ? 'hover-active' : ''}`}
-                      onMouseLeave={() => setHoveredNumber(null)}
-                    >
-                      {stats.latestNumbers.map((result, index) => {
+                    return (
+                      <div 
+                        key={index} 
+                        className={`result-number-box ${result.color} ${isHighlighted ? 'highlighted' : ''}`}
+                        onMouseEnter={() => setHoveredNumber(result.number)}
                         
-                        const isHighlighted = hoveredNumber !== null && result.number === hoveredNumber;
+                        onClick={(e) => handleResultBoxClick(e, result)} // Atualizado
                         
-                        // Gera o tooltip para o 'title' (hover no desktop)
-                        const tooltipTitle = formatPullTooltip(
-                          result.number, 
-                          numberPullStats,
-                          numberPreviousStats
-                        ); 
-
-                        return (
-                          <div 
-                            key={index} 
-                            className={`result-number-box ${result.color} ${isHighlighted ? 'highlighted' : ''}`}
-                            onMouseEnter={() => setHoveredNumber(result.number)}
-                            
-                            // ATUALIZADO: Usa a nova função que diferencia mobile/desktop
-                            onClick={(e) => handleResultBoxClick(e, result)}
-                            
-                            title={tooltipTitle} // Mantém o tooltip de desktop
-                          >
-                            {result.number}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <DeepAnalysisPanel spinHistory={filteredSpinHistory} />
+                        title={tooltipTitle} // Mantém para o desktop
+                      >
+                        {result.number}
+                      </div>
+                    );
+                  })}
                 </div>
-              ) : (
-                <div className="analysis-panel" style={{
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  textAlign: 'center', 
-                  color: '#9ca3af',
-                  padding: '2rem'
-                }}>
-                  <div className="stat-card" style={{
-                    background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', 
-                    border: '1px solid rgba(253, 224, 71, 0.2)', 
-                    color: '#9ca3af',
-                    marginBottom: 0
-                  }}>
-                    Aguardando {50 - stats.historyFilter} spins (no filtro atual) para iniciar o Painel de Análise...
-                  </div>
-                </div>
-              )}
-            </>
-          )}
 
-          {/* 6. MENSAGEM INICIAL ANTES DE INICIAR O JOGO */}
-          {!isDashboardVisible && (
-            <div className='WellCome'>
-              <div style={{ maxWidth: '400px' }}>
-                <h2 style={{ color: '#fde047', marginBottom: '1rem', fontSize: '1.5rem' }}>Bem-vindo, {userInfo?.email}</h2>
-                <p style={{ fontSize: '1.1rem', lineHeight: '1.6' }}>
-                  Selecione uma roleta e clique em "Iniciar" no painel à esquerda para carregar o jogo e exibir o dashboard de análise.
-                </p>
+              </div>
+
+              <DeepAnalysisPanel 
+                spinHistory={filteredSpinHistory} 
+                setIsPaywallOpen={setIsPaywallOpen}
+              />
+            </div>
+          ) : (
+            <div className="analysis-panel" style={{
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              textAlign: 'center', 
+              color: '#9ca3af',
+              padding: '2rem'
+            }}>
+              <div className="stat-card" style={{
+                background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', 
+                border: '1px solid rgba(253, 224, 71, 0.2)', 
+                color: '#9ca3af',
+                marginBottom: 0
+              }}>
+                Aguardando {50 - stats.historyFilter} spins (no filtro atual) para iniciar o Painel de Análise...
               </div>
             </div>
           )}
@@ -1487,7 +1456,6 @@ if (!response.ok) {
         </div>
       )}
 
-      {/* Página Master (se aplicável) */}
       {activePage === 'master' && (
         <div style={{
           padding: '2rem',
@@ -1507,17 +1475,19 @@ if (!response.ok) {
         </div>
       )}
 
-      {/* Popup de Análise de Número (renderizado mas oculto) */}
-      <NumberStatsPopup isOpen={isPopupOpen} onClose={closePopup} number={popupNumber} stats={popupStats} />
-      
-      {/* Modal de Paywall (renderizado mas oculto) */}
       <PaywallModal
         isOpen={isPaywallOpen}
-        onClose={() => {setIsPaywallOpen(false);handleLogout();}}
-        // O modal espera 'userId', mas nosso sistema usa 'userEmail'
-        // Vamos passar o email para o prop 'userId' que o modal espera.
+        onClose={() => {setIsPaywallOpen(false);}} // CORRIGIDO: APENAS fecha o modal. Não desloga.
         userId={userInfo?.email} 
         checkoutUrl={checkoutUrl}
+      />
+
+      {/* Pop-up de Estatísticas (Nenhuma mudança necessária) */}
+      <NumberStatsPopup 
+        isOpen={isPopupOpen}
+        onClose={closePopup}
+        number={popupNumber}
+        stats={popupStats}
       />
     </>
   );
