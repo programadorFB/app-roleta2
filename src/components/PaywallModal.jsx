@@ -2,7 +2,7 @@
 // Componente React para exibir modal de assinatura - Design Profissional e Clean
 
 import React, { useState, useEffect } from 'react';
-import { X, Check, CreditCard, Shield, Zap } from 'lucide-react';
+import { X, Check, CreditCard, Shield, Zap, Info } from 'lucide-react'; // Ícone 'Info' adicionado
 import './PaywallModal.css';
 
 const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
@@ -10,26 +10,25 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
   const [loading, setLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState('annual');
 
-  
-    const plans = {
+  const plans = {
     monthly: {
       price: 97,
       period: 'mês',
-      checkoutUrl: 'https://pay.hub.la/dBlQouYA2q2Q7a4TV6oz?utm_source=ph',
+      checkoutUrl: 'https://pay.hub.la/N7JdmojxORlRpaafFEyl',
       savings: null,
       installments: null
     },
     quarterly: {
       price: 197,
       period: 'trimestre',
-      checkoutUrl: 'https://pay.hub.la/MMSfqPB6rwwmraNweEUh?utm_source=ph',
+      checkoutUrl: 'https://pay.hub.la/MMSfqPB6rwwmraNweEUh',
       savings: 'Economize R$ 94',
       installments: '3x R$ 70,04'
     },
     annual: {
       price: 497,
       period: 'ano',
-      checkoutUrl: 'https://pay.hub.la/NGeiiXVSbzSGwjbLzZhT?utm_source=ph',
+      checkoutUrl: 'https://pay.hub.la/zwcPAbXDNlfSzhAcs9bg',
       savings: 'Economize R$ 667',
       installments: '12x R$ 50,80'
     }
@@ -59,7 +58,7 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
   };
 
   const handleFreeRedirect = () => {
-    window.location.href = 'https://gratis.smartanalise.com.br';
+    window.location.href = 'https://free.smartanalise.com.br';
   };
 
   if (!isOpen) return null;
@@ -115,7 +114,10 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
                   )}
                 </div>
               )}
-
+              <div className="paywall-email-warning-top">
+                <Info size={78} /> 
+                <span>Importante: A compra deve ser realizada com o <strong>mesmo e-mail</strong> de acesso da plataforma.</span>
+              </div>
               {/* Features Section */}
               <div className="paywall-features">
                 <h3 className="features-title">O que você terá acesso:</h3>
@@ -167,7 +169,7 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
                   </div>
                   <div className="plan-option-header">
                     <span className="plan-name">Anual</span>
-                    <span className="plan-savings">Economize R$ 567</span>
+                    <span className="plan-savings">Economize R$ 667</span>
                   </div>
                   {plans.annual.installments && (
                     <div className="plan-monthly">{plans.annual.installments}</div>
@@ -231,6 +233,13 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
                   </ul>
                 </div>
               </div>
+
+              {/* --- NOVO AVISO DE E-MAIL --- */}
+              <div className="paywall-email-warning">
+                <Info size={78} /> 
+                <span>Importante: A compra deve ser realizada com o <strong>mesmo e-mail</strong> de acesso da plataforma.</span>
+              </div>
+              {/* --- FIM DO NOVO AVISO --- */}
 
               {/* CTA Button */}
               <button 

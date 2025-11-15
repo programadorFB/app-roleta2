@@ -399,6 +399,51 @@
   font-size: 13px;
 }
 
+/* --- NOVO ESTILO DE AVISO --- */
+.paywall-email-warning-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #bb4444;
+  border: 1px solid #bb4444;
+  color: var(--light-text);
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 18px;
+  line-height: 1.4;
+  margin-bottom: 20px;
+  text-align: left;
+}
+.paywall-email-warning {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #bb4444;
+  border: 1px solid #bb4444;
+  color: var(--light-text);
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 18px;
+  line-height: 1.4;
+  margin-bottom: 20px;
+  text-align: left;
+}
+.paywall-email-warning svg {
+  flex-shrink: 0;
+  color: #ff6b6b;
+}
+.paywall-email-warning-top svg {
+  flex-shrink: 0;
+  color: #ff6b6b;
+}
+
+.paywall-email-warning strong {
+  color: #fff;
+  font-weight: 600;
+}
+/* --- FIM DO NOVO ESTILO --- */
+
+
 /* CTA Button */
 .paywall-cta {
   width: 100%;
@@ -437,7 +482,7 @@
 /* Free CTA Button */
 @keyframes pulse-yellow {
   0% {
-    box-shadow: 0 0 0 0px rgba(255, 255, 0, 0.7);
+    box-shadow: 0 0 0 0px rgba(255, 0, 0, 0.7);
   }
   100% {
     box-shadow: 0 0 0 12px rgba(255, 255, 0, 0);
@@ -447,11 +492,11 @@
 .paywall-cta-free {
   width: 100%;
   background: transparent;
-  color: var(--dark-text);
-  border: 1px solid var(--border-color);
+  color: #ff6b6b;
+  border: 1px solid #bb4444;
   border-radius: 12px;
   padding: 14px 24px;
-  font-size: 14px;
+  font-size: 24px;
   font-weight: 600;
   cursor: pointer;
   display: flex;

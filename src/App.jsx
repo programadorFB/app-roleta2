@@ -805,7 +805,8 @@ const App = () => {
     setLaunchError('');
   }, []);
 
-const handleLaunchGame = async () => {
+  // Launch Game Handler
+  const handleLaunchGame = async () => {
     // <-- 3. EXIBIR O DASHBOARD IMEDIATAMENTE AO CLICAR -->
     setIsDashboardVisible(true);
     
@@ -820,7 +821,8 @@ const handleLaunchGame = async () => {
     }
   
     try {
-      // --- CORREÇÃO 2 DE 3 (Existente) ---
+      // --- CORREÇÃO 2 DE 3 ---
+      // Adicionado o prefixo ${API_URL}
       const response = await fetch(`${API_URL}/start-game/${gameId}`, { //
         method: 'GET',
         headers: {
@@ -835,18 +837,6 @@ const handleLaunchGame = async () => {
         try {
           const data = JSON.parse(rawResponseText);
           console.log('📦 Dados parseados:', data);
-
-          // --- 💡 NOVA CORREÇÃO ADICIONADA AQUI 💡 ---
-          // Verifica se a API retornou 200 OK, mas com um payload de ERRO
-          // (Ex: {"status":"error","message":"Error in generate V3..."})
-          if (data && data.status === 'error') {
-            console.error("❌ API retornou 200 OK, mas com erro interno:", data.message);
-            // Define o erro usando a mensagem da API
-            setLaunchError(data.message || 'API retornou um erro inesperado.');
-            setIsLaunching(false); // Garante que o loading pare
-            return; // Interrompe a função aqui
-          }
-          // --- FIM DA NOVA CORREÇÃO ---
   
           let gameUrl = null;
           gameUrl = data?.launchOptions?.launch_options?.game_url;
@@ -854,7 +844,8 @@ const handleLaunchGame = async () => {
           if (!gameUrl) gameUrl = data?.game_url;
           if (!gameUrl) gameUrl = data?.url;
           
-          // --- CORREÇÃO ADICIONADA (Existente) ---
+          // --- CORREÇÃO ADICIONADA ---
+          // Verifica a chave 'gameURL' (com U maiúsculo) que a sua API está retornando
           if (!gameUrl) gameUrl = data?.gameURL; 
           // --- FIM DA CORREÇÃO ---
           
@@ -887,23 +878,24 @@ const handleLaunchGame = async () => {
           setLaunchError('Resposta da API não é um JSON válido: ' + rawResponseText.substring(0, 100));
         }
       } else {
-        // ✨ NOVO: Traduz erro automaticamente
-        const errorInfo = await processErrorResponse(response, 'game');
-        displayError(errorInfo, setLaunchError, { showIcon: true });
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Game Launch Error:', errorInfo.originalError);
-          }
-        }
-      } catch (err) {
-        // ✨ NOVO: Trata erro de rede
-        const errorInfo = translateNetworkError(err);
-        displayError(errorInfo, setLaunchError, { showIcon: true });
-        console.error('Network Error:', err);
-      } finally {
+  // ✨ NOVO: Traduz erro automaticamente
+  const errorInfo = await processErrorResponse(response, 'game');
+  displayError(errorInfo, setLaunchError, { showIcon: true });
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.error('Game Launch Error:', errorInfo.originalError);
+    }
+  }
+} catch (err) {
+  // ✨ NOVO: Trata erro de rede
+  const errorInfo = translateNetworkError(err);
+  displayError(errorInfo, setLaunchError, { showIcon: true });
+  console.error('Network Error:', err);
+}finally {
       setIsLaunching(false);
     }
   };
+
   // Radius Effect
   useEffect(() => {
     const calculateRadius = () => {
