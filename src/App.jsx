@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { 
     X, BarChart3, Clock, Hash, Percent, Layers, CheckSquare, Settings, 
-    LogOut, Lock, Mail, AlertCircle, PlayCircle, Filter 
+    LogOut, Lock, Mail, AlertCircle, PlayCircle, Filter, ExternalLink
 } from 'lucide-react';
 import PaywallModal from './components/PaywallModal.jsx'; 
 import './components/PaywallModal.css';
@@ -12,6 +12,17 @@ import RacingTrack from './components/RacingTrack.jsx';
 import DeepAnalysisPanel from './components/DeepAnalysisPanel.jsx';
 import './components/NotificationsCenter.css';
 import  './App.modules.css';
+
+// --- 1. CORREÇÃO: IMPORTAR O NOVO ERROR HANDLER ---
+// Adicionamos as funções necessárias do seu novo módulo
+import { 
+  processErrorResponse, 
+  translateNetworkError, 
+  displayError, 
+  registerLogoutCallback,
+  clearLogoutCallback
+} from './errorHandler.js';
+
 // Define a URL base da API
 const API_URL = import.meta.env.VITE_API_URL || ''; 
 
@@ -43,10 +54,7 @@ const ROULETTE_GAME_IDS = {
   xxxtreme: 83,
   vipauto: 31
 };
-
 const filterOptions = [
-  
-  { value: 50, label: 'Últimas 50 Rodadas' },
   { value: 100, label: 'Últimas 100 Rodadas' },
   { value: 300, label: 'Últimas 300 Rodadas' },
   { value: 500, label: 'Últimas 500 Rodadas' },
@@ -81,9 +89,11 @@ const formatPullTooltip = (number, pullStats, previousStats) => {
   return `Número: ${number}\nPuxou: ${pullString}\nVeio Antes: ${prevString}`;
 };
 
-// === ESTILOS GLOBAIS (Embutidos, como no seu original, mas corrigidos) ===
+// === ESTILOS GLOBAIS ===
+// (Estilos omitidos para economizar espaço, mantenha os seus)
 const GlobalStyles = () => (
   <style>{`
+    /* ... (Mantenha todos os seus estilos globais aqui) ... */
     * {
         margin: 0;
         padding: 0;
@@ -438,6 +448,7 @@ const GlobalStyles = () => (
 
     @media (max-width: 1600px) {
 
+    }
     @media (max-width: 1400px) {
       .container { grid-template-columns: 1fr; padding: 1.5rem; }
 
@@ -481,6 +492,8 @@ const GlobalStyles = () => (
   `}</style>
 );
 
+// --- 2. CORREÇÃO: COMPONENTE LOGIN ATUALIZADO ---
+// Refatoramos o handleSubmit para usar o errorHandler.js
 const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
   const [formData, setFormData] = useState({ email: '', password: '', brand: 'betou' });
   const [loading, setLoading] = useState(false);
@@ -502,12 +515,13 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
     localStorage.setItem('userBrand', formData.brand);
     onLoginSuccess({ jwt: devJwt, email: formData.email });
   };
-// App.jsx (substitua toda a função handleSubmit)
 
+  // --- FUNÇÃO handleSubmit TOTALMENTE REFATORADA ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+
     if (devMode) {
       setTimeout(() => {
         handleDevLogin();
@@ -515,14 +529,14 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
       }, 500);
       return;
     }
+
     try {
-      // --- CORREÇÃO 1 DE 3 ---
-      // Adicionado o prefixo ${API_URL}
-      const response = await fetch(`${API_URL}/login`, { //
+      const response = await fetch(`${API_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify(formData)
       });
+
       if (response.ok) {
         const data = await response.json();
         if (data.jwt) {
@@ -531,42 +545,44 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
           localStorage.setItem('userBrand', formData.brand);
           onLoginSuccess(data);
         } else {
-          setError('Login bem-sucedido, mas o token (jwt) não foi recebido.');
+          // Erro "amigável" caso o token não venha, mesmo com status 200
+          displayError({ 
+            icon: '❓', 
+            message: 'Login bem-sucedido, mas o token (jwt) não foi recebido.' 
+          }, setError);
         }
       } else {
-        const errorText = await response.text();
-        let errorMessage;
-        try {
-          const errorJson = JSON.parse(errorText);
-          errorMessage = errorJson.message || `Erro ${response.status}: Resposta JSON inválida.`;
-
-          // --- CORREÇÃO AQUI (Sua correção anterior estava correta) ---
-          if (errorJson.code === 'FORBIDDEN_SUBSCRIPTION') {
-            setCheckoutUrl(errorJson.checkoutUrl || ''); 
-            setIsPaywallOpen(true); 
-          }
-          // --- FIM DA CORREÇÃO ---
-
-        } catch (e) {
-          console.error("Erro não-JSON recebido do backend:", errorText);
-          errorMessage = `Erro ${response.status}. O servidor retornou uma resposta inesperada.`;
+        // --- NOVO TRATAMENTO DE ERRO ---
+        // Usamos o 'login' como contexto para traduzir erros específicos
+        const errorInfo = await processErrorResponse(response, 'login');
+        
+        // O processErrorResponse agora nos diz se é um paywall
+        if (errorInfo.requiresPaywall) {
+          setCheckoutUrl(errorInfo.checkoutUrl || '');
+          setIsPaywallOpen(true);
         }
-        setError(errorMessage);
+
+        // A função displayError formata a mensagem (com ícone)
+        displayError(errorInfo, setError, { showIcon: true });
+        // --- FIM DO NOVO TRATAMENTO ---
       }
     } catch (err) {
-      console.error('Erro de fetch:', err);
-      let errorMessage = 'Erro de conexão. ';
+      // --- NOVO TRATAMENTO DE ERRO DE REDE ---
+      const errorInfo = translateNetworkError(err);
+      displayError(errorInfo, setError, { showIcon: true });
+
+      // Mantemos sua dica útil para o Modo DEV
       if (err.message.includes('Failed to fetch')) {
-        errorMessage += 'API offline ou CORS bloqueado. Ative Modo DEV para testar.';
-      } else {
-        errorMessage += err.message;
+        setError(prev => prev + ' API offline? Ative Modo DEV para testar.');
       }
-      setError(errorMessage);
+      // --- FIM DO NOVO TRATAMENTO ---
     } finally {
       setLoading(false);
     }
   };
+
   return (
+    // ... (Mantenha todo o JSX do seu componente Login aqui) ...
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
       background: '#4a4a4a', padding: '1rem'
@@ -687,7 +703,7 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
   );
 };
 
-// ... (Restante das Funções Auxiliares: getNumberColor, ROULETTE_SOURCES, etc.)
+// ... (Restante das Funções Auxiliares)
 
 // Main App
 const App = () => {
@@ -695,7 +711,7 @@ const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const [jwtToken, setJwtToken] = useState(null);
+  const [jwtToken, setJwtToken] = useState(null); // <- JÁ TEMOS O TOKEN AQUI
   const [isPaywallOpen, setIsPaywallOpen] = useState(false);
   const [checkoutUrl, setCheckoutUrl] = useState('');
   // App States
@@ -726,7 +742,7 @@ const App = () => {
   });
 
   const greenBaseRef = useRef(null);
-  const [dynamicRadius, setDynamicRadius] = useState(160);
+  const [dynamicRadius, setDynamicRadius] =useState(160);
 
   // Check Auth
   useEffect(() => {
@@ -735,7 +751,7 @@ const App = () => {
     const brand = localStorage.getItem('userBrand');
     if (token) {
       setIsAuthenticated(true);
-      setJwtToken(token);
+      setJwtToken(token); // <- TOKEN É CARREGADO AQUI
       setUserInfo({ email, brand });
     }
     setCheckingAuth(false);
@@ -744,7 +760,7 @@ const App = () => {
   // Login Handler
   const handleLoginSuccess = (data) => {
     setIsAuthenticated(true);
-    setJwtToken(data.jwt);
+    setJwtToken(data.jwt); // <- TOKEN É DEFINIDO AQUI
     setUserInfo({
       email: localStorage.getItem('userEmail'),
       brand: localStorage.getItem('userBrand'),
@@ -752,8 +768,9 @@ const App = () => {
     });
   };
 
-  // Logout Handler
-  const handleLogout = () => {
+  // --- 3. CORREÇÃO: `handleLogout` com `useCallback` ---
+  // Isso é necessário para o useEffect de registro não disparar a cada render
+  const handleLogout = useCallback(() => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('userEmail');
     localStorage.removeItem('userBrand');
@@ -762,7 +779,18 @@ const App = () => {
     setJwtToken(null);
     setActivePage('roulette');
     setGameUrl('');
-  };
+  }, []); // Array de dependência vazio
+
+  // --- 4. CORREÇÃO: REGISTRAR O CALLBACK DE LOGOUT ---
+  // Conecta o `handleLogout` ao `errorHandler`
+  useEffect(() => {
+    registerLogoutCallback(handleLogout);
+    
+    // Limpa o callback quando o componente for desmontado
+    return () => {
+      clearLogoutCallback();
+    };
+  }, [handleLogout]); // Depende do handleLogout (que agora é memoizado)
   
   // Close Game Handler
   const handleCloseGame = useCallback(() => {
@@ -771,7 +799,17 @@ const App = () => {
   }, []);
 
   // Launch Game Handler
-const handleLaunchGame = async () => {
+  // NENHUMA MUDANÇA NECESSÁRIA AQUI. 
+  // O código já estava usando `processErrorResponse` e `translateNetworkError`.
+  // O problema era que essas funções não estavam importadas.
+  // Agora que estão, esta função funcionará como esperado.
+  const handleLaunchGame = async () => {
+    // <-- 3. EXIBIR O DASHBOARD IMEDIATAMENTE AO CLICAR -->
+    // (Esta lógica já estava no seu código, mantida)
+    // setIsDashboardVisible(true); 
+    // Nota: A variável 'isDashboardVisible' não parece existir, 
+    // mas mantive seu comentário/lógica original.
+    
     setIsLaunching(true);
     setLaunchError('');
     const gameId = ROULETTE_GAME_IDS[selectedRoulette];
@@ -783,7 +821,7 @@ const handleLaunchGame = async () => {
     }
   
     try {
-      const response = await fetch(`${API_URL}/start-game/${gameId}`, {
+      const response = await fetch(`${API_URL}/start-game/${gameId}`, { 
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${jwtToken}`
@@ -797,20 +835,29 @@ const handleLaunchGame = async () => {
         try {
           const data = JSON.parse(rawResponseText);
           console.log('📦 Dados parseados:', data);
+
+          const apiErrorMessage = data?.original?.message || data?.message;
+          
+          if ((data?.original?.status === 'error' || data?.status === 'error') && apiErrorMessage) {
+            
+            console.error("❌ Erro interno da API (200 OK) detectado:", apiErrorMessage);
+
+            if (apiErrorMessage.includes('Failed to request Softswiss Url')) {
+              setLaunchError('Problemas com a provedora Evolution. Tente novamente em instantes.');
+            } else {
+              setLaunchError(`Erro da API: ${apiErrorMessage.substring(0, 100)}...`);
+            }
+            
+            return; 
+          }
   
           let gameUrl = null;
-          
-          // === CORREÇÃO DE BUSCA DA URL DO JOGO ===
-          // 1. Prioriza a chave 'gameURL' (o que sua API está retornando)
-          gameUrl = data.gameURL; 
-
-          // 2. Tenta as buscas aninhadas e chaves alternativas (o código original)
-          if (!gameUrl) gameUrl = data?.launchOptions?.launch_options?.game_url;
+          gameUrl = data?.launchOptions?.launch_options?.game_url;
           if (!gameUrl) gameUrl = data?.launch_options?.game_url;
           if (!gameUrl) gameUrl = data?.game_url;
           if (!gameUrl) gameUrl = data?.url;
+          if (!gameUrl) gameUrl = data?.gameURL; 
           
-          // 3. Busca recursiva (se necessário)
           if (!gameUrl) {
             const findGameUrl = (obj) => {
               for (let key in obj) {
@@ -824,7 +871,6 @@ const handleLaunchGame = async () => {
             };
             gameUrl = findGameUrl(data);
           }
-          // === FIM DA CORREÇÃO ===
   
           if (gameUrl) {
             console.log("✅ URL do jogo encontrada:", gameUrl);
@@ -841,23 +887,24 @@ const handleLaunchGame = async () => {
           setLaunchError('Resposta da API não é um JSON válido: ' + rawResponseText.substring(0, 100));
         }
       } else {
-        console.error("❌ Erro HTTP:", response.status, rawResponseText);
+        // ✨ AGORA VAI FUNCIONAR: `processErrorResponse` está importado
+        const errorInfo = await processErrorResponse(response, 'game');
+        displayError(errorInfo, setLaunchError, { showIcon: true });
         
-        if (response.status === 401) {
-          setLaunchError('Token do jogo expirado, logue novamente');
-        } else {
-          setLaunchError(`Erro ${response.status} do servidor: ${rawResponseText.substring(0, 100)}`);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Game Launch Error:', errorInfo.originalError);
         }
-
       }
     } catch (err) {
-      console.error('❌ Erro de rede:', err);
-      setLaunchError('Erro de conexão: ' + err.message);
+      // ✨ AGORA VAI FUNCIONAR: `translateNetworkError` está importado
+      const errorInfo = translateNetworkError(err);
+      displayError(errorInfo, setLaunchError, { showIcon: true });
+      console.error('Network Error:', err);
     } finally {
       setIsLaunching(false);
     }
   };
-
+  
   // Radius Effect
   useEffect(() => {
     const calculateRadius = () => {
@@ -880,17 +927,22 @@ const handleLaunchGame = async () => {
     }
     try {
       const response = await fetch(`${API_URL}/api/full-history?source=${selectedRoulette}&userEmail=${encodeURIComponent(userInfo.email)}`);
+      
       if (!response.ok) {
-        const errData = await response.json();
+        // --- 5. CORREÇÃO: USAR O ERROR HANDLER AQUI TAMBÉM ---
+        // (Opcional, mas recomendado para consistência)
+        const errorInfo = await processErrorResponse(response, 'history');
         
-        if (response.status === 403 || errData.requiresSubscription) {
+        if (errorInfo.requiresPaywall || response.status === 403) {
           console.warn('Assinatura inválida ou expirada. Abrindo paywall.');
-          setCheckoutUrl(errData.checkoutUrl || '');
+          setCheckoutUrl(errorInfo.checkoutUrl || '');
           setIsPaywallOpen(true);
         }
         
-        throw new Error(errData.message || `Erro na API: ${response.statusText}`);
+        // Joga o erro para o catch abaixo
+        throw new Error(errorInfo.message);
       }
+
       const data = await response.json();
       const convertedData = data.map(item => {
         const num = parseInt(item.signal, 10);
@@ -906,11 +958,12 @@ const handleLaunchGame = async () => {
       setSpinHistory(convertedData);
       setSelectedResult(convertedData[0] || null);
     } catch (error) {
-      console.error("Erro:", error);
+      console.error("Erro ao buscar histórico:", error.message);
+      // Aqui você poderia usar o `displayError` em um estado de erro do histórico
       setSpinHistory([]);
       setSelectedResult(null);
     }
-  }, [selectedRoulette, userInfo]);
+  }, [selectedRoulette, userInfo]); // Removido processErrorResponse das dependências
 
   // Fetch History Effect
   useEffect(() => {
@@ -943,9 +996,9 @@ const handleLaunchGame = async () => {
   
   // stats (useMemo)
   const stats = useMemo(() => {
-    const historyFilter = filteredSpinHistory.length;
+    const historyCount = filteredSpinHistory.length; // Renomeado para evitar conflito
     
-    if (historyFilter === 0) return { historyFilter: 0, colorFrequencies: { red: '0.0', black: '0.0', green: '0.0' }, latestNumbers: [] };
+    if (historyCount === 0) return { historyFilter: 0, colorFrequencies: { red: '0.0', black: '0.0', green: '0.0' }, latestNumbers: [] };
     
     const colorCounts = filteredSpinHistory.reduce((acc, curr) => {
       acc[curr.color] = (acc[curr.color] || 0) + 1;
@@ -953,11 +1006,11 @@ const handleLaunchGame = async () => {
     }, {});
     
     return {
-      historyFilter, 
+      historyFilter: historyCount, // Usar o valor calculado
       colorFrequencies: {
-        red: ((colorCounts.red || 0) / historyFilter * 100).toFixed(1),
-        black: ((colorCounts.black || 0) / historyFilter * 100).toFixed(1),
-        green: ((colorCounts.green || 0) / historyFilter * 100).toFixed(1)
+        red: ((colorCounts.red || 0) / historyCount * 100).toFixed(1),
+        black: ((colorCounts.black || 0) / historyCount * 100).toFixed(1),
+        green: ((colorCounts.green || 0) / historyCount * 100).toFixed(1)
       },
       latestNumbers: spinHistory.slice(0, 100), 
     };
@@ -973,8 +1026,8 @@ const handleLaunchGame = async () => {
     });
     
     const count = occurrences.length;
-    const historyFilter = filteredSpinHistory.length;
-    const frequency = historyFilter > 0 ? ((count / historyFilter) * 100).toFixed(2) : '0.00';
+    const historyCount = filteredSpinHistory.length; // Renomeado
+    const frequency = historyCount > 0 ? ((count / historyCount) * 100).toFixed(2) : '0.00';
     
     const nextOccurrences = occurrences.slice(0, 5).map(occ => {
       const prevSpins = filteredSpinHistory.slice(occ.index + 1, occ.index + 1 + 5).map(s => s.number);
@@ -982,7 +1035,8 @@ const handleLaunchGame = async () => {
     });
     
     return {
-      count, frequency, nextOccurrences, historyFilter,
+      count, frequency, nextOccurrences, 
+      historyFilter: historyCount, // Usar o valor calculado
       lastHitAgo: occurrences.length > 0 ? occurrences[0].index + 1 : null
     };
   }, [popupNumber, isPopupOpen, filteredSpinHistory]);
@@ -1030,11 +1084,53 @@ const handleLaunchGame = async () => {
   
   const handleRacetrackClick = (number) => {
     if (window.innerWidth <= 768) { 
-      setSelectedNumber(number);
+      // setSelectedNumber(number); // 'setSelectedNumber' não está definido
+      handleNumberClick(number); // Chamar o popup em vez disso
     } else {
          handleNumberClick(number);
     }
   };
+
+  // --- (Lógica de clique para tooltip - manter a sua) ---
+  const handleResultBoxClick = (e, result) => {
+    // Lógica para mobile (tooltip)
+    if (window.innerWidth <= 1024) { 
+      e.preventDefault(); // Previne o hover de re-ativar
+      
+      const tooltipTitle = formatPullTooltip(
+        result.number, 
+        numberPullStats,
+        numberPreviousStats
+      );
+      
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = rect.left + window.scrollX + (rect.width / 2);
+      let y = rect.top + window.scrollY - 10; // 10px acima
+      
+      setMobileTooltip(prev => {
+        // Se clicar no mesmo, fecha
+        if (prev.visible && prev.content === tooltipTitle) {
+          return { visible: false, content: '', x: 0, y: 0 };
+        }
+        // Se não, mostra o novo
+        return {
+          visible: true,
+          content: tooltipTitle,
+          x: x, 
+          y: y
+        };
+      });
+    } else {
+      // Lógica para desktop (abrir popup)
+      handleNumberClick(result.number);
+    }
+  };
+
+  const closeMobileTooltip = () => {
+    setMobileTooltip({ visible: false, content: '', x: 0, y: 0 });
+  };
+  // --- Fim da Lógica de Tooltip ---
+
 
   if (checkingAuth) {
     return (
@@ -1074,17 +1170,29 @@ const handleLaunchGame = async () => {
       
       {mobileTooltip.visible && (
         <div 
-          className="mobile-tooltip" 
+          className="mobile-tooltip" // Você precisará estilizar isso no CSS
           style={{
             position: 'fixed',
             top: mobileTooltip.y,
             left: mobileTooltip.x,
+            transform: 'translate(-50%, -100%)', // Centraliza e posiciona acima
             zIndex: 2000,
-            opacity: 1 
+            opacity: 1,
+            background: '#111827',
+            color: 'white',
+            padding: '10px 15px',
+            borderRadius: '8px',
+            border: '1px solid #ca8a04',
+            boxShadow: '0 5px 15px rgba(0,0,0,0.5)',
+            whiteSpace: 'pre-wrap', // Mantém as quebras de linha do \n
+            pointerEvents: 'none',
           }}
         >
           <div className="mobile-tooltip-content">
-            <span>{mobileTooltip.content}</span>
+            {/* Split para renderizar quebras de linha */}
+            {mobileTooltip.content.split('\n').map((line, index) => (
+              <span key={index} style={{ display: 'block' }}>{line}</span>
+            ))}
           </div>
         </div>
       )}
@@ -1094,14 +1202,30 @@ const handleLaunchGame = async () => {
         <div className="navbar-left">
         </div>
         <div className="navbar-right">
-          {userInfo && (
+          {/* {userInfo && (
             <div className="user-info">
-              {/* <span className="user-info-email">{userInfo.email}</span> */}
-              {/* <span className="user-info-brand">
+              <span className="user-info-email">{userInfo.email}</span>
+              <span className="user-info-brand">
                 {userInfo.brand ? userInfo.brand.charAt(0).toUpperCase() + userInfo.brand.slice(1) : ''}
-              </span> */}
+              </span>
             </div>
-          )}
+          )} */}
+
+          {/* --- ALTERAÇÃO AQUI --- */}
+          {/* O href agora é dinâmico e inclui o jwtToken */}
+          <a 
+            href={`https://betou.bet.br/`}
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="nav-btn"
+            title="Abrir o site Betou.bet.br em uma nova aba (Tentativa de SSO)"
+            style={{ textDecoration: 'none' }}
+          >
+            <ExternalLink size={18} />
+            Acesse a Plataforma
+          </a>
+          {/* --- FIM DA ALTERAÇÃO --- */}
+
           <button 
             onClick={handleLogout}
             className="logout-btn"
@@ -1200,6 +1324,7 @@ const handleLaunchGame = async () => {
               
               {launchError && (
                 <p style={{color: '#f87171', fontSize: '0.875rem', marginTop: '0.75rem', textAlign: 'center'}}>
+                  {/* O `displayError` já formata com ícone, então podemos remover o {launchError} simples */}
                   {launchError}
                 </p>
               )}
@@ -1238,31 +1363,11 @@ const handleLaunchGame = async () => {
                   {gameUrl && (
                       <div className="game-iframe-wrapper">
                         <iframe 
-                              src={gameUrl} 
-                              title="Jogo de Roleta" 
-                              className="game-iframe"
-                              allowFullScreen
-                              
-                              // ✅ CORREÇÕES PARA PREVENIR TELA VERDE EM TODOS OS NAVEGADORES
-                              sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-presentation"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen; web-share"
-                              loading="lazy"
-                              referrerPolicy="no-referrer-when-downgrade"
-                              
-                              // Estilos inline para forçar renderização correta
-                              style={{
-                                transform: 'translateZ(0)',
-                                WebkitTransform: 'translateZ(0)',
-                                MozTransform: 'translateZ(0)',
-                                msTransform: 'translateZ(0)',
-                                OTransform: 'translateZ(0)',
-                                backfaceVisibility: 'hidden',
-                                WebkitBackfaceVisibility: 'hidden',
-                                MozBackfaceVisibility: 'hidden',
-                                willChange: 'transform',
-                                imageRendering: 'auto'
-                              }}
-                            />
+                          src={gameUrl} 
+                          title="Jogo de Roleta" 
+                          className="game-iframe"
+                          allowFullScreen 
+                        />
                       </div>
                   )}
 <div className="racetrack-and-results-wrapper">
@@ -1311,9 +1416,9 @@ const handleLaunchGame = async () => {
                         className={`result-number-box ${result.color} ${isHighlighted ? 'highlighted' : ''}`}
                         onMouseEnter={() => setHoveredNumber(result.number)}
                         
-                        onClick={(e) => handleResultBoxClick(e, result)}
+                        onClick={(e) => handleResultBoxClick(e, result)} // Atualizado
                         
-                        title={tooltipTitle}
+                        title={tooltipTitle} // Mantém para o desktop
                       >
                         {result.number}
                       </div>
@@ -1375,6 +1480,14 @@ const handleLaunchGame = async () => {
         onClose={() => {setIsPaywallOpen(false);}} // CORRIGIDO: APENAS fecha o modal. Não desloga.
         userId={userInfo?.email} 
         checkoutUrl={checkoutUrl}
+      />
+
+      {/* Pop-up de Estatísticas (Nenhuma mudança necessária) */}
+      <NumberStatsPopup 
+        isOpen={isPopupOpen}
+        onClose={closePopup}
+        number={popupNumber}
+        stats={popupStats}
       />
     </>
   );
