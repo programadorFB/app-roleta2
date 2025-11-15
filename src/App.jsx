@@ -1,20 +1,20 @@
-// App.jsx (Com Tooltip Flutuante no Mobile)
+// App.jsx - VERSÃO FINAL OTIMIZADA E ALINHADA
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { 
-    X, BarChart3, Clock, Hash, Percent, Layers, CheckSquare, Settings, 
+    X, BarChart3, Clock, Hash, Percent, Layers, 
     LogOut, Lock, Mail, AlertCircle, PlayCircle, Filter, ExternalLink
 } from 'lucide-react';
 import PaywallModal from './components/PaywallModal.jsx'; 
 import './components/PaywallModal.css';
-import NotificationCenter from './components/NotificationCenter.jsx';
 import MasterDashboard from './pages/MasterDashboard.jsx';
 import RacingTrack from './components/RacingTrack.jsx';
 import DeepAnalysisPanel from './components/DeepAnalysisPanel.jsx';
+import ResultsGrid from './components/ResultGrid.jsx';
 import './components/NotificationsCenter.css';
-import  './App.modules.css';
+import './App.modules.css';
+import './index.css';
+import W600 from "./assets/w=600.svg";
 
-// --- 1. CORREÇÃO: IMPORTAR O NOVO ERROR HANDLER ---
-// Adicionamos as funções necessárias do seu novo módulo
 import { 
   processErrorResponse, 
   translateNetworkError, 
@@ -23,38 +23,51 @@ import {
   clearLogoutCallback
 } from './errorHandler.js';
 
-// Define a URL base da API
 const API_URL = import.meta.env.VITE_API_URL || ''; 
 
-// ... (Restante das Funções Auxiliares: getNumberColor, rouletteNumbers, ROULETTE_SOURCES, etc.)
-
+// === FUNÇÕES AUXILIARES ===
 const getNumberColor = (num) => {
   if (num === 0) return 'green';
   const redNumbers = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
   return redNumbers.includes(num) ? 'red' : 'black';
 };
 
-const rouletteNumbers = [
-  0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10,
-  5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26
-];
-
 const ROULETTE_SOURCES = {
-  immersive: '🌟 Roleta Immersive',
+  immersive: '🌟 Immersive Roulette',
   brasileira: '🇧🇷 Roleta Brasileira',
   speed: '💨 Speed Roulette',
-  xxxtreme: '⚡ Xxxtreme Lightning',
-  vipauto: '🚘 Vip Auto Roulette'
+  xxxtreme: '⚡ XXXtreme Lightning',
+  vipauto: '🚘 Auto Roulette Vip',
+  vip: '💎 Roleta Vip',
+  lightning: '⚡ Lightning Roulette',
+  aovivo: '🔴 Roleta ao Vivo',
+  speedauto: '💨 Speed Auto Roulette',
+  viproulette: '💎 Vip Roulette',
+  relampago: '⚡ Roleta Relâmpago',
+  malta: '🇲🇹 Casino Malta Roulette'
 };
 
 const ROULETTE_GAME_IDS = {
+  auto: 120,
+  vipauto: 31,
+  bacbo: 54,
+  malta: 80,
+  footballstudio: 53,
   immersive: 55,
+  lightning: 33,
+  reddoor: 35,
+  aovivo: 34,
+  brasileira_playtech: 102,
   brasileira: 101,
+  relampago: 81,
+  speedauto: 82,
   speed: 36,
-  xxxtreme: 83,
-  vipauto: 31
+  viproulette: 32,
+  xxxtreme: 83
 };
+
 const filterOptions = [
+  { value: 50, label: 'Últimas 50 Rodadas' },
   { value: 100, label: 'Últimas 100 Rodadas' },
   { value: 300, label: 'Últimas 300 Rodadas' },
   { value: 500, label: 'Últimas 500 Rodadas' },
@@ -63,472 +76,42 @@ const filterOptions = [
 ];
 
 const formatPullTooltip = (number, pullStats, previousStats) => {
-  const pullStatsMap = pullStats.get(number);
-  const prevStatsMap = previousStats.get(number);
+  const pullStatsMap = pullStats?.get(number);
+  const prevStatsMap = previousStats?.get(number);
 
   let pullString = "(Nenhum)";
   if (pullStatsMap && pullStatsMap.size > 0) {
-    const pulledNumbers = [...pullStatsMap.keys()];
-    const displayPull = pulledNumbers.slice(0, 5);
-    pullString = displayPull.join(', ');
-    if (pulledNumbers.length > 5) {
-      pullString += ', ...';
-    }
+    const pulledNumbers = [...pullStatsMap.keys()].slice(0, 5);
+    pullString = pulledNumbers.join(', ');
+    if (pullStatsMap.size > 5) pullString += ', ...';
   }
 
   let prevString = "(Nenhum)";
   if (prevStatsMap && prevStatsMap.size > 0) {
-    const prevNumbers = [...prevStatsMap.keys()];
-    const displayPrev = prevNumbers.slice(0, 5);
-    prevString = displayPrev.join(', ');
-    if (prevNumbers.length > 5) {
-      prevString += ', ...';
-    }
+    const prevNumbers = [...prevStatsMap.keys()].slice(0, 5);
+    prevString = prevNumbers.join(', ');
+    if (prevStatsMap.size > 5) prevString += ', ...';
   }
 
   return `Número: ${number}\nPuxou: ${pullString}\nVeio Antes: ${prevString}`;
 };
 
-// === ESTILOS GLOBAIS ===
-// (Estilos omitidos para economizar espaço, mantenha os seus)
-const GlobalStyles = () => (
-  <style>{`
-    /* ... (Mantenha todos os seus estilos globais aqui) ... */
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-
-    body {
-        font-family: 'Arial', sans-serif;
-        background-color: #4a4a4a;
-        overflow-x: hidden;
-    }
-
-    .container {
-        min-height: calc(100vh - 65px);
-        background: #4a4a4a;
-        display: grid;
-        grid-template-columns: 380px 1fr 420px; 
-        gap: 1.5rem;
-        align-items: flex-start;
-        padding: 1.5rem;
-        overflow-x: None;
-        max-width: 2400px;
-        margin-top: -10 auto;
-    }
-      .html { 
-        overflow-x: hidden;
-    }
-
-    .dashboard-title {
-        font-size: 1.25rem;
-        font-weight: bold;
-        color: #fde047;
-        margin-bottom: 1rem;
-        text-align: center;
-    }
-
-    .divider {
-        border: 0;
-        height: 1px;
-        background: #4b5563;
-        margin: 1.5rem 0;
-    }
-
-    .stat-title {
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: #fbbf24;
-        margin-bottom: 0.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-    }
-
-    .stat-value-lg {
-        font-size: 2.1rem;
-        font-weight: bold;
-        margin-bottom: 0.5rem;
-        color: #fde047;
-    }
-
-    .stat-value-sm {
-        font-size: 0.9rem;
-        color: #d1d5db;
-    }
-
-    .roulette-selector {
-      width: 100%;
-      padding: 0.75rem;
-      background: #1f2937;
-      color: #fde047;
-      border: 2px solid #a16207;
-      border-radius: 0.5rem;
-      font-size: 1rem;
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .roulette-selector:hover {
-      background: #374151;
-      border-color: #ca8a04;
-    }
-
-    .roulette-selector:focus {
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(202, 138, 4, 0.3);
-    }
-
-    .monitoring-badge {
-      margin-top: 0.5rem;
-      padding: 0.5rem;
-      background: rgba(16, 185, 129, 0.1);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      border-radius: 0.5rem;
-      font-size: 0.75rem;
-      color: #10b981;
-      text-align: center;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-    }
-
-    .history-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-top: 1rem;
-      justify-content: center;
-    }
-
-    .history-number {
-      padding: 0.3rem 0.6rem;
-      border-radius: 4px;
-      color: white;
-      font-weight: bold;
-      font-size: 0.75rem;
-      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
-      min-width: 25px;
-      text-align: center;
-      cursor: pointer;
-      transition: transform 0.2s;
-    }
-
-    .history-number:hover {
-      transform: scale(1.1);
-    }
-
-    .history-number.red { background: #dc2626; }
-    .history-number.black { background: #1f2937; }
-    .history-number.green { background: #15803d; }
-
-    .roulette-wrapper {
-      grid-column: 2 / 3;
-      display: flex;
-      flex-direction: row; 
-      align-items: flex-start;
-      gap: 2rem;
-      padding: 0 1rem;
-      justify-content: center;
-    }
-
-    .roulette-and-results {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1.5rem;
-      width: 100%;
-    }
-
-    .racetrack-and-results-wrapper {
-      display: flex;
-      flex-direction: row; 
-      gap: 1.5rem;
-      width: 100%;
-      align-items: flex-start;
-    }
-
-    .racetrack-main-column {
-      flex: 1; 
-      min-width: 0; 
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem; 
-    }
-
-    .latest-results-compact {
-      border-radius: 1rem;
-      margin-left:1px;
-      width: 100%;
-      flex-shrink: 0;
-      position: static;
-      top: auto;       
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-      margin-bottom: 1.5rem; 
-    }
-
-    .latest-results-title {
-      font-size: 1.1rem;
-      font-weight: bold;
-      color: #fde047;
-      margin-bottom: 1rem;
-      text-align: center;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-    }
-
-    .results-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(40px, 1fr)); 
-      gap: 0.5rem;
-      margin-bottom: 1rem;
-      transition: all 0.2s ease-in-out;
-    }
-
-    .result-number-box {
-      aspect-ratio: 1; 
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 0.5rem;
-      font-weight: bold;
-      font-size: 1rem; 
-      color: white;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-      cursor: pointer;
-      transition: all 0.2s ease-in-out;
-      opacity: 1;
-    }
-    
-    .results-grid.hover-active .result-number-box {
-        opacity: 0.3;
-    }
-    
-    .results-grid.hover-active .result-number-box.highlighted {
-        opacity: 1;
-        transform: scale(1.15);
-        border: 2px solid #fde047;
-        box-shadow: 0 0 15px rgba(253, 224, 71, 0.7);
-        z-index: 10;
-    }
-
-    .result-number-box:hover {
-      transform: scale(1.1);
-      z-index: 5;
-    }
-
-    .result-number-box.red { background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); }
-    .result-number-box.black { background: linear-gradient(135deg, #1f2937 0%, #000000 100%); }
-    .result-number-box.green { background: linear-gradient(135deg, #22c55e 0%, #15803d 100%); }
-
-    .roulette-center {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-     .wood-border {
-      width: 420px; height: 420px; border-radius: 50%;
-      background: linear-gradient(135deg, #78350f 0%, #451a03 50%, #78350f 100%);
-      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5); padding: 1rem;
-      background-image: linear-gradient(90deg, rgba(101, 67, 33, 0.3) 1px, transparent 1px), linear-gradient(rgba(101, 67, 33, 0.3) 1px, transparent 1px);
-      background-size: 20px 20px;
-    }
-    .gold-border {
-      width: 100%; height: 100%; border-radius: 50%; padding: 0.75rem;
-      background: linear-gradient(145deg, #FFD700, #FFA500, #FFD700, #DAA520);
-      background-size: 200% 200%; box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.5);
-      overflow: hidden;
-    }
-    .green-base {
-       width: 100%; height: 100%; border-radius: 50%;
-      background: linear-gradient(135deg, #15803d 0%, #166534 50%, #14532d 100%);
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8); overflow: hidden;
-    }
-     .number-slot {
-      position: absolute; width: 44px; height: 44px; border-radius: 4px;
-      font-weight: bold; color: white; font-size: 0.875rem;
-      box-shadow: inset 0 2px 8px rgba(0,0,0,0.8), 0 2px 4px rgba(0,0,0,0.5);
-      cursor: pointer; border: none; transition: all 0.2s;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .number-slot:hover { transform: scale(1.1); z-index: 10; }
-    .number-slot.green { background: linear-gradient(135deg, #22c55e 0%, #15803d 100%); }
-    .number-slot.red { background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); }
-    .number-slot.black { background: linear-gradient(135deg, #1f2937 0%, #000000 100%); }
-     .ball {
-      position: absolute; width: 24px; height: 24px; border-radius: 50%;
-      background: radial-gradient(circle at 30% 30%, #ffffff, #e0e0e0 40%, #a0a0a0 70%, #707070);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.6), inset -2px -2px 4px rgba(0,0,0,0.3), inset 2px 2px 4px rgba(255,255,255,0.8);
-      pointer-events: none; z-index: 10;
-      transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .title-section {
-        text-align: center;
-        margin-top: 1.5rem;
-        margin-bottom: 0;
-        width: 100%;
-    }
-
-    .main-title {
-        font-size: 2rem;
-        font-weight: bold;
-        background: linear-gradient(90deg, #fde047 0%, #eab308 50%, #fde047 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        margin-bottom: 0.25rem;
-    }
-
-    .subtitle {
-        color: #fde047;
-        margin-top: 0.25rem;
-        font-size: 0.95rem;
-        font-weight: 600;
-    }
-
-
-    
-    .popup-overlay {
-       position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.85);
-      backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; z-index: 1000;
-    }
-    .popup-content {
-      background: linear-gradient(145deg, #1f2937 0%, #111827 100%); border-radius: 1rem; padding: 2rem;
-      width: 90%; max-width: 700px; box-shadow: 0 25px 50px rgba(0, 0, 0, 0.7); color: #d1d5db;
-      position: relative; max-height: 90vh; overflow-y: auto; border: 3px solid #ca8a04;
-    }
-    .popup-close-btn {
-      position: absolute; top: 1rem; right: 1rem; background: transparent; color: #9ca3af;
-      border: none; cursor: pointer; padding: 0.5rem; border-radius: 50%; transition: color 0.2s, background 0.2s;
-    }
-    .popup-close-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
-    .popup-header {
-      display: flex; align-items: center; gap: 1.5rem; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid #374151;
-    }
-    .popup-number-icon {
-      width: 60px; height: 60px; border-radius: 50%; display: flex; justify-content: center; align-items: center;
-      font-size: 2rem; font-weight: bold; color: #111827; box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
-    }
-    .popup-number-icon.red { background-color: #ef4444; }
-    .popup-number-icon.black { background-color: #374151; color: #fff; }
-    .popup-number-icon.green { background-color: #10b981; }
-    .popup-title { font-size: 1.8rem; color: #fde047; }
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 2.5rem; }
-    .info-card { background: rgba(255, 255, 255, 0.05); border-radius: 0.5rem; padding: 1rem; border-left: 3px solid #ca8a04; }
-    .info-label { font-weight: 600; color: #9ca3af; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; }
-    .info-value { font-size: 1.4rem; font-weight: bold; }
-    .info-value.red { color: #ef4444; } .info-value.black { color: #d1d5db; } .info-value.green { color: #10b981; }
-    .next-spins-title { font-size: 1.4rem; color: #eab308; margin-bottom: 1.5rem; border-bottom: 1px solid #374151; padding-bottom: 0.5rem; }
-    .next-spins-container { display: flex; flex-direction: column; gap: 1.5rem; }
-    .next-spins-card { background: rgba(0, 0, 0, 0.2); padding: 1rem; border-radius: 0.5rem; border: 1px solid #374151; }
-    .next-spins-label { font-size: 1rem; color: #e5e7eb; margin-bottom: 0.75rem; font-weight: bold; }
-    .next-numbers-list { display: flex; gap: 0.5rem; }
-    .next-number {
-      width: 30px; height: 30px; border-radius: 50%; display: flex; justify-content: center; align-items: center;
-      font-size: 0.9rem; font-weight: bold; color: #111827; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
-    }
-    .next-number.red { background-color: #fca5a5; } .next-number.black { background-color: #9ca3af; color: #111827; } .next-number.green { background-color: #6ee7b7; }
-    .next-spins-incomplete { font-size: 0.85rem; color: #ef4444; margin-top: 0.5rem; }
-    .next-spins-none { color: #9ca3af; text-align: center; font-style: italic; }
-    .popup-footer-btn {
-      margin-top: 2rem; width: 100%; background: linear-gradient(90deg, #ca8a04 0%, #eab308 100%); color: #111827;
-      font-weight: bold; padding: 1rem 1.5rem; border-radius: 0.5rem; border: none; cursor: pointer; font-size: 1.125rem;
-      box-shadow: 0 5px 15px rgba(234, 179, 8, 0.4); transition: transform 0.2s;
-    }
-    .popup-footer-btn:hover { transform: translateY(-2px); }
-
-    @media (max-width: 1600px) {
-
-    }
-    @media (max-width: 1400px) {
-      .container { grid-template-columns: 1fr; padding: 1.5rem; }
-
-      .roulette-wrapper { grid-column: auto; flex-direction: column; align-items: center; }
-      .analysis-panel {
-        position: static;
-        max-height: none;
-        grid-column: auto;
-      }
-      .racetrack-and-results-wrapper {
-        flex-direction: column;
-      }
-      .latest-results-compact { 
-        max-width: 100%; 
-        width: 100%; 
-        position: static; 
-        max-height: none; 
-      }
-      .roulette-and-results { width: 100%; max-width: 800px; }
-    }
-    @media (max-width: 1024px) {
-      .container { grid-template-columns: 1fr; padding: 1rem; }
-      .wood-border { width: 350px; height: 350px; }
-      .main-title { font-size: 1.75rem; }
-      .subtitle { font-size: 0.9rem; }
-    }
-    @media (max-width: 600px) {
-      .wood-border { width: 300px; height: 300px; }
-      .number-slot { width: 28px; height: 28px; font-size: 0.7rem; }
-      .ball { width: 16px; height: 16px; }
-      .main-title { font-size: 1.5rem; }
-      .subtitle { font-size: 0.85rem; }
-      .popup-content { padding: 1rem; }
-      .popup-title { font-size: 1.5rem; }
-      .results-grid { grid-template-columns: repeat(6, 1fr); }
-      .latest-results-compact { padding: 1rem; }
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-  `}</style>
-);
-
-// --- 2. CORREÇÃO: COMPONENTE LOGIN ATUALIZADO ---
-// Refatoramos o handleSubmit para usar o errorHandler.js
+// === COMPONENTE LOGIN ===
 const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
   const [formData, setFormData] = useState({ email: '', password: '', brand: 'betou' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [devMode, setDevMode] = useState(false);
-  const brands = [
-    { value: 'betou', label: 'Betou' },
-    // { value: 'betfusion', label: 'BetFusion' },
-    // { value: 'sortenabet', label: 'Sorte na Bet' }
-  ];
-  const handleChange = (e) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-    setError('');
-  };
-  const handleDevLogin = () => {
-    const devJwt = 'dev-jwt-token-' + Date.now();
-    localStorage.setItem('authToken', devJwt);
-    localStorage.setItem('userEmail', formData.email || 'dev@teste.com');
-    localStorage.setItem('userBrand', formData.brand);
-    onLoginSuccess({ jwt: devJwt, email: formData.email });
-  };
 
-  // --- FUNÇÃO handleSubmit TOTALMENTE REFATORADA ---
+  const handleChange = useCallback((e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    setError('');
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-
-    if (devMode) {
-      setTimeout(() => {
-        handleDevLogin();
-        setLoading(false);
-      }, 500);
-      return;
-    }
 
     try {
       const response = await fetch(`${API_URL}/login`, {
@@ -545,955 +128,146 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
           localStorage.setItem('userBrand', formData.brand);
           onLoginSuccess(data);
         } else {
-          // Erro "amigável" caso o token não venha, mesmo com status 200
-          displayError({ 
-            icon: '❓', 
-            message: 'Login bem-sucedido, mas o token (jwt) não foi recebido.' 
-          }, setError);
+          displayError({ icon: '❓', message: 'Token não recebido.' }, setError);
         }
       } else {
-        // --- NOVO TRATAMENTO DE ERRO ---
-        // Usamos o 'login' como contexto para traduzir erros específicos
         const errorInfo = await processErrorResponse(response, 'login');
-        
-        // O processErrorResponse agora nos diz se é um paywall
         if (errorInfo.requiresPaywall) {
           setCheckoutUrl(errorInfo.checkoutUrl || '');
           setIsPaywallOpen(true);
         }
-
-        // A função displayError formata a mensagem (com ícone)
         displayError(errorInfo, setError, { showIcon: true });
-        // --- FIM DO NOVO TRATAMENTO ---
       }
     } catch (err) {
-      // --- NOVO TRATAMENTO DE ERRO DE REDE ---
       const errorInfo = translateNetworkError(err);
       displayError(errorInfo, setError, { showIcon: true });
-
-      // Mantemos sua dica útil para o Modo DEV
-      if (err.message.includes('Failed to fetch')) {
-        setError(prev => prev + ' API offline? Ative Modo DEV para testar.');
-      }
-      // --- FIM DO NOVO TRATAMENTO ---
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    // ... (Mantenha todo o JSX do seu componente Login aqui) ...
-    <div style={{
-      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: '#4a4a4a', padding: '1rem'
-    }}>
-      <div style={{ width: '100%', maxWidth: '28rem' }}>
-        <div style={{
-          background: 'linear-gradient(135deg, #111827 0%, #1f2937 100%)', borderRadius: '1rem',
-          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)', padding: '2rem', border: '2px solid #a16207'
-        }}>
-          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              width: '5rem', height: '5rem', background: 'linear-gradient(135deg, #eab308, #eab308)',
-              borderRadius: '50%', marginBottom: '1rem'
-            }}>
-              <Lock size={32} color="Black" />
+    <div className="login-container">
+      <div className="login-wrapper">
+        <div className="login-card">
+          <div className="login-header">
+            <div className="login-icon">
+              <Lock size={32} color="black" />
             </div>
-            <h2 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'white', marginBottom: '0.5rem' }}>
-              Bem-vindo
-            </h2>
-            <p style={{ color: '#9ca3af' }}>Este aplicativo é integrado com a casa BETOU. </p>
-            <br/>
-            <p style={{ color: '#9ca3af',marginBottom:"-25px" }}>Faça login com sua conta BETOU para acessar o aplicativo.</p>
+            <h2 className="login-title">Bem-vindo</h2>
+            <p className="login-subtitle">Este aplicativo é integrado com a casa BETOU.</p>
+            <p className="login-subtitle">Faça login com sua conta BETOU para acessar.</p>
           </div>
+          
           {error && (
-            <div style={{
-              marginBottom: '1.5rem', padding: '1rem', background: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid rgba(239, 68, 68, 0.5)', borderRadius: '0.5rem',
-              display: 'flex', alignItems: 'flex-start', gap: '0.75rem'
-            }}>
-              <AlertCircle size={20} color="#ef4444" style={{ flexShrink: 0, marginTop: '0.125rem' }} />
-              <p style={{ color: '#f87171', fontSize: '0.875rem' }}>{error}</p>
+            <div className="login-error">
+              <AlertCircle size={20} color="#ef4444" />
+              <p>{error}</p>
             </div>
           )}
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            {/* <div>
-
-              <select name="brand" value={formData.brand} onChange={handleChange} required
-                style={{ width: '100%', padding: '0.75rem 1rem', background: '#374151', border: '1px solid #4b5563',
-                  borderRadius: '0.5rem', color: 'white', fontSize: '1rem', cursor: 'pointer' }}>
-                {brands.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
-              </select>
-            </div> */}
-            <div>
-
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#d1d5db', marginBottom: '0.5rem' }}>
-                E-mail Betou
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Mail size={20} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
-                <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="seu-email@gmail.com" required
-                  style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.5rem', background: '#374151', border: '1px solid #4b5563',
-                    borderRadius: '0.5rem', color: 'white', fontSize: '1rem' }} />
+          
+          <form onSubmit={handleSubmit} className="login-form">
+            <div className="form-group">
+              <label>E-mail Betou</label>
+              <div className="input-wrapper">
+                <Mail size={20} className="input-icon" />
+                <input 
+                  type="email" 
+                  name="email" 
+                  value={formData.email} 
+                  onChange={handleChange} 
+                  placeholder="seu-email@gmail.com" 
+                  required
+                />
               </div>
             </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#d1d5db', marginBottom: '0.5rem' }}>
-                Senha Betou
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Lock size={20} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
-                <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="••••••••" required
-                  style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.5rem', background: '#374151', border: '1px solid #4b5563',
-                    borderRadius: '0.5rem', color: 'white', fontSize: '1rem' }} />
+
+            <div className="form-group">
+              <label>Senha Betou</label>
+              <div className="input-wrapper">
+                <Lock size={20} className="input-icon" />
+                <input 
+                  type="password" 
+                  name="password" 
+                  value={formData.password} 
+                  onChange={handleChange} 
+                  placeholder="••••••••" 
+                  required
+                />
               </div>
             </div>
-            {/* <div style={{
-              display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem',
-              background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)',
-              borderRadius: '0.5rem', marginTop: '0.5rem'
-            }}>
-
-            </div> */}
-          <p style={{ color: "white" }}>
+            
+            <p className="register-link">
               Ainda não tem cadastro na Betou?{" "}
               <a 
                 href="https://go.aff.betou.bet.br/tgml0e19?utm_medium=appcmd"
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{
-                  backgroundColor: "transparent",
-                  fontSize: "15px",
-                  color: "#1b8dc2ff",
-                  border: "none",
-                  cursor: "pointer",
-                  textDecoration: "underline" // se quiser parecer mais CTA
-                }}
               >
                 Clique Aqui
               </a>
             </p>
 
-            <button type="submit" disabled={loading}
-              style={{
-                width: '100%', padding: '0.75rem 1rem',
-                background: loading ? '#6b7280' : 'linear-gradient(135deg, #eab308, #eab308)',
-                color: 'black', fontWeight: 'bold', fontSize: '1rem', borderRadius: '0.5rem', border: 'none',
-                cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: loading ? 0.7 : 1
-              }}>
+            <button type="submit" disabled={loading} className="login-button">
               {loading ? (
-                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                  <div style={{ width: '1.25rem', height: '1.25rem', border: '2px solid white',
-                    borderTop: '2px solid transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                <span className="loading-spinner">
+                  <div className="spinner"></div>
                   Entrando...
                 </span>
               ) : 'Entrar'}
             </button>
           </form>
-          <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-            <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>Dashboard Analítico de Roleta</p>
+
+          <div className="login-footer">
+            <p>Dashboard Analítico de Roleta</p>
           </div>
         </div>
-        <p style={{ textAlign: 'center', color: '#6b7280', fontSize: '0.75rem', marginTop: '1.5rem' }}>
-          Ao fazer login, você concorda com nossos Termos de Uso
-        </p>
+        <p className="terms-text">Ao fazer login, você concorda com nossos Termos de Uso</p>
       </div>
     </div>
   );
 };
 
-// ... (Restante das Funções Auxiliares)
+// === COMPONENTE GAME IFRAME ===
+const GameIframe = React.memo(({ url, onError }) => {
+  const wrapperRef = useRef(null);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-// Main App
-const App = () => {
-  // Auth States
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userInfo, setUserInfo] = useState(null);
-  const [checkingAuth, setCheckingAuth] = useState(true);
-  const [jwtToken, setJwtToken] = useState(null); // <- JÁ TEMOS O TOKEN AQUI
-  const [isPaywallOpen, setIsPaywallOpen] = useState(false);
-  const [checkoutUrl, setCheckoutUrl] = useState('');
-  // App States
-  const [selectedRoulette, setSelectedRoulette] = useState(Object.keys(ROULETTE_SOURCES)[0]);
-  const [spinHistory, setSpinHistory] = useState([]);
-  const [selectedResult, setSelectedResult] = useState(null);
-  const [popupNumber, setPopupNumber] = useState(null);
-  const [isPopupOpen, setIsPopupOpen] = useState(false);
-  const [activePage, setActivePage] = useState('roulette');
-  
-  // Game States
-  const [isLaunching, setIsLaunching] = useState(false);
-  const [launchError, setLaunchError] = useState('');
-  const [gameUrl, setGameUrl] = useState('');
-  
-  const [entrySignals, setEntrySignals] = useState([]);
-
-  // Filter State
-  const [historyFilter, setHistoryFilter] = useState(filterOptions[0].value);
-  
-  const [hoveredNumber, setHoveredNumber] = useState(null);
-
-  const [mobileTooltip, setMobileTooltip] = useState({
-    visible: false,
-    content: '',
-    x: 0,
-    y: 0
-  });
-
-  const greenBaseRef = useRef(null);
-  const [dynamicRadius, setDynamicRadius] =useState(160);
-
-  // Check Auth
-  useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    const email = localStorage.getItem('userEmail');
-    const brand = localStorage.getItem('userBrand');
-    if (token) {
-      setIsAuthenticated(true);
-      setJwtToken(token); // <- TOKEN É CARREGADO AQUI
-      setUserInfo({ email, brand });
-    }
-    setCheckingAuth(false);
-  }, []);
-
-  // Login Handler
-  const handleLoginSuccess = (data) => {
-    setIsAuthenticated(true);
-    setJwtToken(data.jwt); // <- TOKEN É DEFINIDO AQUI
-    setUserInfo({
-      email: localStorage.getItem('userEmail'),
-      brand: localStorage.getItem('userBrand'),
-      ...data
-    });
-  };
-
-  // --- 3. CORREÇÃO: `handleLogout` com `useCallback` ---
-  // Isso é necessário para o useEffect de registro não disparar a cada render
-  const handleLogout = useCallback(() => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('userBrand');
-    setIsAuthenticated(false);
-    setUserInfo(null);
-    setJwtToken(null);
-    setActivePage('roulette');
-    setGameUrl('');
-  }, []); // Array de dependência vazio
-
-  // --- 4. CORREÇÃO: REGISTRAR O CALLBACK DE LOGOUT ---
-  // Conecta o `handleLogout` ao `errorHandler`
-  useEffect(() => {
-    registerLogoutCallback(handleLogout);
-    
-    // Limpa o callback quando o componente for desmontado
-    return () => {
-      clearLogoutCallback();
-    };
-  }, [handleLogout]); // Depende do handleLogout (que agora é memoizado)
-  
-  // Close Game Handler
-  const handleCloseGame = useCallback(() => {
-    setGameUrl('');
-    setLaunchError('');
-  }, []);
-
-  // Launch Game Handler
-  // NENHUMA MUDANÇA NECESSÁRIA AQUI. 
-  // O código já estava usando `processErrorResponse` e `translateNetworkError`.
-  // O problema era que essas funções não estavam importadas.
-  // Agora que estão, esta função funcionará como esperado.
-  const handleLaunchGame = async () => {
-    // <-- 3. EXIBIR O DASHBOARD IMEDIATAMENTE AO CLICAR -->
-    // (Esta lógica já estava no seu código, mantida)
-    // setIsDashboardVisible(true); 
-    // Nota: A variável 'isDashboardVisible' não parece existir, 
-    // mas mantive seu comentário/lógica original.
-    
-    setIsLaunching(true);
-    setLaunchError('');
-    const gameId = ROULETTE_GAME_IDS[selectedRoulette];
-    
-    if (!gameId || !jwtToken) {
-      setLaunchError('Erro interno: ID do jogo ou Token não encontrado.');
-      setIsLaunching(false);
-      return;
-    }
-  
-    try {
-      const response = await fetch(`${API_URL}/start-game/${gameId}`, { 
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${jwtToken}`
-        }
+  const handleLoad = useCallback(() => {
+    setIsLoaded(true);
+    if (wrapperRef.current) {
+      requestAnimationFrame(() => {
+        wrapperRef.current.style.opacity = '0.99';
+        requestAnimationFrame(() => {
+          wrapperRef.current.style.opacity = '1';
+        });
       });
-  
-      const rawResponseText = await response.text();
-      console.log('🔍 Resposta completa do start-game:', rawResponseText);
-  
-      if (response.ok) {
-        try {
-          const data = JSON.parse(rawResponseText);
-          console.log('📦 Dados parseados:', data);
-
-          const apiErrorMessage = data?.original?.message || data?.message;
-          
-          if ((data?.original?.status === 'error' || data?.status === 'error') && apiErrorMessage) {
-            
-            console.error("❌ Erro interno da API (200 OK) detectado:", apiErrorMessage);
-
-            if (apiErrorMessage.includes('Failed to request Softswiss Url')) {
-              setLaunchError('Problemas com a provedora Evolution. Tente novamente em instantes.');
-            } else {
-              setLaunchError(`Erro da API: ${apiErrorMessage.substring(0, 100)}...`);
-            }
-            
-            return; 
-          }
-  
-          let gameUrl = null;
-          gameUrl = data?.launchOptions?.launch_options?.game_url;
-          if (!gameUrl) gameUrl = data?.launch_options?.game_url;
-          if (!gameUrl) gameUrl = data?.game_url;
-          if (!gameUrl) gameUrl = data?.url;
-          if (!gameUrl) gameUrl = data?.gameURL; 
-          
-          if (!gameUrl) {
-            const findGameUrl = (obj) => {
-              for (let key in obj) {
-                if (key === 'game_url' && typeof obj[key] === 'string') return obj[key];
-                if (typeof obj[key] === 'object' && obj[key] !== null) {
-                  const result = findGameUrl(obj[key]);
-                  if (result) return result;
-                }
-              }
-              return null;
-            };
-            gameUrl = findGameUrl(data);
-          }
-  
-          if (gameUrl) {
-            console.log("✅ URL do jogo encontrada:", gameUrl);
-            setGameUrl(gameUrl);
-            setLaunchError('');
-          } else {
-            console.warn("❌ game_url não encontrada na resposta. Estrutura completa:", data);
-            setLaunchError('URL do jogo não encontrada na resposta da API. Estrutura: ' + JSON.stringify(data).substring(0, 200));
-          }
-  
-        } catch (jsonError) {
-          console.error("❌ Erro ao parsear JSON:", jsonError);
-          console.error("📄 Resposta original:", rawResponseText);
-          setLaunchError('Resposta da API não é um JSON válido: ' + rawResponseText.substring(0, 100));
-        }
-      } else {
-        // ✨ AGORA VAI FUNCIONAR: `processErrorResponse` está importado
-        const errorInfo = await processErrorResponse(response, 'game');
-        displayError(errorInfo, setLaunchError, { showIcon: true });
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Game Launch Error:', errorInfo.originalError);
-        }
-      }
-    } catch (err) {
-      // ✨ AGORA VAI FUNCIONAR: `translateNetworkError` está importado
-      const errorInfo = translateNetworkError(err);
-      displayError(errorInfo, setLaunchError, { showIcon: true });
-      console.error('Network Error:', err);
-    } finally {
-      setIsLaunching(false);
     }
-  };
-  
-  // Radius Effect
-  useEffect(() => {
-    const calculateRadius = () => {
-      if (greenBaseRef.current) {
-        const greenBaseWidth = greenBaseRef.current.clientWidth;
-        const newRadius = (greenBaseWidth / 2) * 0.879;
-        setDynamicRadius(newRadius);
-      }
-    };
-    calculateRadius();
-    window.addEventListener('resize', calculateRadius);
-    return () => window.removeEventListener('resize', calculateRadius);
   }, []);
-
-  // Fetch History
-  const fetchHistory = useCallback(async () => {
-    if (!userInfo || !userInfo.email) {
-      console.warn("fetchHistory: Aguardando userInfo com email.");
-      return;
-    }
-    try {
-      const response = await fetch(`${API_URL}/api/full-history?source=${selectedRoulette}&userEmail=${encodeURIComponent(userInfo.email)}`);
-      
-      if (!response.ok) {
-        // --- 5. CORREÇÃO: USAR O ERROR HANDLER AQUI TAMBÉM ---
-        // (Opcional, mas recomendado para consistência)
-        const errorInfo = await processErrorResponse(response, 'history');
-        
-        if (errorInfo.requiresPaywall || response.status === 403) {
-          console.warn('Assinatura inválida ou expirada. Abrindo paywall.');
-          setCheckoutUrl(errorInfo.checkoutUrl || '');
-          setIsPaywallOpen(true);
-        }
-        
-        // Joga o erro para o catch abaixo
-        throw new Error(errorInfo.message);
-      }
-
-      const data = await response.json();
-      const convertedData = data.map(item => {
-        const num = parseInt(item.signal, 10);
-        return {
-          number: num,
-          color: getNumberColor(num),
-          signal: item.signal,
-          gameId: item.gameId,
-          signalId: item.signalId,
-          date: item.timestamp
-        };
-      });
-      setSpinHistory(convertedData);
-      setSelectedResult(convertedData[0] || null);
-    } catch (error) {
-      console.error("Erro ao buscar histórico:", error.message);
-      // Aqui você poderia usar o `displayError` em um estado de erro do histórico
-      setSpinHistory([]);
-      setSelectedResult(null);
-    }
-  }, [selectedRoulette, userInfo]); // Removido processErrorResponse das dependências
-
-  // Fetch History Effect
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    if (!userInfo) return;
-    fetchHistory();
-    const intervalId = setInterval(fetchHistory, 5000);
-    return () => clearInterval(intervalId);
-  }, [fetchHistory, isAuthenticated, userInfo]);
-
-  // Popup Handlers
-  const handleNumberClick = useCallback((number) => {
-    setPopupNumber(number);
-    setIsPopupOpen(true);
-  }, []);
-
-  const closePopup = useCallback(() => {
-    setIsPopupOpen(false);
-    setPopupNumber(null);
-  }, []);
-
-  // filteredSpinHistory (useMemo)
-  const filteredSpinHistory = useMemo(() => {
-    if (historyFilter === 'all') {
-      return spinHistory;
-    }
-    return spinHistory.slice(0, Number(historyFilter));
-  }, [spinHistory, historyFilter]);
-
-  
-  // stats (useMemo)
-  const stats = useMemo(() => {
-    const historyCount = filteredSpinHistory.length; // Renomeado para evitar conflito
-    
-    if (historyCount === 0) return { historyFilter: 0, colorFrequencies: { red: '0.0', black: '0.0', green: '0.0' }, latestNumbers: [] };
-    
-    const colorCounts = filteredSpinHistory.reduce((acc, curr) => {
-      acc[curr.color] = (acc[curr.color] || 0) + 1;
-      return acc;
-    }, {});
-    
-    return {
-      historyFilter: historyCount, // Usar o valor calculado
-      colorFrequencies: {
-        red: ((colorCounts.red || 0) / historyCount * 100).toFixed(1),
-        black: ((colorCounts.black || 0) / historyCount * 100).toFixed(1),
-        green: ((colorCounts.green || 0) / historyCount * 100).toFixed(1)
-      },
-      latestNumbers: spinHistory.slice(0, 100), 
-    };
-  }, [filteredSpinHistory, spinHistory]);
-
-  // popupStats (useMemo)
-  const popupStats = useMemo(() => {
-    if (popupNumber === null || !isPopupOpen) return null;
-    
-    const occurrences = [];
-    filteredSpinHistory.forEach((spin, index) => {
-      if (spin.number === popupNumber) occurrences.push({ index });
-    });
-    
-    const count = occurrences.length;
-    const historyCount = filteredSpinHistory.length; // Renomeado
-    const frequency = historyCount > 0 ? ((count / historyCount) * 100).toFixed(2) : '0.00';
-    
-    const nextOccurrences = occurrences.slice(0, 5).map(occ => {
-      const prevSpins = filteredSpinHistory.slice(occ.index + 1, occ.index + 1 + 5).map(s => s.number);
-      return { spinsAgo: occ.index + 1, prevSpins };
-    });
-    
-    return {
-      count, frequency, nextOccurrences, 
-      historyFilter: historyCount, // Usar o valor calculado
-      lastHitAgo: occurrences.length > 0 ? occurrences[0].index + 1 : null
-    };
-  }, [popupNumber, isPopupOpen, filteredSpinHistory]);
-
-  // numberPullStats (useMemo)
-  const numberPullStats = useMemo(() => {
-    const pullMap = new Map();
-
-    for (let i = 0; i <= 36; i++) {
-      pullMap.set(i, new Map());
-    }
-
-    for (let i = 1; i < spinHistory.length; i++) {
-      const currentNumber = spinHistory[i].number;
-      const nextNumber = spinHistory[i - 1].number;
-      
-      const numberStats = pullMap.get(currentNumber);
-      const currentPullCount = numberStats.get(nextNumber) || 0;
-      numberStats.set(nextNumber, currentPullCount + 1);
-    }
-        
-    return pullMap;
-  }, [spinHistory]);
-  
-  // numberPreviousStats (useMemo)
-  const numberPreviousStats = useMemo(() => {
-    const prevMap = new Map();
-
-    for (let i = 0; i <= 36; i++) {
-      prevMap.set(i, new Map());
-    }
-
-    for (let i = 0; i < spinHistory.length - 1; i++) {
-      const currentNumber = spinHistory[i].number;
-      const previousNumber = spinHistory[i + 1].number;
-      
-      const numberStats = prevMap.get(currentNumber);
-      const currentPrevCount = numberStats.get(previousNumber) || 0;
-      numberStats.set(previousNumber, currentPrevCount + 1);
-    }
-        
-    return prevMap;
-  }, [spinHistory])
-
-  
-  const handleRacetrackClick = (number) => {
-    if (window.innerWidth <= 768) { 
-      // setSelectedNumber(number); // 'setSelectedNumber' não está definido
-      handleNumberClick(number); // Chamar o popup em vez disso
-    } else {
-         handleNumberClick(number);
-    }
-  };
-
-  // --- (Lógica de clique para tooltip - manter a sua) ---
-  const handleResultBoxClick = (e, result) => {
-    // Lógica para mobile (tooltip)
-    if (window.innerWidth <= 1024) { 
-      e.preventDefault(); // Previne o hover de re-ativar
-      
-      const tooltipTitle = formatPullTooltip(
-        result.number, 
-        numberPullStats,
-        numberPreviousStats
-      );
-      
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = rect.left + window.scrollX + (rect.width / 2);
-      let y = rect.top + window.scrollY - 10; // 10px acima
-      
-      setMobileTooltip(prev => {
-        // Se clicar no mesmo, fecha
-        if (prev.visible && prev.content === tooltipTitle) {
-          return { visible: false, content: '', x: 0, y: 0 };
-        }
-        // Se não, mostra o novo
-        return {
-          visible: true,
-          content: tooltipTitle,
-          x: x, 
-          y: y
-        };
-      });
-    } else {
-      // Lógica para desktop (abrir popup)
-      handleNumberClick(result.number);
-    }
-  };
-
-  const closeMobileTooltip = () => {
-    setMobileTooltip({ visible: false, content: '', x: 0, y: 0 });
-  };
-  // --- Fim da Lógica de Tooltip ---
-
-
-  if (checkingAuth) {
-    return (
-      <div style={{
-        minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'linear-gradient(135deg, #064e3b 0%, #065f46 50%, #064e3b 100%)',
-        color: 'white', fontSize: '1.5rem'
-      }}>
-        Carregando...
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <Login 
-              onLoginSuccess={handleLoginSuccess} 
-              setIsPaywallOpen={setIsPaywallOpen}
-              setCheckoutUrl={setCheckoutUrl}
-           />;
-  }
 
   return (
-    <>
-      <GlobalStyles />
-      
-      {/* Tooltip Flutuante e Backdrop (zIndex alto para ficar sobre tudo) */}
-      {mobileTooltip.visible && (
-        <div 
-          style={{
-            position: 'fixed',
-            top: 0, left: 0, right: 0, bottom: 0,
-            zIndex: 1999 
-          }}
-          onClick={closeMobileTooltip}
-        />
-      )}
-      
-      {mobileTooltip.visible && (
-        <div 
-          className="mobile-tooltip" // Você precisará estilizar isso no CSS
-          style={{
-            position: 'fixed',
-            top: mobileTooltip.y,
-            left: mobileTooltip.x,
-            transform: 'translate(-50%, -100%)', // Centraliza e posiciona acima
-            zIndex: 2000,
-            opacity: 1,
-            background: '#111827',
-            color: 'white',
-            padding: '10px 15px',
-            borderRadius: '8px',
-            border: '1px solid #ca8a04',
-            boxShadow: '0 5px 15px rgba(0,0,0,0.5)',
-            whiteSpace: 'pre-wrap', // Mantém as quebras de linha do \n
-            pointerEvents: 'none',
-          }}
-        >
-          <div className="mobile-tooltip-content">
-            {/* Split para renderizar quebras de linha */}
-            {mobileTooltip.content.split('\n').map((line, index) => (
-              <span key={index} style={{ display: 'block' }}>{line}</span>
-            ))}
-          </div>
-        </div>
-      )}
-      {/* Fim do Tooltip */}
-
-      <div className="navbar">
-        <div className="navbar-left">
-        </div>
-        <div className="navbar-right">
-          {/* {userInfo && (
-            <div className="user-info">
-              <span className="user-info-email">{userInfo.email}</span>
-              <span className="user-info-brand">
-                {userInfo.brand ? userInfo.brand.charAt(0).toUpperCase() + userInfo.brand.slice(1) : ''}
-              </span>
-            </div>
-          )} */}
-
-          {/* --- ALTERAÇÃO AQUI --- */}
-          {/* O href agora é dinâmico e inclui o jwtToken */}
-          <a 
-            href={`https://betou.bet.br/`}
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="nav-btn"
-            title="Abrir o site Betou.bet.br em uma nova aba (Tentativa de SSO)"
-            style={{ textDecoration: 'none' }}
-          >
-            <ExternalLink size={18} />
-            Acesse a Plataforma
-          </a>
-          {/* --- FIM DA ALTERAÇÃO --- */}
-
-          <button 
-            onClick={handleLogout}
-            className="logout-btn"
-            title="Sair"
-          >
-            <LogOut size={18} /> Sair
-          </button>
-        </div>
-      </div>
-
-      {activePage === 'roulette' && (
-        <div className="container">
-          
-          <div className="stats-dashboard">
-            <h3 className="dashboard-title">Estatísticas e Ações</h3>
-            <div className="stat-card">
-
-              <div style={{
-                display: 'flex',
-                gap: '1rem',
-                alignItems: 'flex-start',
-                marginBottom: '1rem'
-              }}>
-                
-                <div style={{ flex: 1 }}>
-                  <h4 className="stat-title" style={{ 
-                    marginBottom: '0.75rem', 
-                    justifyContent: 'flex-start'
-                  }}>
-                    <Layers size={20} /> Roletas
-                  </h4>
-                  <select className="roulette-selector" value={selectedRoulette}
-                    onChange={(e) => {
-                      setSelectedRoulette(e.target.value);
-                      setLaunchError('');
-                    }}>
-                    {Object.keys(ROULETTE_SOURCES).map(key => (
-                      <option key={key} value={key}>{ROULETTE_SOURCES[key]}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div style={{ flex: 1 }}>
-                  <h4 className="stat-title" style={{ 
-                    marginBottom: '0.75rem', 
-                    justifyContent: 'flex-start'
-                  }}>
-                    <Filter size={20} /> Rodadas
-                  </h4>
-                  <select 
-                    className="roulette-selector" 
-                    value={historyFilter}
-                    onChange={(e) => setHistoryFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                  >
-                    {filterOptions.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <button
-                onClick={handleLaunchGame}
-                disabled={isLaunching || !ROULETTE_GAME_IDS[selectedRoulette]}
-                title={!ROULETTE_GAME_IDS[selectedRoulette] ? "Este jogo não possui integração para iniciar." : `Iniciar ${ROULETTE_SOURCES[selectedRoulette]}`}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  fontSize: '1rem',
-                  fontWeight: 'bold',
-                  color: '#111827',
-                  background: 'linear-gradient(90deg, #ca8a04 0%, #eab308 100%)',
-                  border: 'none',
-                  borderRadius: '0.5rem',
-                  cursor: (isLaunching || !ROULETTE_GAME_IDS[selectedRoulette]) ? 'not-allowed' : 'pointer',
-                  opacity: (isLaunching || !ROULETTE_GAME_IDS[selectedRoulette]) ? 0.6 : 1,
-                  transition: 'all 0.2s'
-                }}
-              >
-                {isLaunching ? (
-                  <>
-                    <div style={{ width: '1.25rem', height: '1.25rem', border: '2px solid #111827', borderTop: '2px solid transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-                    Iniciando...
-                  </>
-                ) : (
-                  <>
-                    <PlayCircle size={20} />
-                    Iniciar {ROULETTE_SOURCES[selectedRoulette]}
-                  </>
-                )}
-              </button>
-              
-              {launchError && (
-                <p style={{color: '#f87171', fontSize: '0.875rem', marginTop: '0.75rem', textAlign: 'center'}}>
-                  {/* O `displayError` já formata com ícone, então podemos remover o {launchError} simples */}
-                  {launchError}
-                </p>
-              )}
-            </div>
-            
-            <div className="stat-card">
-                  <div className="stat-card">
-              <h4 className="stat-title"><BarChart3 size={10} /> Total de Sinais</h4>
-             <p className="stat-value-lg">{filteredSpinHistory.length}</p>
-            </div>
-                  <div style={{marginTop: '2rem', width: '100%', maxWidth: '800px'}}>
-                    {stats.historyFilter >= 50 ? (
-                      <MasterDashboard 
-                        spinHistory={filteredSpinHistory} 
-                        onSignalUpdate={setEntrySignals}
-                      />
-
-                    ) : (
-                      <div className="stat-card" style={{background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', border: '1px solid rgba(253, 224, 71, 0.2)', color: '#9ca3af', padding: '2rem', textAlign: 'center'}}>
-                        Aguardando {50 - stats.historyFilter} spins (no filtro atual) para iniciar o Master Dashboard...
-                      </div>
-                    )}
-                  </div>
-            </div>
-          </div>
-          <div className="racetrack-mobile-only">
-              <RacingTrack 
-                selectedResult={selectedResult}
-                onNumberClick={handleNumberClick}
-                entrySignals={entrySignals}
-              />
-            </div>
-          <div className="roulette-wrapper">
-            <div className="roulette-and-results">
-
-                  {gameUrl && (
-                      <div className="game-iframe-wrapper">
-                        <iframe 
-                          src={gameUrl} 
-                          title="Jogo de Roleta" 
-                          className="game-iframe"
-                          allowFullScreen 
-                        />
-                      </div>
-                  )}
-<div className="racetrack-and-results-wrapper">
-                      {/* Adicione a classe "racetrack-desktop-only" aqui */}
-                      <div className="racetrack-main-column racetrack-desktop-only">
-                        <RacingTrack 
-                          selectedResult={selectedResult}
-                          onNumberClick={handleNumberClick}
-                          entrySignals={entrySignals}
-                        />
-                      </div>
-                  </div>
-            </div>
-          </div>
-
-          {stats.historyFilter >= 50 ? (
-            <div className="analysis-panel">
-              
-              <div className="latest-results-compact">
-                <h4 className="latest-results-title">
-                  <Clock size={20} /> Últimos Resultados (100)
-                </h4>
-                  <div style={{ display:'flex', gap:'12px', alignItems:'center', fontSize:'20px', marginBottom:'15px', marginLeft:'25px' }}>
-                  <p className="stat-value-sm">Vermelho: <span style={{color: '#ef4444', fontWeight: 'bold'}}>{stats.colorFrequencies.red}%</span></p>
-                  <p className="stat-value-sm">Zero: <span style={{color: '#10b981', fontWeight: 'bold'}}>{stats.colorFrequencies.green}%</span></p>
-                  <p className="stat-value-sm">Preto: <span style={{color: '#d1d5db', fontWeight: 'bold'}}>{stats.colorFrequencies.black}%</span></p>
-              </div>
-
-                <div 
-                  className={`results-grid ${hoveredNumber !== null ? 'hover-active' : ''}`}
-                  onMouseLeave={() => setHoveredNumber(null)}
-                >
-                  {stats.latestNumbers.map((result, index) => {
-                    
-                    const isHighlighted = hoveredNumber !== null && result.number === hoveredNumber;
-                    
-                    const tooltipTitle = formatPullTooltip(
-                      result.number, 
-                      numberPullStats,
-                      numberPreviousStats
-                    ); 
-
-                    return (
-                      <div 
-                        key={index} 
-                        className={`result-number-box ${result.color} ${isHighlighted ? 'highlighted' : ''}`}
-                        onMouseEnter={() => setHoveredNumber(result.number)}
-                        
-                        onClick={(e) => handleResultBoxClick(e, result)} // Atualizado
-                        
-                        title={tooltipTitle} // Mantém para o desktop
-                      >
-                        {result.number}
-                      </div>
-                    );
-                  })}
-                </div>
-
-              </div>
-
-              <DeepAnalysisPanel 
-                spinHistory={filteredSpinHistory} 
-                setIsPaywallOpen={setIsPaywallOpen}
-              />
-            </div>
-          ) : (
-            <div className="analysis-panel" style={{
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              textAlign: 'center', 
-              color: '#9ca3af',
-              padding: '2rem'
-            }}>
-              <div className="stat-card" style={{
-                background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', 
-                border: '1px solid rgba(253, 224, 71, 0.2)', 
-                color: '#9ca3af',
-                marginBottom: 0
-              }}>
-                Aguardando {50 - stats.historyFilter} spins (no filtro atual) para iniciar o Painel de Análise...
-              </div>
-            </div>
-          )}
-
-        </div>
-      )}
-
-      {activePage === 'master' && (
-        <div style={{
-          padding: '2rem',
-          background: 'linear-gradient(135deg, #064e3b 0%, #065f46 50%, #064e3b 100%)',
-          minHeight: 'calc(100vh - 65px)'
-        }}>
-          {stats.historyFilter >= 50 ? (
-            <MasterDashboard 
-              spinHistory={filteredSpinHistory} 
-              onSignalUpdate={setEntrySignals}
-            />
-          ) : (
-            <div className="stat-card" style={{background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', border: '1px solid rgba(253, 224, 71, 0.2)', color: '#9ca3af', padding: '2rem', textAlign: 'center', maxWidth: '800px', margin: '0 auto'}}>
-              Aguardando {50 - stats.historyFilter} spins (no filtro atual) para iniciar o Master Dashboard...
-            </div>
-          )}
-        </div>
-      )}
-
-      <PaywallModal
-        isOpen={isPaywallOpen}
-        onClose={() => {setIsPaywallOpen(false);}} // CORRIGIDO: APENAS fecha o modal. Não desloga.
-        userId={userInfo?.email} 
-        checkoutUrl={checkoutUrl}
+    <div 
+      ref={wrapperRef}
+      className={`game-iframe-wrapper ${isLoaded ? 'loaded' : ''}`}
+    >
+      <iframe 
+        src={url} 
+        title="Jogo de Roleta" 
+        className="game-iframe"
+        allowFullScreen
+        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+        loading="lazy"
+        onLoad={handleLoad}
+        onError={onError}
       />
-
-      {/* Pop-up de Estatísticas (Nenhuma mudança necessária) */}
-      <NumberStatsPopup 
-        isOpen={isPopupOpen}
-        onClose={closePopup}
-        number={popupNumber}
-        stats={popupStats}
-      />
-    </>
+    </div>
   );
-};
+});
 
-const NumberStatsPopup = ({ isOpen, onClose, number, stats }) => {
+GameIframe.displayName = 'GameIframe';
+
+// === COMPONENTE NUMBER STATS POPUP ===
+const NumberStatsPopup = React.memo(({ isOpen, onClose, number, stats }) => {
   if (!isOpen || !stats) return null;
   const color = getNumberColor(number);
 
@@ -1507,7 +281,7 @@ const NumberStatsPopup = ({ isOpen, onClose, number, stats }) => {
           <div className={`popup-number-icon ${color}`}>{number}</div>
           <h2 className="popup-title">Análise do Número {number} (em {stats.historyFilter} spins)</h2>
         </div>
-        <div className="stats-grid">
+        <div className="popup-stats-grid">
           <div className="info-card">
             <p className="info-label"><Hash size={18} /> Ocorrências:</p>
             <p className="info-value">{stats.count} / {stats.historyFilter}</p>
@@ -1533,23 +307,764 @@ const NumberStatsPopup = ({ isOpen, onClose, number, stats }) => {
                 <p className="next-spins-label">Ocorrência #{stats.count - index} ({occ.spinsAgo} spins atrás)</p>
                 <div className="next-numbers-list">
                   {occ.prevSpins.length > 0 ? occ.prevSpins.map((num, i) => (
-                    <span key={i} className={`next-number ${getNumberColor(num)}`}
-                      title={`Spin #${stats.historyFilter - (occ.spinsAgo + i)} (${5-i}º Spin ANTES)`}>
+                    <span key={i} className={`next-number ${getNumberColor(num)}`}>
                       {num}
                     </span>
-                  )) : <span style={{color: '#9ca3af', fontStyle: 'italic'}}>Início do histórico</span>}
+                  )) : <span className="no-data">Início do histórico</span>}
                 </div>
               </div>
             ))
           ) : (
-            <p className="next-spins-none">O número {number} ainda não foi sorteado neste histórico.</p>
+            <p className="next-spins-none">O número {number} ainda não foi sorteado.</p>
           )}
         </div>
         <button onClick={onClose} className="popup-footer-btn">Fechar</button>
       </div>
     </div>
   );
+});
+
+NumberStatsPopup.displayName = 'NumberStatsPopup';
+
+// === HELPERS PARA CÁLCULOS ===
+const computePullStats = (history) => {
+  const pullMap = new Map();
+  for (let i = 0; i <= 36; i++) pullMap.set(i, new Map());
+  for (let i = 1; i < history.length; i++) {
+    const curr = history[i].number;
+    const next = history[i - 1].number;
+    const stats = pullMap.get(curr);
+    stats.set(next, (stats.get(next) || 0) + 1);
+  }
+  return pullMap;
 };
 
+const computePreviousStats = (history) => {
+  const prevMap = new Map();
+  for (let i = 0; i <= 36; i++) prevMap.set(i, new Map());
+  for (let i = 0; i < history.length - 1; i++) {
+    const curr = history[i].number;
+    const prev = history[i + 1].number;
+    const stats = prevMap.get(curr);
+    stats.set(prev, (stats.get(prev) || 0) + 1);
+  }
+  return prevMap;
+};
+
+// === COMPONENTE PRINCIPAL APP ===
+const App = () => {
+  // Auth States
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userInfo, setUserInfo] = useState(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [jwtToken, setJwtToken] = useState(null);
+  const [isPaywallOpen, setIsPaywallOpen] = useState(false);
+  const [checkoutUrl, setCheckoutUrl] = useState('');
+  
+  // App States
+  const [selectedRoulette, setSelectedRoulette] = useState(Object.keys(ROULETTE_SOURCES)[0]);
+  const [spinHistory, setSpinHistory] = useState([]);
+  const [selectedResult, setSelectedResult] = useState(null);
+  const [popupNumber, setPopupNumber] = useState(null);
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [activePage] = useState('roulette');
+  
+  // Game States
+  const [isLaunching, setIsLaunching] = useState(false);
+  const [launchError, setLaunchError] = useState('');
+  const [gameUrl, setGameUrl] = useState('');
+  const [iframeError, setIframeError] = useState(false);
+  
+  const [entrySignals, setEntrySignals] = useState([]);
+  const [historyFilter, setHistoryFilter] = useState(filterOptions[0].value);
+
+  // Mobile Tooltip State
+  const [mobileTooltip, setMobileTooltip] = useState({
+    visible: false,
+    content: '',
+    x: 0,
+    y: 0,
+    isBelow: false
+  });
+
+  // Pull stats calculados em idle
+  const [numberPullStats, setNumberPullStats] = useState(() => new Map());
+  const [numberPreviousStats, setNumberPreviousStats] = useState(() => new Map());
+
+  // Inactivity timeout ref
+  const inactivityTimeoutRef = useRef(null);
+
+  // Check Auth
+  useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    const email = localStorage.getItem('userEmail');
+    const brand = localStorage.getItem('userBrand');
+    if (token) {
+      setIsAuthenticated(true);
+      setJwtToken(token);
+      setUserInfo({ email, brand });
+    }
+    setCheckingAuth(false);
+  }, []);
+
+  // Login Handler
+  const handleLoginSuccess = useCallback((data) => {
+    setIsAuthenticated(true);
+    setJwtToken(data.jwt);
+    setUserInfo({
+      email: localStorage.getItem('userEmail'),
+      brand: localStorage.getItem('userBrand'),
+      ...data
+    });
+  }, []);
+
+  // Logout Handler
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userBrand');
+    setIsAuthenticated(false);
+    setUserInfo(null);
+    setJwtToken(null);
+    setGameUrl('');
+  }, []);
+
+  // Registrar logout callback
+  useEffect(() => {
+    registerLogoutCallback(handleLogout);
+    return () => clearLogoutCallback();
+  }, [handleLogout]);
+
+  // Monitor inatividade do iframe - logout após 15 minutos com aba em foco
+  useEffect(() => {
+    if (!gameUrl || !isAuthenticated) {
+      if (inactivityTimeoutRef.current) {
+        clearTimeout(inactivityTimeoutRef.current);
+        inactivityTimeoutRef.current = null;
+      }
+      return;
+    }
+
+    // AUMENTADO: 15 minutos em ms
+    const INACTIVITY_LIMIT = 5 * 60 * 1000; 
+
+    const resetInactivityTimer = () => {
+      if (inactivityTimeoutRef.current) {
+        clearTimeout(inactivityTimeoutRef.current);
+      }
+      
+      inactivityTimeoutRef.current = setTimeout(() => {
+        console.log('Usuário inativo por 15 minutos (com aba em foco) - executando logout');
+        handleLogout();
+        // RECOMENDAÇÃO: Substituir o alert() por um modal ou notificação "toast"
+        alert('Sessão encerrada por inatividade. Faça login novamente.');
+      }, INACTIVITY_LIMIT);
+    };
+
+    // --- LÓGICA CORRIGIDA ---
+    // PAUSA o timer se o usuário sair da aba
+    const handleWindowBlur = () => {
+      if (inactivityTimeoutRef.current) {
+        clearTimeout(inactivityTimeoutRef.current);
+      }
+    };
+    
+    // REINICIA o timer quando o usuário volta para a aba
+    const handleWindowFocus = () => resetInactivityTimer();
+    
+    // REINICIA o timer em qualquer atividade
+    const handlePageActivity = () => resetInactivityTimer();
+    // --- FIM DA LÓGICA CORRIGIDA ---
+
+    resetInactivityTimer(); // Inicia o timer na primeira vez
+
+    window.addEventListener('blur', handleWindowBlur);
+    window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('mousemove', handlePageActivity, { passive: true });
+    document.addEventListener('mousedown', handlePageActivity, { passive: true });
+    document.addEventListener('keydown', handlePageActivity, { passive: true });
+    document.addEventListener('touchstart', handlePageActivity, { passive: true });
+
+    return () => {
+      if (inactivityTimeoutRef.current) {
+        clearTimeout(inactivityTimeoutRef.current);
+      }
+      window.removeEventListener('blur', handleWindowBlur);
+      window.removeEventListener('focus', handleWindowFocus);
+      document.removeEventListener('mousemove', handlePageActivity);
+      document.removeEventListener('mousedown', handlePageActivity);
+      document.removeEventListener('keydown', handlePageActivity);
+      document.removeEventListener('touchstart', handlePageActivity);
+    };
+  }, [gameUrl, isAuthenticated, handleLogout]);
+
+  // Calcular pull stats em idle callback
+  useEffect(() => {
+    if (spinHistory.length === 0) return;
+
+    const timeoutId = setTimeout(() => {
+      const compute = () => {
+        const pullStats = computePullStats(spinHistory);
+        const prevStats = computePreviousStats(spinHistory);
+        setNumberPullStats(pullStats);
+        setNumberPreviousStats(prevStats);
+      };
+
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(compute, { timeout: 2000 });
+      } else {
+        compute();
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [spinHistory]);
+
+  // Detectar bug de rendering
+  useEffect(() => {
+    if (!gameUrl) {
+      setIframeError(false);
+      return;
+    }
+
+    const checkRenderingHealth = () => {
+      const container = document.querySelector('.app-container');
+      if (!container) return;
+      
+      const rect = container.getBoundingClientRect();
+      const isVisible = rect.width > 0 && rect.height > 0;
+      
+      if (!isVisible) {
+        document.body.style.display = 'none';
+        void document.body.offsetHeight;
+        document.body.style.display = '';
+        
+        setTimeout(() => {
+          const stillBroken = !document.querySelector('.app-container')?.offsetHeight;
+          if (stillBroken) setIframeError(true);
+        }, 100);
+      }
+    };
+
+    const timeoutId = setTimeout(checkRenderingHealth, 1000);
+    return () => clearTimeout(timeoutId);
+  }, [gameUrl]);
+
+  // Launch Game Handler
+  const handleLaunchGame = useCallback(async () => {
+    setIsLaunching(true);
+    setLaunchError('');
+    const gameId = ROULETTE_GAME_IDS[selectedRoulette];
+    
+    if (!gameId || !jwtToken) {
+      setLaunchError('Erro interno: ID do jogo ou Token não encontrado.');
+      setIsLaunching(false);
+      return;
+    }
+  
+    try {
+      const response = await fetch(`${API_URL}/start-game/${gameId}`, { 
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${jwtToken}` }
+      });
+  
+      const rawResponseText = await response.text();
+  
+      if (response.ok) {
+        try {
+          const data = JSON.parse(rawResponseText);
+          const apiErrorMessage = data?.original?.message || data?.message;
+          
+          if ((data?.original?.status === 'error' || data?.status === 'error') && apiErrorMessage) {
+            if (apiErrorMessage.includes('Failed to request Softswiss Url')) {
+              setLaunchError('Problemas com a provedora Evolution. Tente novamente.');
+            } else {
+              setLaunchError(`Erro da API: ${apiErrorMessage.substring(0, 100)}...`);
+            }
+            return;
+          }
+  
+          let gameUrlFound = data?.launchOptions?.launch_options?.game_url
+            || data?.launch_options?.game_url
+            || data?.game_url
+            || data?.url
+            || data?.gameURL;
+          
+          if (!gameUrlFound) {
+            const findGameUrl = (obj) => {
+              for (let key in obj) {
+                if (key === 'game_url' && typeof obj[key] === 'string') return obj[key];
+                if (typeof obj[key] === 'object' && obj[key] !== null) {
+                  const result = findGameUrl(obj[key]);
+                  if (result) return result;
+                }
+              }
+              return null;
+            };
+            gameUrlFound = findGameUrl(data);
+          }
+  
+          if (gameUrlFound) {
+            setGameUrl(gameUrlFound);
+            setLaunchError('');
+          } else {
+            setLaunchError('URL do jogo não encontrada.');
+          }
+        } catch (jsonError) {
+          setLaunchError('Resposta inválida da API.');
+        }
+      } else {
+        const errorInfo = await processErrorResponse(response, 'game');
+        displayError(errorInfo, setLaunchError, { showIcon: true });
+      }
+    } catch (err) {
+      const errorInfo = translateNetworkError(err);
+      displayError(errorInfo, setLaunchError, { showIcon: true });
+    } finally {
+      setIsLaunching(false);
+    }
+  }, [selectedRoulette, jwtToken]);
+
+  // === CÓDIGO MOVIDO PARA CÁ (LOCAL CORRETO) ===
+  // Auto-launch game on login
+  useEffect(() => {
+    // Se está autenticado, E o jwtToken está pronto, E o jogo ainda não foi iniciado, E não estamos já iniciando um...
+    if (isAuthenticated && jwtToken && !gameUrl && !isLaunching) { 
+      console.log('Autenticado, iniciando jogo automaticamente...');
+      handleLaunchGame();
+    }
+  }, [isAuthenticated, jwtToken, gameUrl, isLaunching, handleLaunchGame]);
+  // === FIM DO CÓDIGO MOVIDO ===
+
+  // Fetch History
+  const fetchHistory = useCallback(async () => {
+    if (!userInfo?.email) return;
+    
+    try {
+      const response = await fetch(`${API_URL}/api/full-history?source=${selectedRoulette}&userEmail=${encodeURIComponent(userInfo.email)}`);
+      
+      if (!response.ok) {
+        const errorInfo = await processErrorResponse(response, 'history');
+        if (errorInfo.requiresPaywall || response.status === 403) {
+          setCheckoutUrl(errorInfo.checkoutUrl || '');
+          setIsPaywallOpen(true);
+        }
+        throw new Error(errorInfo.message);
+      }
+
+      const data = await response.json();
+      
+      setSpinHistory(prev => {
+        if (data.length === 0) return prev;
+        
+        if (prev.length === 0) {
+          const converted = data.map(item => ({
+            number: parseInt(item.signal, 10),
+            color: getNumberColor(parseInt(item.signal, 10)),
+            signal: item.signal,
+            gameId: item.gameId,
+            signalId: item.signalId,
+            date: item.timestamp
+          }));
+          setSelectedResult(converted[0] || null);
+          return converted;
+        }
+        
+        const latestId = prev[0]?.signalId;
+        const newItems = [];
+        
+        for (const item of data) {
+          if (item.signalId === latestId) break;
+          newItems.push({
+            number: parseInt(item.signal, 10),
+            color: getNumberColor(parseInt(item.signal, 10)),
+            signal: item.signal,
+            gameId: item.gameId,
+            signalId: item.signalId,
+            date: item.timestamp
+          });
+        }
+        
+        if (newItems.length === 0) return prev;
+        
+        setSelectedResult(newItems[0]);
+        return [...newItems, ...prev];
+      });
+    } catch (error) {
+      console.error("Erro ao buscar histórico:", error.message);
+    }
+  }, [selectedRoulette, userInfo]);
+
+  // Fetch History Effect
+  useEffect(() => {
+    if (!isAuthenticated || !userInfo) return;
+    fetchHistory();
+    const intervalId = setInterval(fetchHistory, 5000);
+    return () => clearInterval(intervalId);
+  }, [fetchHistory, isAuthenticated, userInfo]);
+
+  // Popup Handlers
+  const handleNumberClick = useCallback((number) => {
+    setPopupNumber(number);
+    setIsPopupOpen(true);
+  }, []);
+
+  const closePopup = useCallback(() => {
+    setIsPopupOpen(false);
+    setPopupNumber(null);
+  }, []);
+
+  // Mobile Tooltip Handlers
+  const handleResultBoxClick = useCallback((e, result) => {
+    if (window.innerWidth <= 1024) { 
+      e.preventDefault();
+      
+      const tooltipTitle = formatPullTooltip(result.number, numberPullStats, numberPreviousStats);
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = rect.left + (rect.width / 2);
+      let y = rect.top - 10;
+      let isBelow = false;
+      
+      if (y < 100) {
+        y = rect.bottom + 10;
+        isBelow = true;
+      }
+      
+      setMobileTooltip(prev => {
+        if (prev.visible && prev.content === tooltipTitle) {
+          return { visible: false, content: '', x: 0, y: 0, isBelow: false };
+        }
+        return { visible: true, content: tooltipTitle, x, y, isBelow };
+      });
+    } else {
+      handleNumberClick(result.number);
+    }
+  }, [numberPullStats, numberPreviousStats, handleNumberClick]);
+
+  const closeMobileTooltip = useCallback(() => {
+    setMobileTooltip({ visible: false, content: '', x: 0, y: 0, isBelow: false });
+  }, []);
+
+  // Memoized Values
+  const filteredSpinHistory = useMemo(() => {
+    if (historyFilter === 'all') return spinHistory;
+    return spinHistory.slice(0, Number(historyFilter));
+  }, [spinHistory, historyFilter]);
+
+  const stats = useMemo(() => {
+    const historyCount = filteredSpinHistory.length;
+    if (historyCount === 0) {
+      return { 
+        historyFilter: 0, 
+        colorFrequencies: { red: '0.0', black: '0.0', green: '0.0' }, 
+        latestNumbers: [] 
+      };
+    }
+    
+    const colorCounts = filteredSpinHistory.reduce((acc, curr) => {
+      acc[curr.color] = (acc[curr.color] || 0) + 1;
+      return acc;
+    }, {});
+    
+    return {
+      historyFilter: historyCount,
+      colorFrequencies: {
+        red: ((colorCounts.red || 0) / historyCount * 100).toFixed(1),
+        black: ((colorCounts.black || 0) / historyCount * 100).toFixed(1),
+        green: ((colorCounts.green || 0) / historyCount * 100).toFixed(1)
+      },
+      latestNumbers: spinHistory.slice(0, 100),
+    };
+  }, [filteredSpinHistory, spinHistory]);
+
+  const popupStats = useMemo(() => {
+    if (popupNumber === null || !isPopupOpen) return null;
+    
+    const occurrences = [];
+    filteredSpinHistory.forEach((spin, index) => {
+      if (spin.number === popupNumber) occurrences.push({ index });
+    });
+    
+    const count = occurrences.length;
+    const historyCount = filteredSpinHistory.length;
+    const frequency = historyCount > 0 ? ((count / historyCount) * 100).toFixed(2) : '0.00';
+    
+    const nextOccurrences = occurrences.slice(0, 5).map(occ => {
+      const prevSpins = filteredSpinHistory.slice(occ.index + 1, occ.index + 6).map(s => s.number);
+      return { spinsAgo: occ.index + 1, prevSpins };
+    });
+    
+    return {
+      count, frequency, nextOccurrences, historyFilter: historyCount,
+      lastHitAgo: occurrences.length > 0 ? occurrences[0].index + 1 : null
+    };
+  }, [popupNumber, isPopupOpen, filteredSpinHistory]);
+
+  // Loading State
+  if (checkingAuth) {
+    return (
+      <div className="loading-screen">
+        <div className="loading-spinner-large"></div>
+        <p>Carregando...</p>
+      </div>
+    );
+  }
+
+  // Not Authenticated
+  if (!isAuthenticated) {
+    return <Login 
+      onLoginSuccess={handleLoginSuccess} 
+      setIsPaywallOpen={setIsPaywallOpen}
+      setCheckoutUrl={setCheckoutUrl}
+    />;
+  }
+
+  // Main Render
+  return (
+    <div className="app-root">
+      {/* Mobile Tooltip */}
+      {mobileTooltip.visible && (
+        <>
+          <div className="tooltip-backdrop" onClick={closeMobileTooltip} />
+          <div 
+            className="mobile-tooltip"
+            style={{
+              position: 'fixed',
+              top: mobileTooltip.y,
+              left: mobileTooltip.x,
+              transform: mobileTooltip.isBelow ? 'translate(-50%, 0)' : 'translate(-50%, -100%)',
+              zIndex: 2000,
+            }}
+          >
+            {mobileTooltip.content.split('\n').map((line, index) => (
+              <span key={index} className="tooltip-line">{line}</span>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Iframe Error Fallback */}
+      {iframeError && (
+        <div className="iframe-error-overlay">
+          <div className="iframe-error-content">
+            <p>⚠️ Erro de renderização detectado</p>
+            <button onClick={() => {
+              setGameUrl('');
+              setIframeError(false);
+              window.location.reload();
+            }}>
+              Recarregar Página
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Navbar */}
+      <nav className="navbar">
+        <div className="navbar-left"></div>
+        <div className="navbar-right">
+          <a 
+            href="https://betou.bet.br/"
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="nav-btn"
+          >ENTRE NA PLATAFORMA<img src={W600} alt="Logo" style={{ height: "15px" }} />
+            <span className="nav-btn-text"></span>
+          </a>
+          <button onClick={handleLogout} className="logout-btn">
+            <LogOut size={18} />
+            <span className="logout-btn-text">Sair</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      {activePage === 'roulette' && (
+        <main className="app-container">
+          {/* Sidebar - Stats Dashboard */}
+          <aside className="stats-dashboard">
+            <h3 className="dashboard-title">Estatísticas e Ações</h3>
+            
+            {/* Selectors */}
+            <div className="selectors-card">
+              <div className="selectors-grid">
+                <div className="selector-group">
+                  <h4 className="selector-label">
+                    <Layers size={15} /> Roletas
+                  </h4>
+                  <select 
+                    className="roulette-selector" 
+                    value={selectedRoulette}
+                    onChange={(e) => {
+                      setSelectedRoulette(e.target.value);
+                      setLaunchError('');
+                      setGameUrl(''); // Adicionado: Força o auto-launch a rodar de novo se mudar a roleta
+                    }}
+                  >
+                    {Object.keys(ROULETTE_SOURCES).map(key => (
+                      <option key={key} value={key}>{ROULETTE_SOURCES[key]}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="selector-group">
+                  <h4 className="selector-label">
+                    <Filter size={15} /> Rodadas
+                  </h4>
+                  <select 
+                    className="roulette-selector" 
+                    value={historyFilter}
+                    onChange={(e) => setHistoryFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                  >
+                    {filterOptions.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <button
+                onClick={handleLaunchGame}
+                disabled={isLaunching || !ROULETTE_GAME_IDS[selectedRoulette]}
+                className="launch-button"
+              >
+                {isLaunching ? (
+                  <>
+                    <div className="spinner"></div>
+                    Iniciando...
+                  </>
+                ) : (
+                  <>
+                    <PlayCircle size={20} />
+                    {/* Alterado: Texto do botão agora reflete o auto-launch */}
+                    {gameUrl ? `Reiniciar ${ROULETTE_SOURCES[selectedRoulette]}` : `Iniciar ${ROULETTE_SOURCES[selectedRoulette]}`}
+                  </>
+                )}
+              </button>
+              
+              {launchError && (
+                <p className="launch-error">{launchError}</p>
+              )}
+            </div>
+            
+            {/* Stats Card */}
+            <div className="stats-card">
+              <h4 className="stats-card-title">
+                <BarChart3 size={18} /> Total de Sinais
+              </h4>
+              <p className="stats-card-value">{filteredSpinHistory.length}</p>
+            </div>
+
+            {/* Master Dashboard */}
+            <div className="master-dashboard-wrapper">
+              {stats.historyFilter >= 50 ? (
+                <MasterDashboard 
+                  spinHistory={filteredSpinHistory} 
+                  onSignalUpdate={setEntrySignals}
+                />
+              ) : (
+                <div className="waiting-card">
+                  Aguardando {50 - stats.historyFilter} spins para iniciar o Master Dashboard...
+                </div>
+              )}
+            </div>
+          </aside>
+
+          {/* Mobile Racetrack */}
+          <div className="racetrack-mobile-only">
+            <RacingTrack 
+              selectedResult={selectedResult}
+              onNumberClick={handleNumberClick}
+              entrySignals={entrySignals}
+            />
+          </div>
+
+          {/* Main Content Area */}
+          <section className="main-content">
+            <div className="game-area">
+              {gameUrl && (
+                <GameIframe 
+                  url={gameUrl} 
+                  onError={() => setLaunchError('Erro ao carregar o iframe do jogo.')}
+                />
+              )}
+              
+              {/* Desktop Racetrack */}
+              <div className="racetrack-desktop-only">
+                <RacingTrack 
+                  selectedResult={selectedResult}
+                  onNumberClick={handleNumberClick}
+                  entrySignals={entrySignals}
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Analysis Panel */}
+          <aside className="analysis-panel">
+            {stats.historyFilter >= 50 ? (
+              <>
+                <div className="results-section">
+                  <h4 className="section-title">
+                    <Clock size={20} /> Últimos Resultados (100)
+                  </h4>
+                  <div className="color-frequencies">
+                    <span className="freq-item">
+                      Vermelho: <strong className="red">{stats.colorFrequencies.red}%</strong>
+                    </span>
+                    <span className="freq-item">
+                      Zero: <strong className="green">{stats.colorFrequencies.green}%</strong>
+                    </span>
+                    <span className="freq-item">
+                      Preto: <strong className="black">{stats.colorFrequencies.black}%</strong>
+                    </span>
+                  </div>
+                <div className='latest-results'>
+
+                  <ResultsGrid 
+                    latestNumbers={stats.latestNumbers}
+                    numberPullStats={numberPullStats}
+                    numberPreviousStats={numberPreviousStats}
+                    onResultClick={handleResultBoxClick}
+                    />
+                </div>
+                    </div>
+
+                <div>
+                <DeepAnalysisPanel 
+                  spinHistory={filteredSpinHistory} 
+                  setIsPaywallOpen={setIsPaywallOpen}
+                />
+
+                </div>
+              </>
+            ) : (
+              <div className="waiting-panel">
+                <div className="waiting-card">
+                  Aguardando {50 - stats.historyFilter} spins para iniciar o Painel de Análise...
+                </div>
+              </div>
+            )}
+          </aside>
+        </main>
+      )}
+
+      {/* Modals */}
+      <PaywallModal
+        isOpen={isPaywallOpen}
+        onClose={() => setIsPaywallOpen(false)}
+        userId={userInfo?.email} 
+        checkoutUrl={checkoutUrl}
+      />
+
+      <NumberStatsPopup 
+        isOpen={isPopupOpen}
+        onClose={closePopup}
+        number={popupNumber}
+        stats={popupStats}
+      />
+    </div>
+  );
+};
 
 export default App;
