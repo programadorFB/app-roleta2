@@ -262,38 +262,32 @@
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: bold;
-  border-width: 1px;
-  border-style: solid;
+  border: none; /* REMOVIDO: border-width, border-style */
 }
 
 .badgeHot {
   background: rgba(239, 68, 68, 0.2);
   color: #fca5a5;
-  border-color: rgba(239, 68, 68, 0.3);
 }
 
 .badgeWarm {
   background: rgba(234, 179, 8, 0.2);
   color: #fde047;
-  border-color: rgba(234, 179, 8, 0.3);
 }
 
 .badgeNormal {
   background: rgba(209, 213, 219, 0.2);
   color: #e5e7eb;
-  border-color: rgba(209, 213, 219, 0.3);
 }
 
 .badgeCold {
   background: rgba(59, 130, 246, 0.2);
   color: #93c5fd;
-  border-color: rgba(59, 130, 246, 0.3);
 }
 
 .badgeFrozen {
   background: rgba(165, 243, 252, 0.2);
   color: #a5f3fc;
-  border-color: rgba(165, 243, 252, 0.3);
 }
 
 .progress-bar-fill {
@@ -449,7 +443,23 @@
     
     /* --- FIM: CSS DE TABELA RESPONSIVA --- */
 }
+@media (max-width: 480px) {
+.strategy-card {
+    width: 350px;
+}
+.analysis-content {
+    margin-left: -15px;
+}
 
+}
+@media (max-width: 360px) {
+.strategy-card {
+    width: 350px;
+}
+.analysis-content {
+    margin-left: -15px;
+}
+}
 /* Estados Hover para Interatividade */
 .stat-row:hover {
     background: rgba(255, 255, 255, 0.03);
@@ -483,7 +493,7 @@
     font-weight: bold;
     background: rgba(234, 179, 8, 0.2);
     color: #fde047;
-    border: 1px solid rgba(234, 179, 8, 0.3);
+    border: none; /* REMOVIDO: border anterior */
 }
 
 /* Tooltip styles */
