@@ -42,7 +42,7 @@
 }
 .card-title2{
   margin-top: 15px;
-  font-size: small;
+  font-size: 10px;
   margin-left: 40px;
 }
 .infoIcon {
@@ -93,8 +93,8 @@
   border-radius: 10px;
   padding-left: 10px;
     display: flex;
-  width: 61px;
-  /* backdrop-filter: blur(20px); */
+  width: 51px;
+  backdrop-filter: blur(20px);
   margin-left: -10px;
   flex-direction: column;
   gap: unset;
@@ -111,6 +111,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  margin-left: -3px;
   color: #cbd5e1;
   font-size: 0.5rem;
   font-weight: 600;
@@ -121,9 +122,10 @@
 }
 
 .miniCardScore {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   font-weight: 700;
   text-align: center;
+  margin-left: 5px;
   text-shadow: 0 2px 8px currentColor;
 }
 
@@ -153,7 +155,7 @@
 
 .card-concept {
   color: #e2e8f0;
-  font-size: 0.9rem;
+  font-size: 0.7rem;
   line-height: 1.6;
   margin: 0.5rem 0;
 }
@@ -280,6 +282,7 @@
   }
   .strategyMiniCard {
     width: 62px;
+    margin-top:10px;
   }
   .miniCardHeader{
     font-size: 10px;
@@ -293,7 +296,7 @@
   }
 
 }
-@media (max-width: 400px) {
+@media (max-width: 420px) {
   .masterDashboardContainer {
     height: fit-content;
     gap: 1rem;
