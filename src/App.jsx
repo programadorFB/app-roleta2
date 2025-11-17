@@ -446,7 +446,7 @@ const App = () => {
     }
 
     // AUMENTADO: 15 minutos em ms
-    const INACTIVITY_LIMIT = 1 * 60 * 1000; 
+    const INACTIVITY_LIMIT = 90 * 60 * 1000; 
 
     const resetInactivityTimer = () => {
       if (inactivityTimeoutRef.current) {
