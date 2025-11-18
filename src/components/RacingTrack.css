@@ -1,7 +1,56 @@
 /* ========================================
    RACING TRACK - ESTILO "DARK MODE" (IMAGEM)
    ======================================== */
+/* ========================================
+   BOTÃO DE INVERTER E BARRA CENTRAL
+   ======================================== */
 
+/* Substitui o <div> de altura fixa por um container de barra */
+.racetrack-divider-bar {
+  height: 20px;
+  background-color: #4a4a4a;
+  position: relative; /* Necessário para posicionar o botão */
+  z-index: 50; /* Garante que fique acima das linhas mas abaixo de popups */
+}
+
+/* O botão de ícone */
+.racetrack-flip-button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%); /* Centraliza o botão */
+  
+  /* Aparência */
+  background: #2d3748; /* Fundo cinza-azulado escuro */
+  border: 1px solid #718096; /* Borda cinza */
+  color: #e2e8f0; /* Cor do ícone (cinza claro) */
+  border-radius: 50%; /* Botão redondo */
+  
+  /* Tamanho */
+  width: 26px;  /* Tamanho pequeno */
+  height: 26px;
+  padding: 4px; /* Espaçamento interno para o SVG */
+  
+  /* Comportamento */
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.racetrack-flip-button:hover {
+  background: #4a5568; /* Fundo mais claro no hover */
+  color: #fff;
+  transform: translate(-50%, -50%) scale(1.1); /* Efeito de zoom */
+  border-color: #a0aec0;
+}
+
+/* Garante que o SVG dentro do botão se ajuste */
+.racetrack-flip-button svg {
+  width: 100%;
+  height: 100%;
+}
 .racetrack-flat-container {
   width: 100%;
   min-width: 70px; /* Reduzido para um visual mais compacto */
