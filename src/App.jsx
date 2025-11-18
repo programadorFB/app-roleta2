@@ -67,7 +67,7 @@ const ROULETTE_GAME_IDS = {
 };
 
 const filterOptions = [
-  { value: 50, label: 'Últimas 50 Rodadas' },
+  // { value: 50, label: 'Últimas 50 Rodadas' },
   { value: 100, label: 'Últimas 100 Rodadas' },
   { value: 300, label: 'Últimas 300 Rodadas' },
   { value: 500, label: 'Últimas 500 Rodadas' },
@@ -896,9 +896,19 @@ const App = () => {
                     className="roulette-selector" 
                     value={selectedRoulette}
                     onChange={(e) => {
+                      // DADOS ATUAIS (COM O BUG)
+                      // setSelectedRoulette(e.target.value);
+                      // setLaunchError('');
+                      // setGameUrl(''); 
+                      
+                      // --- CORREÇÃO ---
+                      // Limpe o histórico e o resultado selecionado ao trocar
+                      setSpinHistory([]);
+                      setSelectedResult(null); 
+                      // O resto do seu código
                       setSelectedRoulette(e.target.value);
                       setLaunchError('');
-                      setGameUrl(''); // Adicionado: Força o auto-launch a rodar de novo se mudar a roleta
+                      setGameUrl(''); 
                     }}
                   >
                     {Object.keys(ROULETTE_SOURCES).map(key => (
