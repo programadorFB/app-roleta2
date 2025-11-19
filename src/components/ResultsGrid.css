@@ -1,0 +1,360 @@
+/* --- Container e Controles --- */
+.results-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.filter-controls {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 5px;
+  box-sizing: border-box;
+}
+
+.filter-dropdown {
+  background-color: #2c3e50;
+  color: white;
+  border: 1px solid #34495e;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: clamp(12px, 3vw, 14px);
+  cursor: pointer;
+  transition: border-color 0.2s;
+  max-width: 100%;
+}
+
+.filter-dropdown:hover {
+  border-color: #3498db;
+}
+
+/* --- Grid Principal --- */
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(32px, 1fr));
+  gap: clamp(4px, 1.5vw, 6px);
+  padding: clamp(8px, 2vw, 10px);
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* --- Estilo Base da Caixa (Número) --- */
+.result-number-box {
+  aspect-ratio: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: clamp(11px, 3vw, 14px);
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+  user-select: none;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* --- Cores Padrão da Roleta (Base) --- */
+.result-number-box.black {
+  background-color: #2d3436;
+  border-color: #636e72;
+}
+
+.result-number-box.red {
+  background-color: #d63031;
+  border-color: #ff7675;
+}
+
+.result-number-box.green {
+  background-color: #00b894;
+  border-color: #55efc4;
+}
+
+/* --- CORES DO FILTRO "CAVALOS" (Overrides) --- */
+/* Terminais 2, 5, 8 -> Azul */
+.result-number-box.bg-cavalo-blue {
+  background-color: #0984e3 !important;
+  border-color: #74b9ff !important;
+  box-shadow: 0 0 5px rgba(9, 132, 227, 0.4);
+}
+
+/* Terminais 1, 4, 7 -> Verde */
+.result-number-box.bg-cavalo-green {
+  background-color: #27ae60 !important;
+  border-color: #2ecc71 !important;
+  box-shadow: 0 0 5px rgba(39, 174, 96, 0.4);
+}
+
+/* Terminais 0, 3, 6, 9 -> Vermelho */
+.result-number-box.bg-cavalo-red {
+  background-color: #e17055 !important;
+  border-color: #fab1a0 !important;
+  box-shadow: 0 0 5px rgba(225, 112, 85, 0.4);
+}
+
+/* --- CORES DO FILTRO "COLISEU" --- */
+.result-number-box.bg-coliseu-blue {
+  background-color: #0984e3 !important;
+  border-color: #74b9ff !important;
+  box-shadow: 0 0 5px rgba(9, 132, 227, 0.4);
+}
+
+.result-number-box.bg-coliseu-green {
+  background-color: #27ae60 !important;
+  border-color: #2ecc71 !important;
+  box-shadow: 0 0 5px rgba(39, 174, 96, 0.4);
+}
+
+/* Números que NÃO são terminal 0 ou 5 no modo Coliseu */
+.result-number-box.bg-coliseu-dimmed {
+  background-color: #1a1a1a !important;
+  border-color: #2d2d2d !important;
+  opacity: 0.7;
+}
+
+/* Cor do texto para casas vermelhas no modo dimmed */
+.result-number-box.bg-coliseu-dimmed.text-red {
+  color: #e74c3c !important;
+}
+
+/* Cor do texto para casas pretas no modo dimmed */
+.result-number-box.bg-coliseu-dimmed.text-white {
+  color: #ecf0f1 !important;
+}
+
+/* --- CORES DO FILTRO "COLISEU 6-2" --- */
+.result-number-box.bg-coliseu62-blue {
+  background-color: #0984e3 !important;
+  border-color: #74b9ff !important;
+  box-shadow: 0 0 5px rgba(9, 132, 227, 0.4);
+}
+
+.result-number-box.bg-coliseu62-green {
+  background-color: #27ae60 !important;
+  border-color: #2ecc71 !important;
+  box-shadow: 0 0 5px rgba(39, 174, 96, 0.4);
+}
+
+/* Números que NÃO são terminal 6 ou 2 no modo Coliseu 6-2 */
+.result-number-box.bg-coliseu62-dimmed {
+  background-color: #1a1a1a !important;
+  border-color: #2d2d2d !important;
+  opacity: 0.7;
+}
+
+.result-number-box.bg-coliseu62-dimmed.text-red {
+  color: #e74c3c !important;
+}
+
+.result-number-box.bg-coliseu62-dimmed.text-white {
+  color: #ecf0f1 !important;
+}
+
+/* --- CORES DO FILTRO "GÊMEOS" --- */
+.result-number-box.bg-gemeos {
+  background-color: #9b59b6 !important; /* Roxo vibrante */
+  border-color: #bb8fce !important;
+  box-shadow: 0 0 5px rgba(155, 89, 182, 0.4);
+}
+
+/* Números que NÃO são gêmeos ficam foscos */
+.result-number-box.bg-gemeos-dimmed {
+  background-color: #1a1a1a !important;
+  border-color: #2d2d2d !important;
+  opacity: 0.7;
+}
+
+.result-number-box.bg-gemeos-dimmed.text-red {
+  color: #e74c3c !important;
+}
+
+.result-number-box.bg-gemeos-dimmed.text-white {
+  color: #ecf0f1 !important;
+}
+
+/* --- CORES DO FILTRO "ESPELHO" --- */
+.result-number-box.bg-espelho {
+  background-color: #f39c12 !important; /* Laranja/amarelo vibrante */
+  border-color: #f5b041 !important;
+  box-shadow: 0 0 5px rgba(243, 156, 18, 0.4);
+}
+
+/* Números que NÃO são espelho ficam foscos */
+.result-number-box.bg-espelho-dimmed {
+  background-color: #1a1a1a !important;
+  border-color: #2d2d2d !important;
+  opacity: 0.7;
+}
+
+.result-number-box.bg-espelho-dimmed.text-red {
+  color: #e74c3c !important;
+}
+
+.result-number-box.bg-espelho-dimmed.text-white {
+  color: #ecf0f1 !important;
+}
+
+/* --- CORES DO FILTRO "GÊMEOS + ESPELHO" (COMBINADO) --- */
+.result-number-box.bg-combo-gemeos {
+  background-color: #9b59b6 !important; /* Roxo para gêmeos */
+  border-color: #bb8fce !important;
+  box-shadow: 0 0 5px rgba(155, 89, 182, 0.4);
+}
+
+.result-number-box.bg-combo-espelho {
+  background-color: #f39c12 !important; /* Laranja para espelho */
+  border-color: #f5b041 !important;
+  box-shadow: 0 0 5px rgba(243, 156, 18, 0.4);
+}
+
+/* Números que NÃO são gêmeos nem espelho ficam foscos */
+.result-number-box.bg-combo-dimmed {
+  background-color: #1a1a1a !important;
+  border-color: #2d2d2d !important;
+  opacity: 0.7;
+}
+
+.result-number-box.bg-combo-dimmed.text-red {
+  color: #e74c3c !important;
+}
+
+.result-number-box.bg-combo-dimmed.text-white {
+  color: #ecf0f1 !important;
+}
+
+/* --- Estados de Hover e Highlight --- */
+.results-grid.hover-active .result-number-box:not(.highlighted) {
+  opacity: 0.4;
+  filter: blur(0.5px);
+  transform: scale(0.95);
+}
+
+.result-number-box.highlighted {
+  opacity: 1 !important;
+  transform: scale(1.25);
+  z-index: 10;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.8);
+  border-color: #ffeaa7 !important;
+}
+
+/* --- Container para Legenda e Dropdown --- */
+.controls-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 5px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 10px;
+  box-sizing: border-box;
+}
+
+/* Área da legenda */
+.legend-area {
+  flex: 1;
+  min-width: 0;
+}
+
+.legend-group {
+  display: flex;
+  gap: clamp(8px, 2vw, 15px);
+  align-items: center;
+  background-color: #2c3e50;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid #34495e;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: clamp(10px, 2.5vw, 12px);
+  color: #ecf0f1;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Bolinhas coloridas da legenda */
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.legend-dot.bg-cavalo-blue { background-color: #0984e3; }
+.legend-dot.bg-cavalo-green { background-color: #27ae60; }
+.legend-dot.bg-cavalo-red { background-color: #e17055; }
+.legend-dot.bg-coliseu-blue { background-color: #0984e3; }
+.legend-dot.bg-coliseu-green { background-color: #27ae60; }
+.legend-dot.bg-coliseu62-blue { background-color: #0984e3; }
+.legend-dot.bg-coliseu62-green { background-color: #27ae60; }
+.legend-dot.bg-gemeos { background-color: #9b59b6; }
+.legend-dot.bg-espelho { background-color: #f39c12; }
+.legend-dot.bg-combo-gemeos { background-color: #9b59b6; }
+.legend-dot.bg-combo-espelho { background-color: #f39c12; }
+
+/* Wrapper do dropdown */
+.filter-wrapper {
+  flex-shrink: 0;
+}
+
+/* --- Media Queries --- */
+@media (max-width: 768px) {
+  .results-grid {
+    grid-template-columns: repeat(auto-fit, minmax(30px, 1fr));
+    gap: 5px;
+    padding: 8px;
+  }
+
+  .legend-group {
+    padding: 4px 8px;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .results-grid {
+    grid-template-columns: repeat(auto-fit, minmax(28px, 1fr));
+    gap: 4px;
+    padding: 8px;
+  }
+
+  .controls-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .legend-area {
+    order: 2;
+  }
+
+  .filter-wrapper {
+    order: 1;
+    width: 100%;
+  }
+
+  .filter-dropdown {
+    width: 100%;
+  }
+
+  .legend-group {
+    justify-content: center;
+  }
+}
