@@ -1182,12 +1182,9 @@
 }
 }
 @media (max-width: 504px) {
-  .app-container {
-   margin-left: -20px;
-  }
-  
+
 .racetrack-mobile-only {
-    margin-left: 35px;
+    margin-left: 15px;
 }
   .stats-dashboard {
     margin-left: 40px;
