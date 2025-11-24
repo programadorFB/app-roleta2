@@ -1180,34 +1180,8 @@
   background: rgba(255, 255, 255, 0.3);
   border-radius: 10px;
 }
-}
-@media (max-width: 504px) {
 
-.racetrack-mobile-only {
-    margin-left: 15px;
-}
-  .stats-dashboard {
-    margin-left: 40px;
-    width: 440px;
-  }
-  .analysis-panel {
-    margin-left: 35px;
-    width: 440px;
-  }
-  .results-grid {
-    grid-template-columns: repeat(10, 1fr);
-  }
-  .game-iframe-wrapper{
-    margin-left: 15px;
-  }
-  .selector-label {
-    font-size: 0.8125rem;
-  }
-  
-  .roulette-selector {
-    font-size: 0.8125rem;
-    padding: 0.5rem;
-  }
+
 }
 /* Small Mobile - 375px */
 @media (max-width: 390px) {
@@ -1326,7 +1300,6 @@
 .latest-results::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.3);
   border-radius: 10px;
-  
 }
 
 
