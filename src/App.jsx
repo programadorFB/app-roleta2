@@ -60,6 +60,7 @@ const ROULETTE_GAME_IDS = {
   lightning: 33,
   reddoor: 35,
   aovivo: 34,
+  brasileira_playtech: 102,
   brasileira: 101,
   'Brasileira PlayTech': 102, // ⚡ ID Mapeado
   relampago: 81,
@@ -203,7 +204,7 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
             <p className="register-link">
               Ainda não tem cadastro na Betou?{" "}
               <a 
-                href="https://go.aff.betou.bet.br/tgml0e19?utm_medium=appcmd"
+                href="https://go.aff.betou.bet.br/bhlfl7qf?utm_medium=apprgr"
                 target="_blank"
                 rel="noopener noreferrer"
               >
