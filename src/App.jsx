@@ -1,9 +1,10 @@
-// App.jsx - VERSÃO FINAL OTIMIZADA E ALINHADA
+// App.jsx - VERSÃO FINAL COM SOCKET.IO + POLLING HÍBRIDO
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { 
     X, BarChart3, Clock, Hash, Percent, Layers, 
     LogOut, Lock, Mail, AlertCircle, PlayCircle, Filter, ExternalLink
 } from 'lucide-react';
+import { io } from 'socket.io-client'; // ⚡ IMPORTADO
 import PaywallModal from './components/PaywallModal.jsx'; 
 import './components/PaywallModal.css';
 import MasterDashboard from './pages/MasterDashboard.jsx';
@@ -24,6 +25,7 @@ import {
 } from './errorHandler.js';
 
 const API_URL = import.meta.env.VITE_API_URL || ''; 
+const SOCKET_URL = "https://roleta-fuza.sortehub.online"; // ⚡ URL DO SEU BACKEND
 
 // === FUNÇÕES AUXILIARES ===
 const getNumberColor = (num) => {
@@ -35,6 +37,7 @@ const getNumberColor = (num) => {
 const ROULETTE_SOURCES = {
   immersive: '🌟 Immersive Roulette',
   brasileira: '🇧🇷 Roleta Brasileira',
+  'Brasileira PlayTech': '⚡ 🇧🇷 Brasileira PlayTech', // ⚡ NOVA FONTE SOCKET
   speed: '💨 Speed Roulette',
   xxxtreme: '⚡ XXXtreme Lightning',
   vipauto: '🚘 Auto Roulette Vip',
@@ -59,6 +62,7 @@ const ROULETTE_GAME_IDS = {
   aovivo: 34,
   brasileira_playtech: 102,
   brasileira: 101,
+  'Brasileira PlayTech': 102, // ⚡ ID Mapeado
   relampago: 81,
   speedauto: 82,
   speed: 36,
@@ -363,7 +367,7 @@ const App = () => {
   
   // App States
   const [selectedRoulette, setSelectedRoulette] = useState(Object.keys(ROULETTE_SOURCES)[0]);
-  const [spinHistory, setSpinHistory] = useState([]);
+  const [spinHistory, setSpinHistory] = useState([]); // ⚡ MANTIDO: O Array principal de dados
   const [selectedResult, setSelectedResult] = useState(null);
   const [popupNumber, setPopupNumber] = useState(null);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
@@ -445,7 +449,6 @@ const App = () => {
       return;
     }
 
-    // AUMENTADO: 15 minutos em ms
     const INACTIVITY_LIMIT = 90 * 60 * 1000; 
 
     const resetInactivityTimer = () => {
@@ -456,27 +459,20 @@ const App = () => {
       inactivityTimeoutRef.current = setTimeout(() => {
         console.log('Usuário inativo por 15 minutos (com aba em foco) - executando logout');
         handleLogout();
-        // RECOMENDAÇÃO: Substituir o alert() por um modal ou notificação "toast"
         alert('Sessão encerrada por inatividade. Faça login novamente.');
       }, INACTIVITY_LIMIT);
     };
 
-    // --- LÓGICA CORRIGIDA ---
-    // PAUSA o timer se o usuário sair da aba
     const handleWindowBlur = () => {
       if (inactivityTimeoutRef.current) {
         clearTimeout(inactivityTimeoutRef.current);
       }
     };
     
-    // REINICIA o timer quando o usuário volta para a aba
     const handleWindowFocus = () => resetInactivityTimer();
-    
-    // REINICIA o timer em qualquer atividade
     const handlePageActivity = () => resetInactivityTimer();
-    // --- FIM DA LÓGICA CORRIGIDA ---
 
-    resetInactivityTimer(); // Inicia o timer na primeira vez
+    resetInactivityTimer(); 
 
     window.addEventListener('blur', handleWindowBlur);
     window.addEventListener('focus', handleWindowFocus);
@@ -625,24 +621,122 @@ const App = () => {
     }
   }, [selectedRoulette, jwtToken]);
 
-  // === CÓDIGO MOVIDO PARA CÁ (LOCAL CORRETO) ===
   // Auto-launch game on login
   useEffect(() => {
-    // Se está autenticado, E o jwtToken está pronto, E o jogo ainda não foi iniciado, E não estamos já iniciando um...
     if (isAuthenticated && jwtToken && !gameUrl && !isLaunching) { 
       console.log('Autenticado, iniciando jogo automaticamente...');
       handleLaunchGame();
     }
   }, [isAuthenticated, jwtToken, gameUrl, isLaunching, handleLaunchGame]);
-  // === FIM DO CÓDIGO MOVIDO ===
 
-  // Fetch History
+  // ==================================================================================
+  // ⚡ LÓGICA DO WEBSOCKET (SOCKET.IO) - APENAS PARA 'Brasileira PlayTech'
+  // ==================================================================================
+  useEffect(() => {
+    // Só ativa se o usuário selecionar a roleta específica
+    if (selectedRoulette !== 'Brasileira PlayTech') return;
+
+    console.log("🔌 Iniciando conexão Socket para PlayTech...");
+
+ const socket = io(SOCKET_URL, {
+  transports: ['websocket'],
+  reconnectionAttempts: 5,
+  auth: {
+    token: jwtToken,
+    email: userInfo?.email
+  }
+});
+
+    // 1. Carga Inicial Rápida via API REST (Pega histórico do banco ao conectar)
+fetch(`${SOCKET_URL}/api/full-history?source=Brasileira PlayTech&userEmail=${encodeURIComponent(userInfo?.email || '')}`)
+  .then(res => {
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  })
+  .then(data => {
+    // ⚡ VALIDAÇÃO: Garante que data é array
+    let historyArray = [];
+    
+    if (Array.isArray(data)) {
+      historyArray = data;
+    } else if (data && Array.isArray(data.data)) {
+      historyArray = data.data; // Se vier como { data: [...] }
+    } else if (data && Array.isArray(data.history)) {
+      historyArray = data.history; // Se vier como { history: [...] }
+    } else {
+      console.warn("⚠️ API retornou formato inesperado:", data);
+      return; // Aborta se não for array
+    }
+    
+    // Formata os dados para o padrão do App
+    const formatted = historyArray.map(item => ({
+      number: parseInt(item.signal, 10),
+      color: getNumberColor(parseInt(item.signal, 10)),
+      signal: item.signal,
+      gameId: item.gameId,
+      signalId: item.signalId,
+      date: item.timestamp,
+    }));
+    
+    console.log(`✅ Carregados ${formatted.length} spins históricos via Socket`);
+    setSpinHistory(formatted);
+    if (formatted.length > 0) setSelectedResult(formatted[0]);
+  })
+  .catch(err => {
+    console.error("❌ Erro ao carregar histórico socket:", err.message);
+    // Não bloqueia: Socket vai funcionar mesmo sem histórico inicial
+  });
+
+    // 2. Escuta Novos Giros em Tempo Real
+    socket.on('novo-giro', (payload) => {
+      if (payload.source === 'Brasileira PlayTech') {
+        console.log("⚡ GIRO SOCKET RECEBIDO:", payload.data.signal);
+        
+        const newSpin = {
+            number: parseInt(payload.data.signal, 10),
+            color: getNumberColor(parseInt(payload.data.signal, 10)),
+            signal: payload.data.signal,
+            gameId: payload.data.gameId,
+            signalId: payload.data.signalId,
+            date: payload.data.createdAt
+        };
+
+        setSpinHistory(prev => {
+            // Evita duplicatas se a rede oscilar e garante que o novo item vá para o topo
+            if (prev.length > 0 && prev[0].signalId === newSpin.signalId) return prev;
+            
+            const newList = [newSpin, ...prev].slice(0, 1000); 
+            setSelectedResult(newSpin); // Atualiza o destaque na pista
+            return newList;
+        });
+      }
+    });
+
+    return () => {
+      console.log("🔌 Desconectando Socket...");
+      socket.disconnect();
+    };
+  }, [selectedRoulette]);
+
+
+  // ==================================================================================
+  // LÓGICA DE FETCH (POLLING) - PARA AS OUTRAS ROLETAS
+  // ==================================================================================
   const fetchHistory = useCallback(async () => {
+    // ⚡ AQUI NÃO TEM MAIS CACHE, VAI DIRETO PRO SERVIDOR
+    const currentRoulette = selectedRoulette;
     if (!userInfo?.email) return;
     
     try {
-      const response = await fetch(`${API_URL}/api/full-history?source=${selectedRoulette}&userEmail=${encodeURIComponent(userInfo.email)}`);
+      // ⚡ URL DE FETCH
+      const response = await fetch(`${API_URL}/api/full-history?source=${currentRoulette}&userEmail=${encodeURIComponent(userInfo.email)}`);
       
+      // ⚡ CHECK RACE CONDITION: Aborta se o usuário trocou de roleta enquanto esperava
+      if (currentRoulette !== selectedRoulette) {
+          console.warn(`[Abort] Roleta ${currentRoulette} abortada.`);
+          return; 
+      }
+
       if (!response.ok) {
         const errorInfo = await processErrorResponse(response, 'history');
         if (errorInfo.requiresPaywall || response.status === 403) {
@@ -654,6 +748,7 @@ const App = () => {
 
       const data = await response.json();
       
+      // Lógica de mesclagem e atualização do estado
       setSpinHistory(prev => {
         if (data.length === 0) return prev;
         
@@ -663,7 +758,7 @@ const App = () => {
             color: getNumberColor(parseInt(item.signal, 10)),
             signal: item.signal,
             gameId: item.gameId,
-            signalId: item.signalid,
+            signalId: item.signalId,
             date: item.timestamp
           }));
           setSelectedResult(converted[0] || null);
@@ -693,15 +788,19 @@ const App = () => {
     } catch (error) {
       console.error("Erro ao buscar histórico:", error.message);
     }
-  }, [selectedRoulette, userInfo]);
+  }, [selectedRoulette, userInfo, setSpinHistory, setSelectedResult]);
 
-  // Fetch History Effect
+  // Fetch History Effect (com condicional para não rodar na roleta Socket)
   useEffect(() => {
     if (!isAuthenticated || !userInfo) return;
+
+    // SE FOR A ROLETA SOCKET, INTERROMPE O POLLING AQUI
+    if (selectedRoulette === 'Brasileira PlayTech') return;
+
     fetchHistory();
-    const intervalId = setInterval(fetchHistory, 5000);
+    const intervalId = setInterval(fetchHistory, 1000);
     return () => clearInterval(intervalId);
-  }, [fetchHistory, isAuthenticated, userInfo]);
+  }, [fetchHistory, isAuthenticated, userInfo, selectedRoulette]);
 
   // Popup Handlers
   const handleNumberClick = useCallback((number) => {
@@ -892,20 +991,12 @@ const App = () => {
                   <h4 className="selector-label">
                     <Layers size={15} /> Roletas
                   </h4>
-                  <select 
+               <select 
                     className="roulette-selector" 
                     value={selectedRoulette}
                     onChange={(e) => {
-                      // DADOS ATUAIS (COM O BUG)
-                      // setSelectedRoulette(e.target.value);
-                      // setLaunchError('');
-                      // setGameUrl(''); 
-                      
-                      // --- CORREÇÃO ---
-                      // Limpe o histórico e o resultado selecionado ao trocar
-                      setSpinHistory([]);
+                      setSpinHistory([]); // ⚡ Limpa o UI, força a re-execução do useEffect
                       setSelectedResult(null); 
-                      // O resto do seu código
                       setSelectedRoulette(e.target.value);
                       setLaunchError('');
                       setGameUrl(''); 
@@ -946,7 +1037,6 @@ const App = () => {
                 ) : (
                   <>
                     <PlayCircle size={20} />
-                    {/* Alterado: Texto do botão agora reflete o auto-launch */}
                     {gameUrl ? `Reiniciar ${ROULETTE_SOURCES[selectedRoulette]}` : `Iniciar ${ROULETTE_SOURCES[selectedRoulette]}`}
                   </>
                 )}
@@ -1041,11 +1131,18 @@ const App = () => {
                     </div>
 
                 <div>
+                {/* Cerco integrado como opção dentro do DeepAnalysisPanel */}
                 <DeepAnalysisPanel 
                   spinHistory={filteredSpinHistory} 
                   setIsPaywallOpen={setIsPaywallOpen}
+                  cercoOptions={{
+                    enablePreFormation: true,
+                    enableFrequencyAnalysis: true,
+                    enableCandidateTracking: true,
+                    lookbackWindow: 50,
+                    maxVisibleAlerts: 3
+                  }}
                 />
-
                 </div>
               </>
             ) : (
@@ -1062,7 +1159,10 @@ const App = () => {
       {/* Modals */}
       <PaywallModal
         isOpen={isPaywallOpen}
-        onClose={() => setIsPaywallOpen(false)}
+        onClose={() => {
+          setIsPaywallOpen(false);
+          handleLogout(); 
+        }}
         userId={userInfo?.email} 
         checkoutUrl={checkoutUrl}
       />
