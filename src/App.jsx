@@ -398,6 +398,9 @@ const App = () => {
   // Inactivity timeout ref
   const inactivityTimeoutRef = useRef(null);
 
+  // Ref para impedir múltiplos auto-launches
+  const hasLaunchedRef = useRef(false);
+
   // Check Auth
   useEffect(() => {
     const token = localStorage.getItem('authToken');
@@ -431,6 +434,8 @@ const App = () => {
     setUserInfo(null);
     setJwtToken(null);
     setGameUrl('');
+    // reset auto-launch guard ao deslogar
+    hasLaunchedRef.current = false;
   }, []);
 
   // Registrar logout callback
@@ -438,6 +443,11 @@ const App = () => {
     registerLogoutCallback(handleLogout);
     return () => clearLogoutCallback();
   }, [handleLogout]);
+
+  // Reset do hasLaunchedRef quando roleta muda (permite re-auto-launch se desejar)
+  useEffect(() => {
+    hasLaunchedRef.current = false;
+  }, [selectedRoulette, isAuthenticated]);
 
   // Monitor inatividade do iframe - logout após 15 minutos com aba em foco
   useEffect(() => {
@@ -621,10 +631,17 @@ const App = () => {
     }
   }, [selectedRoulette, jwtToken]);
 
-  // Auto-launch game on login
+  // Auto-launch game on login (guarded para evitar loop infinito)
   useEffect(() => {
-    if (isAuthenticated && jwtToken && !gameUrl && !isLaunching) { 
+    if (
+      !hasLaunchedRef.current &&
+      isAuthenticated &&
+      jwtToken &&
+      !gameUrl &&
+      !isLaunching
+    ) {
       console.log('Autenticado, iniciando jogo automaticamente...');
+      hasLaunchedRef.current = true;
       handleLaunchGame();
     }
   }, [isAuthenticated, jwtToken, gameUrl, isLaunching, handleLaunchGame]);
