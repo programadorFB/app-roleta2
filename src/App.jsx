@@ -60,7 +60,6 @@ const ROULETTE_GAME_IDS = {
   lightning: 33,
   reddoor: 35,
   aovivo: 34,
-  brasileira_playtech: 102,
   brasileira: 101,
   'Brasileira PlayTech': 102, // ⚡ ID Mapeado
   relampago: 81,
