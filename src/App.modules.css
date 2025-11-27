@@ -513,6 +513,7 @@
 
 .racetrack-mobile-only {
   display: none;
+  /* margin-left: -85px; */
 }
 
 /* ========================================
@@ -1073,6 +1074,7 @@
   .analysis-panel {
     padding: 0.875rem;
     border-radius: 0.75rem;
+    width: 410px;
   }
   
   .dashboard-title {
