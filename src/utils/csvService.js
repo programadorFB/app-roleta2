@@ -11,7 +11,8 @@ const CSV_HEADER = 'timestamp,signalId,gameId,signal\n';
 
 // Nomes das fontes de dados
 // ADICIONADAS AS NOVAS FONTES: speed, xxxtreme, vipauto
-export const SOURCES = ['immersive', 'brasileira', 'speed', 'xxxtreme', 'vipauto', 'brplay'];
+export const SOURCES = ['immersive', 'brasileira', 'speed', 'xxxtreme', 'vipauto', 'brasilPlay'];
+// ...
 
 // --- Estado em Memória ---
 // Agora armazena um Set de IDs para cada fonte

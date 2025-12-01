@@ -20,7 +20,7 @@ const app = express();
 const API_URLS = {
     immersive: 'https://apptemporario-production.up.railway.app/api/0194b479-654d-70bd-ac50-9c5a9b4d14c5',
     brasileira: 'https://apptemporario-production.up.railway.app/api/0194b473-2ab3-778f-89ee-236e803f3c8e',
-    brplay: 'https://pbrapi.sortehub.online/sinais/historico',
+    brasilPlay: 'https://pbrapi.sortehub.online/sinais/historico',
     speed: 'https://apptemporario-production.up.railway.app/api/0194b473-c347-752f-9eaf-783721339479',
     xxxtreme: 'https://apptemporario-production.up.railway.app/api/0194b478-5ba0-7110-8179-d287b2301e2e',
     vipauto: 'https://apptemporario-production.up.railway.app/api/0194b473-9044-772b-a6fc-38236eb08b42'
@@ -244,26 +244,47 @@ const normalizeData = (data) => {
     if (Array.isArray(data)) return data;
     if (data && data.games && Array.isArray(data.games)) return data.games;
     if (data && data.signalId) return [data];
+    
+    // CORREÇÃO PARA brasilPlay (e outras APIs com aninhamento):
+    // Verifica se os dados estão aninhados sob 'data' ou 'history'
+    if (data && data.data && Array.isArray(data.data)) return data.data; // Novo
+    if (data && data.history && Array.isArray(data.history)) return data.history; // Novo
+    
     return [];
 };
+// server.js
 
 async function fetchAndSaveFromSource(url, sourceName) {
-    console.log(`[FETCH - ${sourceName}] Buscando novos dados...`);
     try {
+        console.log(`[${sourceName}] 📡 Buscando dados em: ${url}`);
+        
         const response = await fetch(url);
+
+        // --- PONTO DE DIAGNÓSTICO ---
         if (!response.ok) {
-            throw new Error(`Status: ${response.status} ${response.statusText}`);
+            console.error(`❌ [${sourceName}] Falha no fetch! Status HTTP: ${response.status}`);
+            // Pular o processamento em caso de falha de rede ou 4xx/5xx
+            return; 
         }
+        // ---------------------------
+
         const data = await response.json();
+        
+        // --- PONTO DE DIAGNÓSTICO ADICIONAL ---
+        console.log(`[${sourceName}] ✅ Resposta recebida. Formato inicial: ${Array.isArray(data) ? 'Array' : 'Object'}`);
+        // -------------------------------------
+
         const normalizedData = normalizeData(data);
         
-        if (normalizedData.length > 0) {
-            await appendToCsv(normalizedData, sourceName);
-        } else {
-            console.log(`[FETCH - ${sourceName}] Nenhum dado novo.`);
+        // Se a normalização retornar [] (array vazio), a appendToCsv mostrará "Nenhuma informação..."
+        if (normalizedData.length === 0) {
+             console.warn(`[${sourceName}] ⚠️ Normalização retornou zero registros. Verifique a estrutura da API.`);
         }
-    } catch (err) {
-        console.error(`❌ [FETCH - ${sourceName}] Erro:`, err.message);
+
+        appendToCsv(normalizedData, sourceName);
+
+    } catch (error) {
+        console.error(`❌ [${sourceName}] Erro CRÍTICO durante a busca/processamento:`, error);
     }
 }
 
@@ -272,7 +293,8 @@ async function fetchAllData() {
     await Promise.all([
         fetchAndSaveFromSource(API_URLS.immersive, 'immersive'),
         fetchAndSaveFromSource(API_URLS.brasileira, 'brasileira'),
-        fetchAndSaveFromSource(API_URLS.brplay, 'brplay'),
+        fetchAndSaveFromSource(API_URLS.brasilPlay, 'brasilPlay'),
+
         fetchAndSaveFromSource(API_URLS.speed, 'speed'),
         fetchAndSaveFromSource(API_URLS.xxxtreme, 'xxxtreme'),
         fetchAndSaveFromSource(API_URLS.vipauto, 'vipauto')
