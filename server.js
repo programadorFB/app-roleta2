@@ -20,7 +20,7 @@ const app = express();
 const API_URLS = {
     immersive: 'https://apptemporario-production.up.railway.app/api/0194b479-654d-70bd-ac50-9c5a9b4d14c5',
     brasileira: 'https://apptemporario-production.up.railway.app/api/0194b473-2ab3-778f-89ee-236e803f3c8e',
-    // default: 'https://apptemporario-production.up.railway.app/api/0194b473-4604-7458-bb18-e3fc562980c2',
+    brplay: 'https://pbrapi.sortehub.online/sinais/historico',
     speed: 'https://apptemporario-production.up.railway.app/api/0194b473-c347-752f-9eaf-783721339479',
     xxxtreme: 'https://apptemporario-production.up.railway.app/api/0194b478-5ba0-7110-8179-d287b2301e2e',
     vipauto: 'https://apptemporario-production.up.railway.app/api/0194b473-9044-772b-a6fc-38236eb08b42'
@@ -272,7 +272,7 @@ async function fetchAllData() {
     await Promise.all([
         fetchAndSaveFromSource(API_URLS.immersive, 'immersive'),
         fetchAndSaveFromSource(API_URLS.brasileira, 'brasileira'),
-        fetchAndSaveFromSource(API_URLS.default, 'default'),
+        fetchAndSaveFromSource(API_URLS.brplay, 'brplay'),
         fetchAndSaveFromSource(API_URLS.speed, 'speed'),
         fetchAndSaveFromSource(API_URLS.xxxtreme, 'xxxtreme'),
         fetchAndSaveFromSource(API_URLS.vipauto, 'vipauto')
