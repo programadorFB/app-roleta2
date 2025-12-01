@@ -38,6 +38,7 @@ const ROULETTE_SOURCES = {
   speed: '💨 Speed Roulette',
   xxxtreme: '⚡ XXXtreme Lightning',
   vipauto: '🚘 Auto Roulette Vip',
+  brplay: '🎲 Brasileira Playtech BETA!'
   // vip: '💎 Roleta Vip',
   // lightning: '⚡ Lightning Roulette',
   // aovivo: '🔴 Roleta ao Vivo',
