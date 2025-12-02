@@ -37,7 +37,7 @@ const getNumberColor = (num) => {
 const ROULETTE_SOURCES = {
   immersive: '🌟 Immersive Roulette',
   brasileira: '🇧🇷 Roleta Brasileira',
-  'Brasileira PlayTech': '⚡ 🇧🇷 Brasileira PlayTech', // ⚡ NOVA FONTE SOCKET
+  brasilPlay: '🎲 Brasileira Playtech BETA!', // ⚡ NOVA FONTE SOCKET
   speed: '💨 Speed Roulette',
   xxxtreme: '⚡ XXXtreme Lightning',
   vipauto: '🚘 Auto Roulette Vip',
@@ -60,9 +60,9 @@ const ROULETTE_GAME_IDS = {
   lightning: 33,
   reddoor: 35,
   aovivo: 34,
-  brasileira_playtech: 102,
+
   brasileira: 101,
-  'Brasileira PlayTech': 102, // ⚡ ID Mapeado
+  brasilPlay: 102, // ⚡ ID Mapeado
   relampago: 81,
   speedauto: 82,
   speed: 36,
