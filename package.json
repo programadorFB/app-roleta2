@@ -26,6 +26,8 @@
     "react-is": "^19.2.0",
     "rechart": "^0.0.1",
     "recharts": "^3.3.0",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
     "zap": "^2.1.1"
   },
   "devDependencies": {

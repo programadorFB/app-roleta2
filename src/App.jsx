@@ -1,9 +1,10 @@
-// App.jsx - VERSÃO FINAL OTIMIZADA E ALINHADA
+// App.jsx - VERSÃO FINAL HÍBRIDA (SOCKET + POLLING)
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { 
     X, BarChart3, Clock, Hash, Percent, Layers, 
     LogOut, Lock, Mail, AlertCircle, PlayCircle, Filter, ExternalLink
 } from 'lucide-react';
+import { io } from 'socket.io-client'; // IMPORTAÇÃO DO SOCKET
 import PaywallModal from './components/PaywallModal.jsx'; 
 import './components/PaywallModal.css';
 import MasterDashboard from './pages/MasterDashboard.jsx';
@@ -24,6 +25,8 @@ import {
 } from './errorHandler.js';
 
 const API_URL = import.meta.env.VITE_API_URL || ''; 
+// URL DO SOCKET (Pode vir do .env ou hardcoded se preferir)
+const SOCKET_URL = "https://roleta-fuza.sortehub.online"; 
 
 // === FUNÇÕES AUXILIARES ===
 const getNumberColor = (num) => {
@@ -33,19 +36,12 @@ const getNumberColor = (num) => {
 };
 
 const ROULETTE_SOURCES = {
-  brasilPlay: '🎲 Brasileira Playtech BETA!',
   immersive: '🌟 Immersive Roulette',
-  brasileira: '🇧🇷 Roleta Brasileira',
+  brasileira: '🇧🇷 Roleta Brasileira', // Antiga (Polling)
+  brasileira_playtech: '🇧🇷 Brasileira PlayTech', // Nova (Socket)
   speed: '💨 Speed Roulette',
   xxxtreme: '⚡ XXXtreme Lightning',
   vipauto: '🚘 Auto Roulette Vip',
-  // vip: '💎 Roleta Vip',
-  // lightning: '⚡ Lightning Roulette',
-  // aovivo: '🔴 Roleta ao Vivo',
-  // speedauto: '💨 Speed Auto Roulette',
-  // viproulette: '💎 Vip Roulette',
-  // relampago: '⚡ Roleta Relâmpago',
-  // malta: '🇲🇹 Casino Malta Roulette'
 };
 
 const ROULETTE_GAME_IDS = {
@@ -58,7 +54,7 @@ const ROULETTE_GAME_IDS = {
   lightning: 33,
   reddoor: 35,
   aovivo: 34,
-  brasilPlay: 102,
+  brasileira_playtech: 102, // ID da Playtech
   brasileira: 101,
   relampago: 81,
   speedauto: 82,
@@ -68,7 +64,6 @@ const ROULETTE_GAME_IDS = {
 };
 
 const filterOptions = [
-  // { value: 50, label: 'Últimas 50 Rodadas' },
   { value: 100, label: 'Últimas 100 Rodadas' },
   { value: 300, label: 'Últimas 300 Rodadas' },
   { value: 500, label: 'Últimas 500 Rodadas' },
@@ -156,8 +151,8 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
               <Lock size={32} color="black" />
             </div>
             <h2 className="login-title">Bem-vindo</h2>
-            <p className="login-subtitle">Este aplicativo é integrado com a casa BETOU.</p>
-            <p className="login-subtitle">Faça login com sua conta BETOU para acessar.</p>
+            <p className="login-subtitle">Essa ferramenta é integrado diretamente com uma casa de aposta.</p>
+            <p className="login-subtitle">Faça o Login com sua conta aqui abaixo pra acessar.</p>
           </div>
           
           {error && (
@@ -169,7 +164,7 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
           
           <form onSubmit={handleSubmit} className="login-form">
             <div className="form-group">
-              <label>E-mail Betou</label>
+              <label>E-mail plataforma</label>
               <div className="input-wrapper">
                 <Mail size={20} className="input-icon" />
                 <input 
@@ -184,7 +179,7 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
             </div>
 
             <div className="form-group">
-              <label>Senha Betou</label>
+              <label>Senha plataforma</label>
               <div className="input-wrapper">
                 <Lock size={20} className="input-icon" />
                 <input 
@@ -199,7 +194,7 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
             </div>
             
             <p className="register-link">
-              Ainda não tem cadastro na Betou?{" "}
+              Ainda não tem cadastro na plataforma?{" "}
               <a 
                 href="https://go.aff.betou.bet.br/tgml0e19?utm_medium=appcmd"
                 target="_blank"
@@ -362,6 +357,7 @@ const App = () => {
   const [isPaywallOpen, setIsPaywallOpen] = useState(false);
   const [checkoutUrl, setCheckoutUrl] = useState('');
   const isPremium = false;
+  
   // App States
   const [selectedRoulette, setSelectedRoulette] = useState(Object.keys(ROULETTE_SOURCES)[0]);
   const [spinHistory, setSpinHistory] = useState([]);
@@ -436,7 +432,7 @@ const App = () => {
     return () => clearLogoutCallback();
   }, [handleLogout]);
 
-  // Monitor inatividade do iframe - logout após 15 minutos com aba em foco
+  // Monitor inatividade
   useEffect(() => {
     if (!gameUrl || !isAuthenticated) {
       if (inactivityTimeoutRef.current) {
@@ -446,7 +442,6 @@ const App = () => {
       return;
     }
 
-    // AUMENTADO: 15 minutos em ms
     const INACTIVITY_LIMIT = 90 * 60 * 1000; 
 
     const resetInactivityTimer = () => {
@@ -455,29 +450,20 @@ const App = () => {
       }
       
       inactivityTimeoutRef.current = setTimeout(() => {
-        console.log('Usuário inativo por 15 minutos (com aba em foco) - executando logout');
+        console.log('Usuário inativo por 15 minutos - executando logout');
         handleLogout();
-        // RECOMENDAÇÃO: Substituir o alert() por um modal ou notificação "toast"
         alert('Sessão encerrada por inatividade. Faça login novamente.');
       }, INACTIVITY_LIMIT);
     };
 
-    // --- LÓGICA CORRIGIDA ---
-    // PAUSA o timer se o usuário sair da aba
     const handleWindowBlur = () => {
-      if (inactivityTimeoutRef.current) {
-        clearTimeout(inactivityTimeoutRef.current);
-      }
+      if (inactivityTimeoutRef.current) clearTimeout(inactivityTimeoutRef.current);
     };
     
-    // REINICIA o timer quando o usuário volta para a aba
     const handleWindowFocus = () => resetInactivityTimer();
-    
-    // REINICIA o timer em qualquer atividade
     const handlePageActivity = () => resetInactivityTimer();
-    // --- FIM DA LÓGICA CORRIGIDA ---
 
-    resetInactivityTimer(); // Inicia o timer na primeira vez
+    resetInactivityTimer();
 
     window.addEventListener('blur', handleWindowBlur);
     window.addEventListener('focus', handleWindowFocus);
@@ -487,9 +473,7 @@ const App = () => {
     document.addEventListener('touchstart', handlePageActivity, { passive: true });
 
     return () => {
-      if (inactivityTimeoutRef.current) {
-        clearTimeout(inactivityTimeoutRef.current);
-      }
+      if (inactivityTimeoutRef.current) clearTimeout(inactivityTimeoutRef.current);
       window.removeEventListener('blur', handleWindowBlur);
       window.removeEventListener('focus', handleWindowFocus);
       document.removeEventListener('mousemove', handlePageActivity);
@@ -499,7 +483,7 @@ const App = () => {
     };
   }, [gameUrl, isAuthenticated, handleLogout]);
 
-  // Calcular pull stats em idle callback
+  // Idle Calculations
   useEffect(() => {
     if (spinHistory.length === 0) return;
 
@@ -521,7 +505,7 @@ const App = () => {
     return () => clearTimeout(timeoutId);
   }, [spinHistory]);
 
-  // Detectar bug de rendering
+  // Iframe Health
   useEffect(() => {
     if (!gameUrl) {
       setIframeError(false);
@@ -626,23 +610,87 @@ const App = () => {
     }
   }, [selectedRoulette, jwtToken]);
 
-  // === CÓDIGO MOVIDO PARA CÁ (LOCAL CORRETO) ===
-  // Auto-launch game on login
+  // Auto-launch
   useEffect(() => {
-    // Se está autenticado, E o jwtToken está pronto, E o jogo ainda não foi iniciado, E não estamos já iniciando um...
     if (isAuthenticated && jwtToken && !gameUrl && !isLaunching) { 
       console.log('Autenticado, iniciando jogo automaticamente...');
       handleLaunchGame();
     }
   }, [isAuthenticated, jwtToken, gameUrl, isLaunching, handleLaunchGame]);
-  // === FIM DO CÓDIGO MOVIDO ===
 
-  // Fetch History
+  // ==================================================================================
+  // ⚡ LÓGICA SOCKET.IO - APENAS PARA 'Brasileira PlayTech'
+  // ==================================================================================
+  useEffect(() => {
+    // Só conecta se a roleta selecionada for a PlayTech
+    if (selectedRoulette !== 'brasileira_playtech') return;
+    
+    // Se não tiver token, não conecta
+    if (!jwtToken || !userInfo?.email) return;
+
+    console.log("🔌 Conectando Socket PlayTech...");
+
+    const socket = io(SOCKET_URL, {
+      transports: ['websocket'],
+      auth: {
+        token: jwtToken,
+        email: userInfo.email
+      }
+    });
+
+    socket.on('connect', () => {
+      console.log("⚡ Socket Conectado!");
+    });
+
+    // Escuta novos giros em tempo real
+    socket.on('novo-giro', (payload) => {
+      // Verifica se o sinal é realmente da PlayTech (segurança extra)
+      if (payload.source === 'Brasileira PlayTech') {
+        console.log("⚡ GIRO SOCKET:", payload.data.signal);
+
+        const newSpin = {
+          number: parseInt(payload.data.signal, 10),
+          color: getNumberColor(parseInt(payload.data.signal, 10)),
+          signal: payload.data.signal,
+          gameId: payload.data.gameId,
+          signalId: payload.data.signalId,
+          date: payload.data.createdAt
+        };
+
+        setSpinHistory(prev => {
+          // Evita duplicatas (verifica se o ID do topo é igual ao novo)
+          if (prev.length > 0 && String(prev[0].signalId) === String(newSpin.signalId)) {
+            return prev;
+          }
+          
+          const newList = [newSpin, ...prev].slice(0, 1000); 
+          setSelectedResult(newSpin); // Atualiza destaque
+          return newList;
+        });
+      }
+    });
+
+    return () => {
+      console.log("🔌 Desconectando Socket...");
+      socket.disconnect();
+    };
+  }, [selectedRoulette, jwtToken, userInfo]);
+
+  // ==================================================================================
+  // LÓGICA DE FETCH (POLLING) - COM FILTRO PARA O SOCKET
+  // ==================================================================================
   const fetchHistory = useCallback(async () => {
     if (!userInfo?.email) return;
     
+    // Mapeia a source do front para a source da API
+    // Se for 'brasileira_playtech', a URL espera 'Brasileira PlayTech'
+    let sourceQuery = selectedRoulette;
+    if (selectedRoulette === 'brasileira_playtech') {
+      sourceQuery = 'Brasileira PlayTech';
+    }
+
     try {
-      const response = await fetch(`${API_URL}/api/full-history?source=${selectedRoulette}&userEmail=${encodeURIComponent(userInfo.email)}`);
+      const response = await fetch(`${API_URL}/api/full-history?source=${sourceQuery}&userEmail=${encodeURIComponent(userInfo.email)}`);
       
       if (!response.ok) {
         const errorInfo = await processErrorResponse(response, 'history');
@@ -658,32 +706,31 @@ const App = () => {
       setSpinHistory(prev => {
         if (data.length === 0) return prev;
         
+        // Conversão de dados
+        const convertItem = (item) => ({
+          number: parseInt(item.signal, 10),
+          color: getNumberColor(parseInt(item.signal, 10)),
+          signal: item.signal,
+          gameId: item.gameId,
+          signalId: item.signalId || item.signalid || item.id, // Fallback de ID
+          date: item.timestamp
+        });
+
+        // Se histórico vazio, carrega tudo
         if (prev.length === 0) {
-          const converted = data.map(item => ({
-            number: parseInt(item.signal, 10),
-            color: getNumberColor(parseInt(item.signal, 10)),
-            signal: item.signal,
-            gameId: item.gameId,
-            signalId: item.signalId,
-            date: item.timestamp
-          }));
+          const converted = data.map(convertItem);
           setSelectedResult(converted[0] || null);
           return converted;
         }
         
+        // Merge inteligente (apenas novos itens)
         const latestId = prev[0]?.signalId;
         const newItems = [];
         
         for (const item of data) {
-          if (item.signalId === latestId) break;
-          newItems.push({
-            number: parseInt(item.signal, 10),
-            color: getNumberColor(parseInt(item.signal, 10)),
-            signal: item.signal,
-            gameId: item.gameId,
-            signalId: item.signalId,
-            date: item.timestamp
-          });
+          const currentId = item.signalId || item.signalid || item.id;
+          if (String(currentId) === String(latestId)) break;
+          newItems.push(convertItem(item));
         }
         
         if (newItems.length === 0) return prev;
@@ -696,13 +743,26 @@ const App = () => {
     }
   }, [selectedRoulette, userInfo]);
 
-  // Fetch History Effect
+  // Fetch Effect (Híbrido)
   useEffect(() => {
     if (!isAuthenticated || !userInfo) return;
+
+    // 1. Sempre faz a carga inicial (para preencher a tela rápido)
     fetchHistory();
+
+    // 2. Se for a PlayTech (Socket), NÃO define intervalo de polling
+    if (selectedRoulette === 'brasileira_playtech') {
+      console.log("🛑 Polling desativado para PlayTech (Usando Socket)");
+      return; 
+    }
+
+    // 3. Para outras roletas, mantém o Polling
+    console.log("🔄 Polling ativado (5s)");
     const intervalId = setInterval(fetchHistory, 5000);
     return () => clearInterval(intervalId);
-  }, [fetchHistory, isAuthenticated, userInfo]);
+  }, [fetchHistory, isAuthenticated, userInfo, selectedRoulette]);
+
+  // ... (Resto do código: Popups, Tooltips, Memos, JSX - Mantidos iguais)
 
   // Popup Handlers
   const handleNumberClick = useCallback((number) => {
@@ -719,22 +779,14 @@ const App = () => {
   const handleResultBoxClick = useCallback((e, result) => {
     if (window.innerWidth <= 1024) { 
       e.preventDefault();
-      
       const tooltipTitle = formatPullTooltip(result.number, numberPullStats, numberPreviousStats);
       const rect = e.currentTarget.getBoundingClientRect();
       const x = rect.left + (rect.width / 2);
       let y = rect.top - 10;
       let isBelow = false;
-      
-      if (y < 100) {
-        y = rect.bottom + 10;
-        isBelow = true;
-      }
-      
+      if (y < 100) { y = rect.bottom + 10; isBelow = true; }
       setMobileTooltip(prev => {
-        if (prev.visible && prev.content === tooltipTitle) {
-          return { visible: false, content: '', x: 0, y: 0, isBelow: false };
-        }
+        if (prev.visible && prev.content === tooltipTitle) return { visible: false, content: '', x: 0, y: 0, isBelow: false };
         return { visible: true, content: tooltipTitle, x, y, isBelow };
       });
     } else {
@@ -754,19 +806,8 @@ const App = () => {
 
   const stats = useMemo(() => {
     const historyCount = filteredSpinHistory.length;
-    if (historyCount === 0) {
-      return { 
-        historyFilter: 0, 
-        colorFrequencies: { red: '0.0', black: '0.0', green: '0.0' }, 
-        latestNumbers: [] 
-      };
-    }
-    
-    const colorCounts = filteredSpinHistory.reduce((acc, curr) => {
-      acc[curr.color] = (acc[curr.color] || 0) + 1;
-      return acc;
-    }, {});
-    
+    if (historyCount === 0) return { historyFilter: 0, colorFrequencies: { red: '0.0', black: '0.0', green: '0.0' }, latestNumbers: [] };
+    const colorCounts = filteredSpinHistory.reduce((acc, curr) => { acc[curr.color] = (acc[curr.color] || 0) + 1; return acc; }, {});
     return {
       historyFilter: historyCount,
       colorFrequencies: {
@@ -780,302 +821,118 @@ const App = () => {
 
   const popupStats = useMemo(() => {
     if (popupNumber === null || !isPopupOpen) return null;
-    
     const occurrences = [];
-    filteredSpinHistory.forEach((spin, index) => {
-      if (spin.number === popupNumber) occurrences.push({ index });
-    });
-    
+    filteredSpinHistory.forEach((spin, index) => { if (spin.number === popupNumber) occurrences.push({ index }); });
     const count = occurrences.length;
     const historyCount = filteredSpinHistory.length;
     const frequency = historyCount > 0 ? ((count / historyCount) * 100).toFixed(2) : '0.00';
-    
     const nextOccurrences = occurrences.slice(0, 5).map(occ => {
       const prevSpins = filteredSpinHistory.slice(occ.index + 1, occ.index + 6).map(s => s.number);
       return { spinsAgo: occ.index + 1, prevSpins };
     });
-    
-    return {
-      count, frequency, nextOccurrences, historyFilter: historyCount,
-      lastHitAgo: occurrences.length > 0 ? occurrences[0].index + 1 : null
-    };
+    return { count, frequency, nextOccurrences, historyFilter: historyCount, lastHitAgo: occurrences.length > 0 ? occurrences[0].index + 1 : null };
   }, [popupNumber, isPopupOpen, filteredSpinHistory]);
 
-  // Loading State
-  if (checkingAuth) {
-    return (
-      <div className="loading-screen">
-        <div className="loading-spinner-large"></div>
-        <p>Carregando...</p>
-      </div>
-    );
-  }
+  if (checkingAuth) return <div className="loading-screen"><div className="loading-spinner-large"></div><p>Carregando...</p></div>;
+  if (!isAuthenticated) return <Login onLoginSuccess={handleLoginSuccess} setIsPaywallOpen={setIsPaywallOpen} setCheckoutUrl={setCheckoutUrl} />;
 
-  // Not Authenticated
-  if (!isAuthenticated) {
-    return <Login 
-      onLoginSuccess={handleLoginSuccess} 
-      setIsPaywallOpen={setIsPaywallOpen}
-      setCheckoutUrl={setCheckoutUrl}
-    />;
-  }
-
-  // Main Render
   return (
     <div className="app-root">
-      {/* Mobile Tooltip */}
       {mobileTooltip.visible && (
         <>
           <div className="tooltip-backdrop" onClick={closeMobileTooltip} />
-          <div 
-            className="mobile-tooltip"
-            style={{
-              position: 'fixed',
-              top: mobileTooltip.y,
-              left: mobileTooltip.x,
-              transform: mobileTooltip.isBelow ? 'translate(-50%, 0)' : 'translate(-50%, -100%)',
-              zIndex: 2000,
-            }}
-          >
-            {mobileTooltip.content.split('\n').map((line, index) => (
-              <span key={index} className="tooltip-line">{line}</span>
-            ))}
+          <div className="mobile-tooltip" style={{ position: 'fixed', top: mobileTooltip.y, left: mobileTooltip.x, transform: mobileTooltip.isBelow ? 'translate(-50%, 0)' : 'translate(-50%, -100%)', zIndex: 2000 }}>
+            {mobileTooltip.content.split('\n').map((line, index) => <span key={index} className="tooltip-line">{line}</span>)}
           </div>
         </>
       )}
 
-      {/* Iframe Error Fallback */}
       {iframeError && (
         <div className="iframe-error-overlay">
           <div className="iframe-error-content">
             <p>⚠️ Erro de renderização detectado</p>
-            <button onClick={() => {
-              setGameUrl('');
-              setIframeError(false);
-              window.location.reload();
-            }}>
-              Recarregar Página
-            </button>
+            <button onClick={() => { setGameUrl(''); setIframeError(false); window.location.reload(); }}>Recarregar Página</button>
           </div>
         </div>
       )}
 
-      {/* Navbar */}
       <nav className="navbar">
         <div className="navbar-left"></div>
         <div className="navbar-right">
-          <a 
-            href="https://betou.bet.br/"
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="nav-btn"
-          >ENTRE NA PLATAFORMA<img src={W600} alt="Logo" style={{ height: "15px" }} />
-            <span className="nav-btn-text"></span>
-          </a>
-          <button onClick={handleLogout} className="logout-btn">
-            <LogOut size={18} />
-            <span className="logout-btn-text">Sair</span>
-          </button>
+          <a href="https://betou.bet.br/" target="_blank" rel="noopener noreferrer" className="nav-btn">ENTRE NA PLATAFORMA<img src={W600} alt="Logo" style={{ height: "15px" }} /><span className="nav-btn-text"></span></a>
+          <button onClick={handleLogout} className="logout-btn"><LogOut size={18} /><span className="logout-btn-text">Sair</span></button>
         </div>
       </nav>
 
-      {/* Main Content */}
       {activePage === 'roulette' && (
         <main className="app-container">
-          {/* Sidebar - Stats Dashboard */}
           <aside className="stats-dashboard">
             <h3 className="dashboard-title">Estatísticas e Ações</h3>
-            
-            {/* Selectors */}
             <div className="selectors-card">
               <div className="selectors-grid">
                 <div className="selector-group">
-                  <h4 className="selector-label">
-                    <Layers size={15} /> Roletas
-                  </h4>
-                  <select 
-                    className="roulette-selector" 
-                    value={selectedRoulette}
-                    onChange={(e) => {
-                      // DADOS ATUAIS (COM O BUG)
-                      // setSelectedRoulette(e.target.value);
-                      // setLaunchError('');
-                      // setGameUrl(''); 
-                      
-                      // --- CORREÇÃO ---
-                      // Limpe o histórico e o resultado selecionado ao trocar
-                      setSpinHistory([]);
-                      setSelectedResult(null); 
-                      // O resto do seu código
-                      setSelectedRoulette(e.target.value);
-                      setLaunchError('');
-                      setGameUrl(''); 
-                    }}
-                  >
-                    {Object.keys(ROULETTE_SOURCES).map(key => (
-                      <option key={key} value={key}>{ROULETTE_SOURCES[key]}</option>
-                    ))}
+                  <h4 className="selector-label"><Layers size={15} /> Roletas</h4>
+                  <select className="roulette-selector" value={selectedRoulette} onChange={(e) => { setSpinHistory([]); setSelectedResult(null); setSelectedRoulette(e.target.value); setLaunchError(''); setGameUrl(''); }}>
+                    {Object.keys(ROULETTE_SOURCES).map(key => <option key={key} value={key}>{ROULETTE_SOURCES[key]}</option>)}
                   </select>
                 </div>
-
                 <div className="selector-group">
-                  <h4 className="selector-label">
-                    <Filter size={15} /> Rodadas
-                  </h4>
-                  <select 
-                    className="roulette-selector" 
-                    value={historyFilter}
-                    onChange={(e) => setHistoryFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                  >
-                    {filterOptions.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
+                  <h4 className="selector-label"><Filter size={15} /> Rodadas</h4>
+                  <select className="roulette-selector" value={historyFilter} onChange={(e) => setHistoryFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}>
+                    {filterOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                   </select>
                 </div>
               </div>
-
-              <button
-                onClick={handleLaunchGame}
-                disabled={isLaunching || !ROULETTE_GAME_IDS[selectedRoulette]}
-                className="launch-button"
-              >
-                {isLaunching ? (
-                  <>
-                    <div className="spinner"></div>
-                    Iniciando...
-                  </>
-                ) : (
-                  <>
-                    <PlayCircle size={20} />
-                    {/* Alterado: Texto do botão agora reflete o auto-launch */}
-                    {gameUrl ? `Reiniciar ${ROULETTE_SOURCES[selectedRoulette]}` : `Iniciar ${ROULETTE_SOURCES[selectedRoulette]}`}
-                  </>
-                )}
+              <button onClick={handleLaunchGame} disabled={isLaunching || !ROULETTE_GAME_IDS[selectedRoulette]} className="launch-button">
+                {isLaunching ? <><div className="spinner"></div>Iniciando...</> : <><PlayCircle size={20} />{gameUrl ? `Reiniciar ${ROULETTE_SOURCES[selectedRoulette]}` : `Iniciar ${ROULETTE_SOURCES[selectedRoulette]}`}</>}
               </button>
-              
-              {launchError && (
-                <p className="launch-error">{launchError}</p>
-              )}
+              {launchError && <p className="launch-error">{launchError}</p>}
             </div>
-            
-            {/* Stats Card */}
             <div className="stats-card">
-              <h4 className="stats-card-title">
-                <BarChart3 size={18} /> Total de Sinais
-              </h4>
+              <h4 className="stats-card-title"><BarChart3 size={18} /> Total de Sinais</h4>
               <p className="stats-card-value">{filteredSpinHistory.length}</p>
             </div>
-
-            {/* Master Dashboard */}
             <div className="master-dashboard-wrapper">
-              {stats.historyFilter >= 50 ? (
-                <MasterDashboard 
-                  spinHistory={filteredSpinHistory} 
-                  onSignalUpdate={setEntrySignals}
-                />
-              ) : (
-                <div className="waiting-card">
-                  Aguardando {50 - stats.historyFilter} spins para iniciar o Master Dashboard...
-                </div>
-              )}
+              {stats.historyFilter >= 50 ? <MasterDashboard spinHistory={filteredSpinHistory} onSignalUpdate={setEntrySignals} /> : <div className="waiting-card">Aguardando {50 - stats.historyFilter} spins para iniciar o Master Dashboard...</div>}
             </div>
           </aside>
 
-          {/* Mobile Racetrack */}
           <div className="racetrack-mobile-only">
-            <RacingTrack 
-              selectedResult={selectedResult}
-              onNumberClick={handleNumberClick}
-              entrySignals={entrySignals}
-            />
+            <RacingTrack selectedResult={selectedResult} onNumberClick={handleNumberClick} entrySignals={entrySignals} />
           </div>
 
-          {/* Main Content Area */}
           <section className="main-content">
             <div className="game-area">
-              {gameUrl && (
-                <GameIframe 
-                  url={gameUrl} 
-                  onError={() => setLaunchError('Erro ao carregar o iframe do jogo.')}
-                />
-              )}
-              
-              {/* Desktop Racetrack */}
+              {gameUrl && <GameIframe url={gameUrl} onError={() => setLaunchError('Erro ao carregar o iframe do jogo.')} />}
               <div className="racetrack-desktop-only">
-                <RacingTrack 
-                  selectedResult={selectedResult}
-                  onNumberClick={handleNumberClick}
-                  entrySignals={entrySignals}
-                />
+                <RacingTrack selectedResult={selectedResult} onNumberClick={handleNumberClick} entrySignals={entrySignals} />
               </div>
             </div>
           </section>
 
-          {/* Analysis Panel */}
           <aside className="analysis-panel">
             {stats.historyFilter >= 50 ? (
               <>
                 <div className="results-section">
-                  <h4 className="section-title">
-                    <Clock size={20} /> Últimos Resultados (100)
-                  </h4>
+                  <h4 className="section-title"><Clock size={20} /> Últimos Resultados (100)</h4>
                   <div className="color-frequencies">
-                    <span className="freq-item">
-                      Vermelho: <strong className="red">{stats.colorFrequencies.red}%</strong>
-                    </span>
-                    <span className="freq-item">
-                      Zero: <strong className="green">{stats.colorFrequencies.green}%</strong>
-                    </span>
-                    <span className="freq-item">
-                      Preto: <strong className="black">{stats.colorFrequencies.black}%</strong>
-                    </span>
+                    <span className="freq-item">Vermelho: <strong className="red">{stats.colorFrequencies.red}%</strong></span>
+                    <span className="freq-item">Zero: <strong className="green">{stats.colorFrequencies.green}%</strong></span>
+                    <span className="freq-item">Preto: <strong className="black">{stats.colorFrequencies.black}%</strong></span>
                   </div>
-                <div className='latest-results'>
-
-                  <ResultsGrid 
-                  latestNumbers={stats.latestNumbers}
-                  numberPullStats={numberPullStats}
-                  numberPreviousStats={numberPreviousStats}
-                  onResultClick={handleResultBoxClick}
-                  isPremium={isPremium} // Variável que diz se o user é premium
-                  setIsPaywallOpen={setIsPaywallOpen} // Função que abre o modal
-                    />
+                  <div className='latest-results'>
+                    <ResultsGrid latestNumbers={stats.latestNumbers} numberPullStats={numberPullStats} numberPreviousStats={numberPreviousStats} onResultClick={handleResultBoxClick} isPremium={isPremium} setIsPaywallOpen={setIsPaywallOpen} />
+                  </div>
                 </div>
-                    </div>
-
-                <div>
-                <DeepAnalysisPanel 
-                  spinHistory={filteredSpinHistory} 
-                  setIsPaywallOpen={setIsPaywallOpen}
-                />
-
-                </div>
+                <div><DeepAnalysisPanel spinHistory={filteredSpinHistory} setIsPaywallOpen={setIsPaywallOpen} /></div>
               </>
-            ) : (
-              <div className="waiting-panel">
-                <div className="waiting-card">
-                  Aguardando {50 - stats.historyFilter} spins para iniciar o Painel de Análise...
-                </div>
-              </div>
-            )}
+            ) : <div className="waiting-panel"><div className="waiting-card">Aguardando {50 - stats.historyFilter} spins para iniciar o Painel de Análise...</div></div>}
           </aside>
         </main>
       )}
 
-      {/* Modals */}
-      <PaywallModal
-        isOpen={isPaywallOpen}
-        onClose={() => setIsPaywallOpen(false)}
-        userId={userInfo?.email} 
-        checkoutUrl={checkoutUrl}
-      />
-
-      <NumberStatsPopup 
-        isOpen={isPopupOpen}
-        onClose={closePopup}
-        number={popupNumber}
-        stats={popupStats}
-      />
+      <PaywallModal isOpen={isPaywallOpen} onClose={() => setIsPaywallOpen(false)} userId={userInfo?.email} checkoutUrl={checkoutUrl} />
+      <NumberStatsPopup isOpen={isPopupOpen} onClose={closePopup} number={popupNumber} stats={popupStats} />
     </div>
   );
 };

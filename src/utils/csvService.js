@@ -10,124 +10,99 @@ const __dirname = path.dirname(__filename);
 const CSV_HEADER = 'timestamp,signalId,gameId,signal\n';
 
 // Nomes das fontes de dados
-// ADICIONADAS AS NOVAS FONTES: speed, xxxtreme, vipauto
-export const SOURCES = ['immersive', 'brasileira', 'speed', 'xxxtreme', 'vipauto', 'brasilPlay'];
-// ...
+export const SOURCES = [
+    'immersive', 
+    'brasileira',           // A Antiga
+    'Brasileira PlayTech',  // A Nova (Com Socket)
+    'default', 
+    'speed', 
+    'xxxtreme', 
+    'vipauto'
+];
 
 // --- Estado em Memória ---
-// Agora armazena um Set de IDs para cada fonte
 const existingSignalIds = {};
 
 // --- Funções Privadas ---
 
 /**
- * Retorna o caminho do arquivo CSV para uma fonte específica.
- * @param {string} sourceName - O nome da fonte (ex: 'immersive').
- * @returns {string} O caminho completo para o arquivo CSV.
+ * Mapeia o nome da fonte para o nome físico do arquivo.
  */
+const resolveFilename = (sourceName) => {
+    // Separação total:
+    if (sourceName === 'Brasileira PlayTech') return 'brasileiraplay'; // Salva em api_data_brasileiraplay.csv
+    // 'brasileira' vai retornar 'brasileira' e salvar em api_data_brasileira.csv (como era antes)
+    return sourceName;
+};
+
 const get_csv_path = (sourceName) => {
-    return path.join(__dirname, '..', '..', `api_data_${sourceName}.csv`);
+    const fileName = resolveFilename(sourceName);
+    return path.join(__dirname, '..', '..', `api_data_${fileName}.csv`);
 };
 
 const ensureCsvExists = (sourceName) => {
+    const fileName = resolveFilename(sourceName);
     const csvFilePath = get_csv_path(sourceName);
     const dir = path.dirname(csvFilePath);
     
-    // Garante que o diretório existe
     if (!fs.existsSync(dir)) {
-        try {
-            fs.mkdirSync(dir, { recursive: true });
-            // console.log(`📁 Diretório criado: ${dir}`);
-        } catch (err) {
-            console.error('❌ Erro ao criar diretório:', err);
-            process.exit(1);
-        }
+        try { fs.mkdirSync(dir, { recursive: true }); } catch (err) { process.exit(1); }
     }
 
-    // Garante que o arquivo CSV existe
     if (!fs.existsSync(csvFilePath)) {
-        try {
-            fs.writeFileSync(csvFilePath, CSV_HEADER, 'utf8');
-            // console.log(`🆕 Novo arquivo CSV criado: ${csvFilePath}`);
-        } catch (err) {
-            console.error(`❌ Erro CRÍTICO ao criar arquivo CSV para ${sourceName}:`, err);
-            process.exit(1);
-        }
+        try { fs.writeFileSync(csvFilePath, CSV_HEADER, 'utf8'); } catch (err) { process.exit(1); }
     }
 };
 
 // --- Funções Exportadas ---
 
-/**
- * Carrega todos os signalIds de todos os arquivos CSV para a memória na inicialização.
- */
 export const loadAllExistingSignalIds = async () => {
-    console.log('📄 Carregando IDs de sinais existentes de todos os CSVs...');
+    console.log('📄 Carregando IDs de sinais existentes...');
     
-    for (const source of SOURCES) {
-        ensureCsvExists(source); // Garante que o arquivo exista
-        existingSignalIds[source] = new Set(); // Inicializa o Set para a fonte
-        const csvFilePath = get_csv_path(source);
+    // Identifica arquivos únicos para carregar
+    const uniqueFiles = [...new Set(SOURCES.map(s => resolveFilename(s)))];
 
-        // console.log(`   -> Lendo ${csvFilePath}...`);
+    for (const fileName of uniqueFiles) {
+        ensureCsvExists(fileName); 
+        existingSignalIds[fileName] = new Set();
         
+        const csvFilePath = get_csv_path(fileName);
         const stream = fs.createReadStream(csvFilePath, { encoding: 'utf8' }).pipe(csv());
         
         stream.on('data', (row) => {
             if (row.signalId && row.signalId.trim()) {
-                existingSignalIds[source].add(row.signalId.trim());
+                existingSignalIds[fileName].add(row.signalId.trim());
             }
         });
 
         stream.on('error', (err) => {
-            console.error(`❌ Erro ao carregar IDs de ${source}:`, err);
-            // Continua para a próxima fonte
+            console.error(`❌ Erro ao carregar IDs do arquivo ${fileName}:`, err);
         });
         
-        await finished(stream); // Espera o stream terminar antes de ir para o próximo
-        // console.log(`📊 ${existingSignalIds[source].size} IDs carregados para a fonte: ${source}.`);
+        await finished(stream); 
     }
-    console.log('✅ Todos os IDs de sinais carregados para a memória.');
+    console.log(`✅ IDs carregados de ${uniqueFiles.length} arquivos físicos.`);
 };
 
-/**
- * Recebe um array de dados da API, filtra por registros novos e os anexa ao CSV correto.
- * @param {Array} dataArray - O array de dados da API.
- * @param {string} sourceName - O nome da fonte para salvar o CSV.
- */
 export const appendToCsv = (dataArray, sourceName) => {
-    if (!SOURCES.includes(sourceName)) {
-        console.error(`❌ Fonte desconhecida "${sourceName}". Não é possível salvar.`);
-        return;
-    }
+    if (!SOURCES.includes(sourceName)) return;
     
-    ensureCsvExists(sourceName); // Garante que o arquivo existe antes de escrever
-    const csvFilePath = get_csv_path(sourceName);
+    const fileSourceName = resolveFilename(sourceName);
+    ensureCsvExists(fileSourceName); 
+    const csvFilePath = get_csv_path(fileSourceName);
     
-    if (!dataArray || dataArray.length === 0) {
-        console.log(`[${sourceName}] ⏸ Nenhuma informação recebida da API para processar.`);
-        return;
-    }
-
-    // console.log(`[${sourceName}] 📥 Recebido(s) ${dataArray.length} registro(s). Verificando por novidades...`);
+    if (!dataArray || dataArray.length === 0) return;
 
     try {
-        // Filtra registros novos e valida dados
+        const currentSet = existingSignalIds[fileSourceName] || new Set();
+
         const newRecords = dataArray.filter(item => {
-            if (!item || !item.signalId) {
-                console.warn(`[${sourceName}] ⚠️ Registro inválido encontrado, pulando:`, item);
-                return false;
-            }
-            const isDuplicate = existingSignalIds[sourceName].has(String(item.signalId).trim());
-            return !isDuplicate;
+            if (!item || !item.signalId) return false;
+            return !currentSet.has(String(item.signalId).trim());
         });
 
-        if (newRecords.length === 0) {
-            // console.log(`[${sourceName}] ✅ Nenhum sinal novo para adicionar. Todos já existem no CSV.`);
-            return;
-        }
+        if (newRecords.length === 0) return;
 
-        // Monta as linhas do CSV
         const csvRows = newRecords
             .map(item => {
                 const timestamp = new Date().toISOString();
@@ -138,60 +113,35 @@ export const appendToCsv = (dataArray, sourceName) => {
             })
             .join('\n') + '\n';
 
-        // Escreve no arquivo
         fs.appendFileSync(csvFilePath, csvRows, 'utf8');
         
-        // Atualiza o Set em memória
         newRecords.forEach(item => {
-            existingSignalIds[sourceName].add(String(item.signalId).trim());
+            currentSet.add(String(item.signalId).trim());
         });
 
-        console.log(`\x1b[32m[${sourceName}] 💾 ${newRecords.length} novo(s) sinal(is) salvo(s) com sucesso!\x1b[0m`);
-        console.log(`   📍 Arquivo: ${csvFilePath}`);
+        // console.log(`\x1b[32m[${sourceName}] 💾 ${newRecords.length} salvos em ${fileSourceName}.csv\x1b[0m`);
     } catch (err) {
-        console.error(`❌ Erro ao escrever os novos dados no arquivo CSV para ${sourceName}:`, err);
+        console.error(`❌ Erro escrita CSV ${fileSourceName}:`, err);
     }
 };
 
-/**
- * Lê todo o conteúdo do arquivo CSV de uma fonte específica e o retorna como um array de objetos.
- * @param {string} sourceName - O nome da fonte.
- */
 export const getFullHistory = (sourceName) => {
     return new Promise((resolve, reject) => {
-        if (!SOURCES.includes(sourceName)) {
-            // console.error(`  [DIAGNÓSTICO] Fonte "${sourceName}" não reconhecida.`);
-            return reject(new Error(`Fonte "${sourceName}" não reconhecida.`));
-        }
+        if (!SOURCES.includes(sourceName)) return reject(new Error(`Fonte inválida`));
         
-        ensureCsvExists(sourceName);
-        const csvFilePath = get_csv_path(sourceName);
+        const fileSourceName = resolveFilename(sourceName);
+        ensureCsvExists(fileSourceName);
+        const csvFilePath = get_csv_path(fileSourceName);
 
-        if (!fs.existsSync(csvFilePath)) {
-            // console.log(`  [DIAGNÓSTICO] O arquivo CSV ${csvFilePath} não existe. Retornando array vazio.`);
-            return resolve([]);
-        }
+        if (!fs.existsSync(csvFilePath)) return resolve([]);
 
         const results = [];
         fs.createReadStream(csvFilePath, { encoding: 'utf8' })
             .pipe(csv())
             .on('data', data => {
-                if (data.signalId) {
-                    results.push({
-                        timestamp: data.timestamp,
-                        signalId: data.signalId,
-                        gameId: data.gameId,
-                        signal: data.signal
-                    });
-                }
+                if (data.signalId) results.push(data);
             })
-            .on('end', () => {
-                // console.log(`  [DIAGNÓSTICO] Leitura do CSV ${csvFilePath} concluída. ${results.length} registros encontrados.`);
-                resolve(results.reverse());
-            })
-            .on('error', err => {
-                console.error(`❌ Erro ao ler o arquivo CSV ${csvFilePath}:`, err);
-                reject(err);
-            });
+            .on('end', () => resolve(results.reverse()))
+            .on('error', err => reject(err));
     });
 };
