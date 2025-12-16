@@ -159,8 +159,8 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
               <Lock size={32} color="black" />
             </div>
             <h2 className="login-title">Bem-vindo</h2>
-            <p className="login-subtitle">Este aplicativo é integrado com a casa BETOU.</p>
-            <p className="login-subtitle">Faça login com sua conta BETOU para acessar.</p>
+            <p className="login-subtitle">Essa ferramenta é integrado diretamente com uma casa de aposta.</p>
+            <p className="login-subtitle">Faça o Login com sua conta aqui abaixo pra acessar</p>
           </div>
           
           {error && (
@@ -172,7 +172,7 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
           
           <form onSubmit={handleSubmit} className="login-form">
             <div className="form-group">
-              <label>E-mail Betou</label>
+              <label>E-mail plataforma</label>
               <div className="input-wrapper">
                 <Mail size={20} className="input-icon" />
                 <input 
@@ -187,7 +187,7 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
             </div>
 
             <div className="form-group">
-              <label>Senha Betou</label>
+              <label>Senha plataforma</label>
               <div className="input-wrapper">
                 <Lock size={20} className="input-icon" />
                 <input 
@@ -202,7 +202,7 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
             </div>
             
             <p className="register-link">
-              Ainda não tem cadastro na Betou?{" "}
+              Ainda não tem cadastro na plataforma?{" "}
               <a 
                 href="https://go.aff.betou.bet.br/tgml0e19?utm_medium=appcmd"
                 target="_blank"
