@@ -232,7 +232,7 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
         ⚠️ Atenção - Para liberar seu acesso:
     </strong>
     <p style={{ color: '#856404', margin: '0 0 10px 0' }}>
-        Clique no botão e faça o cadastro na plataforma, verifique seu email/número e finalize a 
+        Clica no link azul acima ‘’Clique aqui’’ e faça o cadastro na plataforma, verifique seu email/número e finalize a 
         <strong> verificação facial</strong> (basta clicar em alguma Roleta como se fosse jogar).
     </p>
     <p style={{ color: '#856404', fontWeight: 'bold', margin: '0' }}>
