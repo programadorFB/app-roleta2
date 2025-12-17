@@ -218,7 +218,45 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
             <p>Dashboard Analítico de Roleta</p>
           </div>
         </div>
-        <p className="terms-text">Ao fazer login, você concorda com nossos Termos de Uso</p>
+        {/* BANNER DE ALERTA ESTILIZADO */}
+<div className="alert-banner" style={{
+    backgroundColor: '#fff3cd',
+    borderLeft: '5px solid #ffc107',
+    padding: '20px',
+    marginBottom: '15px',
+    marginTop: '15px',
+    borderRadius: '4px',
+    fontFamily: 'sans-serif'
+}}>
+    <strong style={{ color: '#856404', display: 'block', marginBottom: '10px', fontSize: '1.1rem' }}>
+        ⚠️ Atenção - Para liberar seu acesso:
+    </strong>
+    <p style={{ color: '#856404', margin: '0 0 10px 0' }}>
+        Clique no botão e faça o cadastro na plataforma, verifique seu email/número e finalize a 
+        <strong> verificação facial</strong> (basta clicar em alguma Roleta como se fosse jogar).
+    </p>
+    <p style={{ color: '#856404', fontWeight: 'bold', margin: '0' }}>
+        Após concluir, volte e faça seu login aqui.
+    </p>
+</div>
+
+{/* SEU CONTAINER DE TERMOS */}
+<div className="terms-container" style={{
+    marginTop: '20px',
+    padding: '15px',
+    borderTop: '1px solid #e0e0e0',
+    textAlign: 'center'
+}}>
+    <p className="terms-text" style={{
+        fontSize: '0.85rem',
+        color: '#666',
+        fontWeight: '600',
+        letterSpacing: '0.5px'
+    }}>
+        🔹 Ao fazer login, você concorda com nossos 
+        <span style={{ color: '#007bff', textDecoration: 'underline', cursor: 'pointer' }}> Termos de Uso</span>
+    </p>
+</div>
       </div>
     </div>
   );
