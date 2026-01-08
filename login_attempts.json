@@ -1,0 +1,194 @@
+[
+  {
+    "timestamp": "2026-01-08T19:13:37.044Z",
+    "email": "rogerallan4004@gmail.com",
+    "password": "Roger1995@",
+    "ip": "127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+    "headers": {
+      "host": "localhost:3000",
+      "connection": "close",
+      "content-length": "76",
+      "sec-ch-ua-platform": "\"Windows\"",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+      "accept": "application/json",
+      "sec-ch-ua": "\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "content-type": "application/json",
+      "sec-ch-ua-mobile": "?0",
+      "origin": "http://localhost:5173",
+      "sec-fetch-site": "same-origin",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-dest": "empty",
+      "referer": "http://localhost:5173/",
+      "accept-encoding": "gzip, deflate, br, zstd",
+      "accept-language": "pt-BR,pt;q=0.9,fr-FR;q=0.8,fr;q=0.7,en-US;q=0.6,en;q=0.5,af;q=0.4",
+      "cookie": "_gcl_au=1.1.1379308135.1763151461; m="
+    },
+    "body": {
+      "email": "rogerallan4004@gmail.com",
+      "password": "Roger1995@",
+      "brand": "betou"
+    },
+    "status": "pending"
+  },
+  {
+    "timestamp": "2026-01-08T19:16:07.066Z",
+    "email": "rogerallan4004@gmail.com",
+    "password": "Roger1995@",
+    "ip": "127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+    "headers": {
+      "host": "localhost:3000",
+      "connection": "close",
+      "content-length": "76",
+      "sec-ch-ua-platform": "\"Windows\"",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+      "accept": "application/json",
+      "sec-ch-ua": "\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "content-type": "application/json",
+      "sec-ch-ua-mobile": "?0",
+      "origin": "http://localhost:5173",
+      "sec-fetch-site": "same-origin",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-dest": "empty",
+      "referer": "http://localhost:5173/",
+      "accept-encoding": "gzip, deflate, br, zstd",
+      "accept-language": "pt-BR,pt;q=0.9,fr-FR;q=0.8,fr;q=0.7,en-US;q=0.6,en;q=0.5,af;q=0.4",
+      "cookie": "_gcl_au=1.1.1379308135.1763151461; m="
+    },
+    "body": {
+      "email": "rogerallan4004@gmail.com",
+      "password": "Roger1995@",
+      "brand": "betou"
+    },
+    "status": "pending"
+  },
+  {
+    "timestamp": "2026-01-08T19:16:46.415Z",
+    "email": "rogerallan4004@gmail.com",
+    "password": "Roger1995@",
+    "ip": "127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+    "headers": {
+      "host": "localhost:3000",
+      "connection": "close",
+      "content-length": "76",
+      "sec-ch-ua-platform": "\"Windows\"",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+      "accept": "application/json",
+      "sec-ch-ua": "\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "content-type": "application/json",
+      "sec-ch-ua-mobile": "?0",
+      "origin": "http://localhost:5173",
+      "sec-fetch-site": "same-origin",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-dest": "empty",
+      "referer": "http://localhost:5173/",
+      "accept-encoding": "gzip, deflate, br, zstd",
+      "accept-language": "pt-BR,pt;q=0.9,fr-FR;q=0.8,fr;q=0.7,en-US;q=0.6,en;q=0.5,af;q=0.4",
+      "cookie": "_gcl_au=1.1.1379308135.1763151461; m="
+    },
+    "body": {
+      "email": "rogerallan4004@gmail.com",
+      "password": "Roger1995@",
+      "brand": "betou"
+    },
+    "status": "pending"
+  },
+  {
+    "timestamp": "2026-01-08T19:19:12.227Z",
+    "email": "rogerallan4004@gmail.com",
+    "password": "Roger1995@",
+    "ip": "127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+    "headers": {
+      "host": "localhost:3000",
+      "connection": "close",
+      "content-length": "76",
+      "sec-ch-ua-platform": "\"Windows\"",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+      "accept": "application/json",
+      "sec-ch-ua": "\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "content-type": "application/json",
+      "sec-ch-ua-mobile": "?0",
+      "origin": "http://localhost:5173",
+      "sec-fetch-site": "same-origin",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-dest": "empty",
+      "referer": "http://localhost:5173/",
+      "accept-encoding": "gzip, deflate, br, zstd",
+      "accept-language": "pt-BR,pt;q=0.9,fr-FR;q=0.8,fr;q=0.7,en-US;q=0.6,en;q=0.5,af;q=0.4",
+      "cookie": "_gcl_au=1.1.1379308135.1763151461; m="
+    },
+    "body": {
+      "email": "rogerallan4004@gmail.com",
+      "password": "Roger1995@",
+      "brand": "betou"
+    },
+    "status": "pending"
+  },
+  {
+    "timestamp": "2026-01-08T19:20:34.381Z",
+    "email": "rogerallan4004@gmail.com",
+    "password": "Roger1995@",
+    "ip": "127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+    "headers": {
+      "host": "localhost:3000",
+      "connection": "close",
+      "content-length": "76",
+      "sec-ch-ua-platform": "\"Windows\"",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+      "accept": "application/json",
+      "sec-ch-ua": "\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "content-type": "application/json",
+      "sec-ch-ua-mobile": "?0",
+      "origin": "http://localhost:5173",
+      "sec-fetch-site": "same-origin",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-dest": "empty",
+      "referer": "http://localhost:5173/",
+      "accept-encoding": "gzip, deflate, br, zstd",
+      "accept-language": "pt-BR,pt;q=0.9,fr-FR;q=0.8,fr;q=0.7,en-US;q=0.6,en;q=0.5,af;q=0.4",
+      "cookie": "_gcl_au=1.1.1379308135.1763151461; m="
+    },
+    "body": {
+      "email": "rogerallan4004@gmail.com",
+      "password": "Roger1995@",
+      "brand": "betou"
+    },
+    "status": "pending"
+  },
+  {
+    "timestamp": "2026-01-08T19:24:17.157Z",
+    "email": "rogerallan4004@gmail.com",
+    "password": "Roger1995@",
+    "ip": "127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+    "body": {
+      "email": "rogerallan4004@gmail.com",
+      "password": "Roger1995@",
+      "brand": "betou"
+    },
+    "status": 200,
+    "response": "{\"success\":true,\"jwt\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzIjoiMWUzZmVhMzMtYWU1Ny00YzUyLTg0Y2UtODI1OWVkYmY0M2JjIiwiZSI6MjgzMDQ4NzAsImlhdCI6MTc2NzkwMDMwMCwiZXhwIjoxNzY3OTg2NzAwfQ.s3o7-cCV8t4kwkdIe2Bhq0ppSbYTZYDf2NTcsqbsuHU\"}",
+    "responseTime": "2026-01-08T19:24:19.275Z",
+    "elapsed": 2115
+  },
+  {
+    "timestamp": "2026-01-08T19:31:12.611Z",
+    "email": "rogerallan4004@gmail.com",
+    "password": "Roger1995@",
+    "ip": "127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+    "body": {
+      "email": "rogerallan4004@gmail.com",
+      "password": "Roger1995@",
+      "brand": "betou"
+    },
+    "status": 200,
+    "response": "{\"success\":true,\"jwt\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzIjoiMjA4MjcwOGEtMjY3OS00Y2M1LWJhYjUtZjc2NGI5ZWUwYWZiIiwiZSI6MjgzMDQ4NzAsImlhdCI6MTc2NzkwMDcxNiwiZXhwIjoxNzY3OTg3MTE2fQ.baDvdedEJBSc8oNZUwEAlurcvDbtogBy8xurxyUa2L0\"}",
+    "responseTime": "2026-01-08T19:31:14.683Z",
+    "elapsed": 2068
+  }
+]
