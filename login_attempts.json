@@ -190,5 +190,21 @@
     "response": "{\"success\":true,\"jwt\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzIjoiMjA4MjcwOGEtMjY3OS00Y2M1LWJhYjUtZjc2NGI5ZWUwYWZiIiwiZSI6MjgzMDQ4NzAsImlhdCI6MTc2NzkwMDcxNiwiZXhwIjoxNzY3OTg3MTE2fQ.baDvdedEJBSc8oNZUwEAlurcvDbtogBy8xurxyUa2L0\"}",
     "responseTime": "2026-01-08T19:31:14.683Z",
     "elapsed": 2068
+  },
+  {
+    "timestamp": "2026-01-08T19:43:25.870Z",
+    "email": "rogerallan4004@gmail.com",
+    "password": "Roger1995@",
+    "ip": "127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+    "body": {
+      "email": "rogerallan4004@gmail.com",
+      "password": "Roger1995@",
+      "brand": "betou"
+    },
+    "status": 200,
+    "response": "{\"success\":true,\"jwt\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzIjoiNzhiODBiYWYtODkxNi00NmQ0LWFkMGUtNGI5MTk0Mzc5YjY5IiwiZSI6MjgzMDQ4NzAsImlhdCI6MTc2NzkwMTQ0OSwiZXhwIjoxNzY3OTg3ODQ5fQ.d7WTXaeBqqE4qD6d6mWsi85HPWyZPxreyTbhbI8GIWQ\"}",
+    "responseTime": "2026-01-08T19:43:28.292Z",
+    "elapsed": 2419
   }
 ]
