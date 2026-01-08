@@ -206,5 +206,60 @@
     "response": "{\"success\":true,\"jwt\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzIjoiNzhiODBiYWYtODkxNi00NmQ0LWFkMGUtNGI5MTk0Mzc5YjY5IiwiZSI6MjgzMDQ4NzAsImlhdCI6MTc2NzkwMTQ0OSwiZXhwIjoxNzY3OTg3ODQ5fQ.d7WTXaeBqqE4qD6d6mWsi85HPWyZPxreyTbhbI8GIWQ\"}",
     "responseTime": "2026-01-08T19:43:28.292Z",
     "elapsed": 2419
+  },
+  {
+    "timestamp": "2026-01-08T20:09:00.482Z",
+    "email": "rogerallan4004@gmail.com",
+    "password": "Roger1995@",
+    "ip": "127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+    "body": {
+      "email": "rogerallan4004@gmail.com",
+      "password": "Roger1995@",
+      "brand": "betou"
+    },
+    "status": "pending"
+  },
+  {
+    "timestamp": "2026-01-08T20:09:18.911Z",
+    "email": "rogerallan4004@gmail.com",
+    "password": "Roger1995@",
+    "ip": "127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+    "body": {
+      "email": "rogerallan4004@gmail.com",
+      "password": "Roger1995@",
+      "brand": "betou"
+    },
+    "status": "pending"
+  },
+  {
+    "timestamp": "2026-01-08T20:09:24.359Z",
+    "email": "rogerallan4004@gmail.com",
+    "password": "Roger1995@",
+    "ip": "127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+    "body": {
+      "email": "rogerallan4004@gmail.com",
+      "password": "Roger1995@",
+      "brand": "betou"
+    },
+    "status": "pending"
+  },
+  {
+    "timestamp": "2026-01-08T20:09:48.249Z",
+    "email": "rogerallan4004@gmail.com",
+    "password": "Roger1995@",
+    "ip": "127.0.0.1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+    "body": {
+      "email": "rogerallan4004@gmail.com",
+      "password": "Roger1995@",
+      "brand": "betou"
+    },
+    "status": 200,
+    "response": "{\"success\":true,\"jwt\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzIjoiMDkzMjhhNTYtYmIyOS00OTlmLTk5NTctOWNkZjUwNGQ5NzJhIiwiZSI6MjgzMDQ4NzAsImlhdCI6MTc2NzkwMzAzMSwiZXhwIjoxNzY3OTg5NDMxfQ._62qFVTbrCmVNiC2adYQzut4KSra2YKQFCyUwzOdhGA\"}",
+    "responseTime": "2026-01-08T20:09:50.307Z",
+    "elapsed": 2055
   }
 ]

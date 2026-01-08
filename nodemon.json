@@ -1,0 +1,5 @@
+{
+  "watch": ["server.js", "src/"],
+  "ignore": ["login_attempts.json", "*.csv", "node_modules/"],
+  "ext": "js,mjs"
+}
