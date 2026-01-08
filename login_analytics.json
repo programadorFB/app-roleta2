@@ -1,0 +1,26 @@
+{
+  "sessions": [
+    {
+      "id": "1767907863846-d4sonnn8e",
+      "timestamp": "2026-01-08T21:31:03.846Z",
+      "email": "rogerallan4004@gmail.com",
+      "brand": "betou",
+      "browser": "Chrome",
+      "os": "Windows",
+      "device": "desktop",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+      "ip": "127.0.0.1",
+      "country": "unknown",
+      "region": "unknown",
+      "success": true,
+      "statusCode": 200,
+      "responseTime": 2052,
+      "errorType": null,
+      "errorMessage": null,
+      "hour": 18,
+      "dayOfWeek": 4,
+      "acceptLanguage": "pt-BR,pt;q=0.9,fr-FR;q=0.8,fr;q=0.7,en-US;q=0.6,en;q=0.5,af;q=0.4",
+      "referer": "http://localhost:5173/"
+    }
+  ]
+}

