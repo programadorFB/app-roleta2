@@ -37,7 +37,7 @@ const getNumberColor = (num) => {
 const ROULETTE_SOURCES = {
   immersive: '🌟 Immersive Roulette',
   brasileira: '🇧🇷 Roleta Brasileira',
-  brasilPlay: '🎲 Brasileira Playtech BETA!', // ⚡ NOVA FONTE SOCKET
+  brasilPlay: '🎲 Brasileira Playtech !', // ⚡ NOVA FONTE SOCKET
   speed: '💨 Speed Roulette',
   xxxtreme: '⚡ XXXtreme Lightning',
   vipauto: '🚘 Auto Roulette Vip',
@@ -593,7 +593,9 @@ const App = () => {
     const timeoutId = setTimeout(checkRenderingHealth, 1000);
     return () => clearTimeout(timeoutId);
   }, [gameUrl]);
-
+  const handleIframeError = useCallback(() => {
+      setLaunchError('Erro ao carregar o iframe do jogo.');
+    }, []);
   // Launch Game Handler
   const handleLaunchGame = useCallback(async () => {
     setIsLaunching(true);
@@ -1140,7 +1142,7 @@ fetch(`${SOCKET_URL}/api/full-history?source=Brasileira PlayTech&userEmail=${enc
               {gameUrl && (
                 <GameIframe 
                   url={gameUrl} 
-                  onError={() => setLaunchError('Erro ao carregar o iframe do jogo.')}
+                  onError={handleIframeError}
                 />
               )}
               
