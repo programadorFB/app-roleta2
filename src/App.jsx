@@ -1,10 +1,10 @@
-// App.jsx - VERSÃO FINAL COM SOCKET.IO + POLLING HÍBRIDO
+// App.jsx - VERSÃO FINAL OTIMIZADA (SEM RECARREGAMENTOS NO MOBILE)
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { 
     X, BarChart3, Clock, Hash, Percent, Layers, 
     LogOut, Lock, Mail, AlertCircle, PlayCircle, Filter, ExternalLink
 } from 'lucide-react';
-import { io } from 'socket.io-client'; // ⚡ IMPORTADO
+import { io } from 'socket.io-client';
 import PaywallModal from './components/PaywallModal.jsx'; 
 import './components/PaywallModal.css';
 import MasterDashboard from './pages/MasterDashboard.jsx';
@@ -25,7 +25,7 @@ import {
 } from './errorHandler.js';
 
 const API_URL = import.meta.env.VITE_API_URL || ''; 
-const SOCKET_URL = "https://roleta-fuza.sortehub.online"; // ⚡ URL DO SEU BACKEND
+const SOCKET_URL = "https://roleta-fuza.sortehub.online";
 
 // === FUNÇÕES AUXILIARES ===
 const getNumberColor = (num) => {
@@ -37,7 +37,7 @@ const getNumberColor = (num) => {
 const ROULETTE_SOURCES = {
   immersive: '🌟 Immersive Roulette',
   brasileira: '🇧🇷 Roleta Brasileira',
-  brasilPlay: '🎲 Brasileira Playtech !', // ⚡ NOVA FONTE SOCKET
+  brasilPlay: '🎲 Brasileira Playtech !',
   speed: '💨 Speed Roulette',
   xxxtreme: '⚡ XXXtreme Lightning',
   vipauto: '🚘 Auto Roulette Vip',
@@ -60,9 +60,8 @@ const ROULETTE_GAME_IDS = {
   lightning: 33,
   reddoor: 35,
   aovivo: 34,
-
   brasileira: 101,
-  brasilPlay: 102, // ⚡ ID Mapeado
+  brasilPlay: 102,
   relampago: 81,
   speedauto: 82,
   speed: 36,
@@ -71,7 +70,6 @@ const ROULETTE_GAME_IDS = {
 };
 
 const filterOptions = [
-  // { value: 50, label: 'Últimas 50 Rodadas' },
   { value: 100, label: 'Últimas 100 Rodadas' },
   { value: 300, label: 'Últimas 300 Rodadas' },
   { value: 500, label: 'Últimas 500 Rodadas' },
@@ -159,7 +157,7 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
               <Lock size={32} color="black" />
             </div>
             <h2 className="login-title">Bem-vindo</h2>
-            <p className="login-subtitle">Essa ferramenta é integrado diretamente com uma casa de aposta.</p>
+            <p className="login-subtitle">Essa ferramenta é integrada diretamente com uma casa de aposta.</p>
             <p className="login-subtitle">Faça o Login com sua conta aqui abaixo pra acessar</p>
           </div>
           
@@ -226,45 +224,44 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
             <p>Dashboard Analítico de Roleta</p>
           </div>
         </div>
-        {/* BANNER DE ALERTA ESTILIZADO */}
-<div className="alert-banner" style={{
-    backgroundColor: '#fff3cd',
-    borderLeft: '5px solid #ffc107',
-    padding: '20px',
-    marginBottom: '15px',
-    marginTop: '15px',
-    borderRadius: '4px',
-    fontFamily: 'sans-serif'
-}}>
-    <strong style={{ color: '#856404', display: 'block', marginBottom: '10px', fontSize: '1.1rem' }}>
-        ⚠️ Atenção - Para liberar seu acesso:
-    </strong>
-    <p style={{ color: '#856404', margin: '0 0 10px 0' }}>
-        Clica no link azul acima ‘’Clique aqui’’ e faça o cadastro na plataforma, verifique seu email/número e finalize a 
-        <strong> verificação facial</strong> (basta clicar em alguma Roleta como se fosse jogar).
-    </p>
-    <p style={{ color: '#856404', fontWeight: 'bold', margin: '0' }}>
-        Após concluir, volte e faça seu login aqui.
-    </p>
-</div>
+        
+        <div className="alert-banner" style={{
+            backgroundColor: '#fff3cd',
+            borderLeft: '5px solid #ffc107',
+            padding: '20px',
+            marginBottom: '15px',
+            marginTop: '15px',
+            borderRadius: '4px',
+            fontFamily: 'sans-serif'
+        }}>
+            <strong style={{ color: '#856404', display: 'block', marginBottom: '10px', fontSize: '1.1rem' }}>
+                ⚠️ Atenção - Para liberar seu acesso:
+            </strong>
+            <p style={{ color: '#856404', margin: '0 0 10px 0' }}>
+                Clica no link azul acima ‘’Clique aqui’’ e faça o cadastro na plataforma, verifique seu email/número e finalize a 
+                <strong> verificação facial</strong> (basta clicar em alguma Roleta como se fosse jogar).
+            </p>
+            <p style={{ color: '#856404', fontWeight: 'bold', margin: '0' }}>
+                Após concluir, volte e faça seu login aqui.
+            </p>
+        </div>
 
-{/* SEU CONTAINER DE TERMOS */}
-<div className="terms-container" style={{
-    marginTop: '20px',
-    padding: '15px',
-    borderTop: '1px solid #e0e0e0',
-    textAlign: 'center'
-}}>
-    <p className="terms-text" style={{
-        fontSize: '0.85rem',
-        color: '#666',
-        fontWeight: '600',
-        letterSpacing: '0.5px'
-    }}>
-        🔹 Ao fazer login, você concorda com nossos 
-        <span style={{ color: '#007bff', textDecoration: 'underline', cursor: 'pointer' }}> Termos de Uso</span>
-    </p>
-</div>
+        <div className="terms-container" style={{
+            marginTop: '20px',
+            padding: '15px',
+            borderTop: '1px solid #e0e0e0',
+            textAlign: 'center'
+        }}>
+            <p className="terms-text" style={{
+                fontSize: '0.85rem',
+                color: '#666',
+                fontWeight: '600',
+                letterSpacing: '0.5px'
+            }}>
+                🔹 Ao fazer login, você concorda com nossos 
+                <span style={{ color: '#007bff', textDecoration: 'underline', cursor: 'pointer' }}> Termos de Uso</span>
+            </p>
+        </div>
       </div>
     </div>
   );
@@ -405,7 +402,7 @@ const App = () => {
   
   // App States
   const [selectedRoulette, setSelectedRoulette] = useState(Object.keys(ROULETTE_SOURCES)[0]);
-  const [spinHistory, setSpinHistory] = useState([]); // ⚡ MANTIDO: O Array principal de dados
+  const [spinHistory, setSpinHistory] = useState([]); 
   const [selectedResult, setSelectedResult] = useState(null);
   const [popupNumber, setPopupNumber] = useState(null);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
@@ -564,38 +561,11 @@ const App = () => {
     return () => clearTimeout(timeoutId);
   }, [spinHistory]);
 
-  // Detectar bug de rendering
-  useEffect(() => {
-    if (!gameUrl) {
-      setIframeError(false);
-      return;
-    }
-
-    const checkRenderingHealth = () => {
-      const container = document.querySelector('.app-container');
-      if (!container) return;
-      
-      const rect = container.getBoundingClientRect();
-      const isVisible = rect.width > 0 && rect.height > 0;
-      
-      if (!isVisible) {
-        document.body.style.display = 'none';
-        void document.body.offsetHeight;
-        document.body.style.display = '';
-        
-        setTimeout(() => {
-          const stillBroken = !document.querySelector('.app-container')?.offsetHeight;
-          if (stillBroken) setIframeError(true);
-        }, 100);
-      }
-    };
-
-    const timeoutId = setTimeout(checkRenderingHealth, 1000);
-    return () => clearTimeout(timeoutId);
-  }, [gameUrl]);
+  // CORREÇÃO: Função de Erro do Iframe Memorizada (ESTÁVEL)
   const handleIframeError = useCallback(() => {
       setLaunchError('Erro ao carregar o iframe do jogo.');
-    }, []);
+  }, []);
+
   // Launch Game Handler
   const handleLaunchGame = useCallback(async () => {
     setIsLaunching(true);
@@ -690,59 +660,54 @@ const App = () => {
   // ⚡ LÓGICA DO WEBSOCKET (SOCKET.IO) - APENAS PARA 'Brasileira PlayTech'
   // ==================================================================================
   useEffect(() => {
-    // Só ativa se o usuário selecionar a roleta específica
     if (selectedRoulette !== 'Brasileira PlayTech') return;
 
     console.log("🔌 Iniciando conexão Socket para PlayTech...");
 
- const socket = io(SOCKET_URL, {
-  transports: ['websocket'],
-  reconnectionAttempts: 5,
-  auth: {
-    token: jwtToken,
-    email: userInfo?.email
-  }
-});
+    const socket = io(SOCKET_URL, {
+      transports: ['websocket'],
+      reconnectionAttempts: 5,
+      auth: {
+        token: jwtToken,
+        email: userInfo?.email
+      }
+    });
 
-    // 1. Carga Inicial Rápida via API REST (Pega histórico do banco ao conectar)
-fetch(`${SOCKET_URL}/api/full-history?source=Brasileira PlayTech&userEmail=${encodeURIComponent(userInfo?.email || '')}`)
-  .then(res => {
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
-  })
-  .then(data => {
-    // ⚡ VALIDAÇÃO: Garante que data é array
-    let historyArray = [];
-    
-    if (Array.isArray(data)) {
-      historyArray = data;
-    } else if (data && Array.isArray(data.data)) {
-      historyArray = data.data; // Se vier como { data: [...] }
-    } else if (data && Array.isArray(data.history)) {
-      historyArray = data.history; // Se vier como { history: [...] }
-    } else {
-      console.warn("⚠️ API retornou formato inesperado:", data);
-      return; // Aborta se não for array
-    }
-    
-    // Formata os dados para o padrão do App
-    const formatted = historyArray.map(item => ({
-      number: parseInt(item.signal, 10),
-      color: getNumberColor(parseInt(item.signal, 10)),
-      signal: item.signal,
-      gameId: item.gameId,
-      signalId: item.signalId,
-      date: item.timestamp,
-    }));
-    
-    console.log(`✅ Carregados ${formatted.length} spins históricos via Socket`);
-    setSpinHistory(formatted);
-    if (formatted.length > 0) setSelectedResult(formatted[0]);
-  })
-  .catch(err => {
-    console.error("❌ Erro ao carregar histórico socket:", err.message);
-    // Não bloqueia: Socket vai funcionar mesmo sem histórico inicial
-  });
+    // 1. Carga Inicial Rápida via API REST
+    fetch(`${SOCKET_URL}/api/full-history?source=Brasileira PlayTech&userEmail=${encodeURIComponent(userInfo?.email || '')}`)
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        let historyArray = [];
+        if (Array.isArray(data)) {
+          historyArray = data;
+        } else if (data && Array.isArray(data.data)) {
+          historyArray = data.data;
+        } else if (data && Array.isArray(data.history)) {
+          historyArray = data.history;
+        } else {
+          console.warn("⚠️ API retornou formato inesperado:", data);
+          return;
+        }
+        
+        const formatted = historyArray.map(item => ({
+          number: parseInt(item.signal, 10),
+          color: getNumberColor(parseInt(item.signal, 10)),
+          signal: item.signal,
+          gameId: item.gameId,
+          signalId: item.signalId,
+          date: item.timestamp,
+        }));
+        
+        console.log(`✅ Carregados ${formatted.length} spins históricos via Socket`);
+        setSpinHistory(formatted);
+        if (formatted.length > 0) setSelectedResult(formatted[0]);
+      })
+      .catch(err => {
+        console.error("❌ Erro ao carregar histórico socket:", err.message);
+      });
 
     // 2. Escuta Novos Giros em Tempo Real
     socket.on('novo-giro', (payload) => {
@@ -759,11 +724,9 @@ fetch(`${SOCKET_URL}/api/full-history?source=Brasileira PlayTech&userEmail=${enc
         };
 
         setSpinHistory(prev => {
-            // Evita duplicatas se a rede oscilar e garante que o novo item vá para o topo
             if (prev.length > 0 && prev[0].signalId === newSpin.signalId) return prev;
-            
             const newList = [newSpin, ...prev].slice(0, 1000); 
-            setSelectedResult(newSpin); // Atualiza o destaque na pista
+            setSelectedResult(newSpin); 
             return newList;
         });
       }
@@ -780,15 +743,12 @@ fetch(`${SOCKET_URL}/api/full-history?source=Brasileira PlayTech&userEmail=${enc
   // LÓGICA DE FETCH (POLLING) - PARA AS OUTRAS ROLETAS
   // ==================================================================================
   const fetchHistory = useCallback(async () => {
-    // ⚡ AQUI NÃO TEM MAIS CACHE, VAI DIRETO PRO SERVIDOR
     const currentRoulette = selectedRoulette;
     if (!userInfo?.email) return;
     
     try {
-      // ⚡ URL DE FETCH
       const response = await fetch(`${API_URL}/api/full-history?source=${currentRoulette}&userEmail=${encodeURIComponent(userInfo.email)}`);
       
-      // ⚡ CHECK RACE CONDITION: Aborta se o usuário trocou de roleta enquanto esperava
       if (currentRoulette !== selectedRoulette) {
           console.warn(`[Abort] Roleta ${currentRoulette} abortada.`);
           return; 
@@ -805,7 +765,6 @@ fetch(`${SOCKET_URL}/api/full-history?source=Brasileira PlayTech&userEmail=${enc
 
       const data = await response.json();
       
-      // Lógica de mesclagem e atualização do estado
       setSpinHistory(prev => {
         if (data.length === 0) return prev;
         
@@ -847,11 +806,8 @@ fetch(`${SOCKET_URL}/api/full-history?source=Brasileira PlayTech&userEmail=${enc
     }
   }, [selectedRoulette, userInfo, setSpinHistory, setSelectedResult]);
 
-  // Fetch History Effect (com condicional para não rodar na roleta Socket)
   useEffect(() => {
     if (!isAuthenticated || !userInfo) return;
-
-    // SE FOR A ROLETA SOCKET, INTERROMPE O POLLING AQUI
     if (selectedRoulette === 'Brasileira PlayTech') return;
 
     fetchHistory();
@@ -956,6 +912,20 @@ fetch(`${SOCKET_URL}/api/full-history?source=Brasileira PlayTech&userEmail=${enc
     };
   }, [popupNumber, isPopupOpen, filteredSpinHistory]);
 
+  // ⚡ MEMOIZAÇÃO DO IFRAME (BLINDAGEM CONTRA RENDERIZAÇÃO)
+  // Isolamos o Iframe aqui dentro. Ele só será recriado se a 'gameUrl' mudar.
+  // Atualizações de 'spinHistory' ou 'stats' não afetarão este bloco.
+  const gameIframeComponent = useMemo(() => {
+    if (!gameUrl) return null;
+    
+    return (
+      <GameIframe 
+        url={gameUrl} 
+        onError={handleIframeError}
+      />
+    );
+  }, [gameUrl, handleIframeError]);
+
   // Loading State
   if (checkingAuth) {
     return (
@@ -1052,7 +1022,7 @@ fetch(`${SOCKET_URL}/api/full-history?source=Brasileira PlayTech&userEmail=${enc
                     className="roulette-selector" 
                     value={selectedRoulette}
                     onChange={(e) => {
-                      setSpinHistory([]); // ⚡ Limpa o UI, força a re-execução do useEffect
+                      setSpinHistory([]); 
                       setSelectedResult(null); 
                       setSelectedRoulette(e.target.value);
                       setLaunchError('');
@@ -1139,12 +1109,9 @@ fetch(`${SOCKET_URL}/api/full-history?source=Brasileira PlayTech&userEmail=${enc
           {/* Main Content Area */}
           <section className="main-content">
             <div className="game-area">
-              {gameUrl && (
-                <GameIframe 
-                  url={gameUrl} 
-                  onError={handleIframeError}
-                />
-              )}
+              
+              {/* ✅ IFRAME BLINDADO AQUI (Substituindo a tag <GameIframe> direta) */}
+              {gameIframeComponent}
               
               {/* Desktop Racetrack */}
               <div className="racetrack-desktop-only">
