@@ -1,4 +1,4 @@
-// App.jsx - VERSÃO FINAL OTIMIZADA (SEM RECARREGAMENTOS NO MOBILE)
+// App.jsx - VERSÃƒO FINAL OTIMIZADA (SEM RECARREGAMENTOS NO MOBILE)
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { 
     X, BarChart3, Clock, Hash, Percent, Layers, 
@@ -27,7 +27,7 @@ import {
 const API_URL = import.meta.env.VITE_API_URL || ''; 
 const SOCKET_URL = "https://roleta-fuza.sortehub.online";
 
-// === FUNÇÕES AUXILIARES ===
+// === FUNÃ‡Ã•ES AUXILIARES ===
 const getNumberColor = (num) => {
   if (num === 0) return 'green';
   const redNumbers = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
@@ -49,6 +49,7 @@ const ROULETTE_SOURCES = {
   relampago: '⚡ Roleta Relâmpago',
   malta: '🇲🇹 Casino Malta Roulette'
 };
+
 
 const ROULETTE_GAME_IDS = {
   auto: 120,
@@ -73,7 +74,7 @@ const filterOptions = [
   { value: 100, label: 'Últimas 100 Rodadas' },
   { value: 300, label: 'Últimas 300 Rodadas' },
   { value: 500, label: 'Últimas 500 Rodadas' },
-  { value: 1000, label: 'Últimas 1000 Rodadas' },
+  { value: 1000, label: 'últimas 1000 Rodadas' },
   { value: 'all', label: 'Histórico Completo' }
 ];
 
@@ -130,7 +131,7 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
           localStorage.setItem('userBrand', formData.brand);
           onLoginSuccess(data);
         } else {
-          displayError({ icon: '❓', message: 'Token não recebido.' }, setError);
+          displayError({ icon: '⚠️', message: 'Token não recebido.' }, setError);
         }
       } else {
         const errorInfo = await processErrorResponse(response, 'login');
@@ -200,7 +201,7 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
             </div>
             
             <p className="register-link">
-              Ainda não tem cadastro na plataforma?{" "}
+              Ainda nÃ£o tem cadastro na plataforma?{" "}
               <a 
                 href="https://go.aff.betou.bet.br/tgml0e19?utm_medium=appcmd"
                 target="_blank"
@@ -221,7 +222,7 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
           </form>
 
           <div className="login-footer">
-            <p>Dashboard Analítico de Roleta</p>
+            <p>Dashboard AnalÃ­tico de Roleta</p>
           </div>
         </div>
         
@@ -238,7 +239,7 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
                 ⚠️ Atenção - Para liberar seu acesso:
             </strong>
             <p style={{ color: '#856404', margin: '0 0 10px 0' }}>
-                Clica no link azul acima ‘’Clique aqui’’ e faça o cadastro na plataforma, verifique seu email/número e finalize a 
+                Clica no link azul acima "Clique aqui" e faça o cadastro na plataforma, verifique seu email/número e finalize a 
                 <strong> verificação facial</strong> (basta clicar em alguma Roleta como se fosse jogar).
             </p>
             <p style={{ color: '#856404', fontWeight: 'bold', margin: '0' }}>
@@ -258,7 +259,7 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
                 fontWeight: '600',
                 letterSpacing: '0.5px'
             }}>
-                🔹 Ao fazer login, você concorda com nossos 
+                ⚠️ Ao fazer login, você concorda com nossos 
                 <span style={{ color: '#007bff', textDecoration: 'underline', cursor: 'pointer' }}> Termos de Uso</span>
             </p>
         </div>
@@ -318,7 +319,7 @@ const NumberStatsPopup = React.memo(({ isOpen, onClose, number, stats }) => {
         </button>
         <div className="popup-header">
           <div className={`popup-number-icon ${color}`}>{number}</div>
-          <h2 className="popup-title">Análise do Número {number} (em {stats.historyFilter} spins)</h2>
+          <h2 className="popup-title">AnÃ¡lise do NÃºmero {number} (em {stats.historyFilter} spins)</h2>
         </div>
         <div className="popup-stats-grid">
           <div className="info-card">
@@ -338,7 +339,7 @@ const NumberStatsPopup = React.memo(({ isOpen, onClose, number, stats }) => {
             <p className={`info-value ${color}`}>{color.toUpperCase()}</p>
           </div>
         </div>
-        <h3 className="next-spins-title">Últimas 5 Ocorrências (e 5 spins ANTERIORES)</h3>
+        <h3 className="next-spins-title">Últimas 5 Ocorrências (e 5 RODADAS ANTERIORES)</h3>
         <div className="next-spins-container">
           {stats.nextOccurrences.length > 0 ? (
             stats.nextOccurrences.map((occ, index) => (
@@ -365,7 +366,7 @@ const NumberStatsPopup = React.memo(({ isOpen, onClose, number, stats }) => {
 
 NumberStatsPopup.displayName = 'NumberStatsPopup';
 
-// === HELPERS PARA CÁLCULOS ===
+// === HELPERS PARA CÃLCULOS ===
 const computePullStats = (history) => {
   const pullMap = new Map();
   for (let i = 0; i <= 36; i++) pullMap.set(i, new Map());
@@ -433,7 +434,7 @@ const App = () => {
   // Inactivity timeout ref
   const inactivityTimeoutRef = useRef(null);
 
-  // Ref para impedir múltiplos auto-launches
+  // Ref para impedir mÃºltiplos auto-launches
   const hasLaunchedRef = useRef(false);
 
   // Check Auth
@@ -484,7 +485,7 @@ const App = () => {
     hasLaunchedRef.current = false;
   }, [selectedRoulette, isAuthenticated]);
 
-  // Monitor inatividade do iframe - logout após 15 minutos com aba em foco
+  // Monitor inatividade do iframe - logout apÃ³s 15 minutos com aba em foco
   useEffect(() => {
     if (!gameUrl || !isAuthenticated) {
       if (inactivityTimeoutRef.current) {
@@ -539,29 +540,22 @@ const App = () => {
     };
   }, [gameUrl, isAuthenticated, handleLogout]);
 
-  // Calcular pull stats em idle callback
+  // Calcular pull stats de forma otimizada
   useEffect(() => {
     if (spinHistory.length === 0) return;
 
+    // Debounce para evitar cálculos excessivos
     const timeoutId = setTimeout(() => {
-      const compute = () => {
-        const pullStats = computePullStats(spinHistory);
-        const prevStats = computePreviousStats(spinHistory);
-        setNumberPullStats(pullStats);
-        setNumberPreviousStats(prevStats);
-      };
-
-      if ('requestIdleCallback' in window) {
-        requestIdleCallback(compute, { timeout: 2000 });
-      } else {
-        compute();
-      }
+      const pullStats = computePullStats(spinHistory);
+      const prevStats = computePreviousStats(spinHistory);
+      setNumberPullStats(pullStats);
+      setNumberPreviousStats(prevStats);
     }, 300);
 
     return () => clearTimeout(timeoutId);
   }, [spinHistory]);
 
-  // CORREÇÃO: Função de Erro do Iframe Memorizada (ESTÁVEL)
+  // CORREÃ‡ÃƒO: FunÃ§Ã£o de Erro do Iframe Memorizada (ESTÃVEL)
   const handleIframeError = useCallback(() => {
       setLaunchError('Erro ao carregar o iframe do jogo.');
   }, []);
@@ -573,7 +567,7 @@ const App = () => {
     const gameId = ROULETTE_GAME_IDS[selectedRoulette];
     
     if (!gameId || !jwtToken) {
-      setLaunchError('Erro interno: ID do jogo ou Token não encontrado.');
+      setLaunchError('Erro interno: ID do jogo ou Token nÃ£o encontrado.');
       setIsLaunching(false);
       return;
     }
@@ -657,12 +651,12 @@ const App = () => {
   }, [isAuthenticated, jwtToken, gameUrl, isLaunching, handleLaunchGame]);
 
   // ==================================================================================
-  // ⚡ LÓGICA DO WEBSOCKET (SOCKET.IO) - APENAS PARA 'Brasileira PlayTech'
+  // âš¡ LÃ“GICA DO WEBSOCKET (SOCKET.IO) - APENAS PARA 'Brasileira PlayTech'
   // ==================================================================================
   useEffect(() => {
     if (selectedRoulette !== 'Brasileira PlayTech') return;
 
-    console.log("🔌 Iniciando conexão Socket para PlayTech...");
+    console.log("Iniciando conexão Socket para PlayTech...");
 
     const socket = io(SOCKET_URL, {
       transports: ['websocket'],
@@ -673,7 +667,7 @@ const App = () => {
       }
     });
 
-    // 1. Carga Inicial Rápida via API REST
+    // 1. Carga Inicial RÃ¡pida via API REST
     fetch(`${SOCKET_URL}/api/full-history?source=Brasileira PlayTech&userEmail=${encodeURIComponent(userInfo?.email || '')}`)
       .then(res => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -688,7 +682,7 @@ const App = () => {
         } else if (data && Array.isArray(data.history)) {
           historyArray = data.history;
         } else {
-          console.warn("⚠️ API retornou formato inesperado:", data);
+          console.warn("API retornou formato inesperado:", data);
           return;
         }
         
@@ -701,18 +695,17 @@ const App = () => {
           date: item.timestamp,
         }));
         
-        console.log(`✅ Carregados ${formatted.length} spins históricos via Socket`);
+        console.log(`…Carregados ${formatted.length} spins históricos via Socket`);
         setSpinHistory(formatted);
-        if (formatted.length > 0) setSelectedResult(formatted[0]);
       })
       .catch(err => {
-        console.error("❌ Erro ao carregar histórico socket:", err.message);
+        console.error("Erro ao carregar histórico socket:", err.message);
       });
 
     // 2. Escuta Novos Giros em Tempo Real
     socket.on('novo-giro', (payload) => {
       if (payload.source === 'Brasileira PlayTech') {
-        console.log("⚡ GIRO SOCKET RECEBIDO:", payload.data.signal);
+        console.log(" GIRO SOCKET RECEBIDO:", payload.data.signal);
         
         const newSpin = {
             number: parseInt(payload.data.signal, 10),
@@ -725,22 +718,20 @@ const App = () => {
 
         setSpinHistory(prev => {
             if (prev.length > 0 && prev[0].signalId === newSpin.signalId) return prev;
-            const newList = [newSpin, ...prev].slice(0, 1000); 
-            setSelectedResult(newSpin); 
-            return newList;
+            return [newSpin, ...prev].slice(0, 1000);
         });
       }
     });
 
     return () => {
-      console.log("🔌 Desconectando Socket...");
+      console.log(" Desconectando Socket...");
       socket.disconnect();
     };
   }, [selectedRoulette]);
 
 
   // ==================================================================================
-  // LÓGICA DE FETCH (POLLING) - PARA AS OUTRAS ROLETAS
+  // LÃ“GICA DE FETCH (POLLING) - PARA AS OUTRAS ROLETAS
   // ==================================================================================
   const fetchHistory = useCallback(async () => {
     const currentRoulette = selectedRoulette;
@@ -777,7 +768,6 @@ const App = () => {
             signalId: item.signalId,
             date: item.timestamp
           }));
-          setSelectedResult(converted[0] || null);
           return converted;
         }
         
@@ -798,22 +788,35 @@ const App = () => {
         
         if (newItems.length === 0) return prev;
         
-        setSelectedResult(newItems[0]);
         return [...newItems, ...prev];
       });
     } catch (error) {
       console.error("Erro ao buscar histórico:", error.message);
     }
-  }, [selectedRoulette, userInfo, setSpinHistory, setSelectedResult]);
+  }, [selectedRoulette, userInfo]);
 
   useEffect(() => {
     if (!isAuthenticated || !userInfo) return;
     if (selectedRoulette === 'Brasileira PlayTech') return;
 
+    // Polling mais lento em mobile para evitar sobrecarga
+    const isMobile = window.innerWidth <= 1024;
+    const pollInterval = isMobile ? 2000 : 1000;
+
     fetchHistory();
-    const intervalId = setInterval(fetchHistory, 1000);
+    const intervalId = setInterval(fetchHistory, pollInterval);
     return () => clearInterval(intervalId);
   }, [fetchHistory, isAuthenticated, userInfo, selectedRoulette]);
+
+  // Sincronizar selectedResult com o primeiro item do spinHistory
+  // Evita setState duplo que causa refresh no mobile
+  useEffect(() => {
+    if (spinHistory.length > 0) {
+      setSelectedResult(spinHistory[0]);
+    } else {
+      setSelectedResult(null);
+    }
+  }, [spinHistory]);
 
   // Popup Handlers
   const handleNumberClick = useCallback((number) => {
@@ -912,9 +915,9 @@ const App = () => {
     };
   }, [popupNumber, isPopupOpen, filteredSpinHistory]);
 
-  // ⚡ MEMOIZAÇÃO DO IFRAME (BLINDAGEM CONTRA RENDERIZAÇÃO)
-  // Isolamos o Iframe aqui dentro. Ele só será recriado se a 'gameUrl' mudar.
-  // Atualizações de 'spinHistory' ou 'stats' não afetarão este bloco.
+  // âš¡ MEMOIZAÃ‡ÃƒO DO IFRAME (BLINDAGEM CONTRA RENDERIZAÃ‡ÃƒO)
+  // Isolamos o Iframe aqui dentro. Ele sÃ³ serÃ¡ recriado se a 'gameUrl' mudar.
+  // AtualizaÃ§Ãµes de 'spinHistory' ou 'stats' nÃ£o afetarÃ£o este bloco.
   const gameIframeComponent = useMemo(() => {
     if (!gameUrl) return null;
     
@@ -973,7 +976,7 @@ const App = () => {
       {iframeError && (
         <div className="iframe-error-overlay">
           <div className="iframe-error-content">
-            <p>⚠️ Erro de renderização detectado</p>
+            <p>âš ï¸ Erro de renderização detectado</p>
             <button onClick={() => {
               setGameUrl('');
               setIframeError(false);
@@ -1110,7 +1113,7 @@ const App = () => {
           <section className="main-content">
             <div className="game-area">
               
-              {/* ✅ IFRAME BLINDADO AQUI (Substituindo a tag <GameIframe> direta) */}
+              {/* âœ… IFRAME BLINDADO AQUI (Substituindo a tag <GameIframe> direta) */}
               {gameIframeComponent}
               
               {/* Desktop Racetrack */}
@@ -1155,7 +1158,7 @@ const App = () => {
                     </div>
 
                 <div>
-                {/* Cerco integrado como opção dentro do DeepAnalysisPanel */}
+                {/* Cerco integrado como opÃ§Ã£o dentro do DeepAnalysisPanel */}
                 <DeepAnalysisPanel 
                   spinHistory={filteredSpinHistory} 
                   setIsPaywallOpen={setIsPaywallOpen}
