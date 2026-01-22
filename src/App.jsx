@@ -35,18 +35,18 @@ const getNumberColor = (num) => {
 };
 
 const ROULETTE_SOURCES = {
+  brasilPlay: '🇧🇷  Brasileira - Playtech',
+  aovivo: '🇧🇷 Roleta Brasileira  - Evolution',
   immersive: '🌟 Immersive Roulette - Evolution',
-  brasileira: '🇧🇷 Roleta Brasileira - Evolution',
-  brasilPlay: '🎲 Brasileira - Playtech',
-  speed: '💨 Speed Roulette - Evolution',
+  viproulette: '💎 Vip Roulette - Evolution',
   xxxtreme: '⚡ XXXtreme Lightning - Evolution',
+  speed: '💨 Speed Roulette - Evolution',
   vipauto: '🚘 Auto Roulette Vip - Evolution',
   vip: '💎 Roleta Vip - Evolution',
   lightning: '⚡ Lightning Roulette - Evolution',
-  aovivo: '🔴 Roleta ao Vivo  - Evolution',
   speedauto: '💨 Speed Auto Roulette - Evolution',
-  viproulette: '💎 Vip Roulette - Evolution',
   relampago: '⚡ Roleta Relâmpago - Evolution',
+  brasileira: '🇧🇷 Roleta Brasileira - Pragmatic',
   malta: '🇲🇹 Casino Malta Roulette - Evolution'
 };
 
