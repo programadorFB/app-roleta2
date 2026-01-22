@@ -417,7 +417,7 @@ const App = () => {
   const [iframeError, setIframeError] = useState(false);
   
   const [entrySignals, setEntrySignals] = useState([]);
-  const [historyFilter, setHistoryFilter] = useState(filterOptions[0].value);
+  const [historyFilter, setHistoryFilter] = useState(filterOptions[1].value);
 
   // Mobile Tooltip State
   const [mobileTooltip, setMobileTooltip] = useState({
