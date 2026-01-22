@@ -1,3 +1,149 @@
+/* --- CORES DO FILTRO "TERMINAIS" (INDIVIDUAL POR FINAL) --- */
+
+/* Base para todas as caixas de terminais (ajuste fino de texto) */
+[class*="bg-terminal-"] {
+  color: #fff !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+}
+
+/* 0: Cinza/Prata (ou Roxo Escuro) */
+.result-number-box.bg-terminal-0 { background-color: #636e72 !important; border-color: #b2bec3 !important; }
+.legend-dot.bg-terminal-0 { background-color: #636e72; }
+
+/* 1: Vermelho Vibrante */
+.result-number-box.bg-terminal-1 { background-color: #ff4757 !important; border-color: #ff6b81 !important; }
+.legend-dot.bg-terminal-1 { background-color: #ff4757; }
+
+/* 2: Verde */
+.result-number-box.bg-terminal-2 { background-color: #2ed573 !important; border-color: #7bed9f !important; }
+.legend-dot.bg-terminal-2 { background-color: #2ed573; }
+
+/* 3: Azul */
+.result-number-box.bg-terminal-3 { background-color: #1e90ff !important; border-color: #70a1ff !important; }
+.legend-dot.bg-terminal-3 { background-color: #1e90ff; }
+
+/* 4: Laranja */
+.result-number-box.bg-terminal-4 { background-color: #ffa502 !important; border-color: #eccc68 !important; }
+.legend-dot.bg-terminal-4 { background-color: #ffa502; }
+
+/* 5: Roxo/Indigo */
+.result-number-box.bg-terminal-5 { background-color: #5352ed !important; border-color: #706fd3 !important; }
+.legend-dot.bg-terminal-5 { background-color: #5352ed; }
+
+/* 6: Rosa/Pink */
+.result-number-box.bg-terminal-6 { background-color: #ff6b81 !important; border-color: #ff9ff3 !important; }
+.legend-dot.bg-terminal-6 { background-color: #ff6b81; }
+
+/* 7: Amarelo/Ouro */
+.result-number-box.bg-terminal-7 { background-color: #e1b12c !important; border-color: #fbc531 !important; color: #2d3436 !important; }
+.legend-dot.bg-terminal-7 { background-color: #e1b12c; }
+
+/* 8: Ciano/Teal */
+.result-number-box.bg-terminal-8 { background-color: #00d2d3 !important; border-color: #48dbfb !important; color: #2d3436 !important; }
+.legend-dot.bg-terminal-8 { background-color: #00d2d3; }
+
+/* 9: Marrom/Bronze (ou Vinho) */
+.result-number-box.bg-terminal-9 { background-color: #833471 !important; border-color: #b33771 !important; }
+.legend-dot.bg-terminal-9 { background-color: #833471; }
+
+
+/* Números que NÃO são match ficam foscos */
+.result-number-box.bg-terminais-dimmed {
+  background-color: #1a1a1a !important;
+  border-color: #2d2d2d !important;
+  opacity: 0.7;
+}
+.result-number-box.bg-terminais-dimmed.text-red { color: #e74c3c !important; }
+.result-number-box.bg-terminais-dimmed.text-white { color: #ecf0f1 !important; }
+
+/* --- CORES DO FILTRO "QUINA" --- */
+
+/* Grupo 1: Azul (10, 5, 24) */
+.result-number-box.bg-quina-1 {
+  background-color: #0984e3 !important;
+  border-color: #74b9ff !important;
+  box-shadow: 0 0 5px rgba(9, 132, 227, 0.4);
+}
+.legend-dot.bg-quina-1 { background-color: #0984e3; }
+
+/* Grupo 2: Verde (23, 8, 30) */
+.result-number-box.bg-quina-2 {
+  background-color: #27ae60 !important; /* Verde Esmeralda */
+  border-color: #2ecc71 !important;
+  box-shadow: 0 0 5px rgba(39, 174, 96, 0.4);
+}
+.legend-dot.bg-quina-2 { background-color: #27ae60; }
+
+/* Grupo 3: Amarelo (15, 32, 0) */
+.result-number-box.bg-quina-3 {
+  background-color: #f1c40f !important; /* Amarelo Girassol */
+  border-color: #f39c12 !important;
+  box-shadow: 0 0 5px rgba(241, 196, 15, 0.4);
+  color: #2d3436 !important; /* Texto escuro para contraste no amarelo */
+}
+.legend-dot.bg-quina-3 { background-color: #f1c40f; }
+
+/* Grupo 4: Roxo (26, 3, 35) */
+.result-number-box.bg-quina-4 {
+  background-color: #8e44ad !important; /* Roxo Wisteria */
+  border-color: #9b59b6 !important;
+  box-shadow: 0 0 5px rgba(142, 68, 173, 0.4);
+}
+.legend-dot.bg-quina-4 { background-color: #8e44ad; }
+
+/* Números que não pertencem a nenhuma Quina */
+.result-number-box.bg-quina-dimmed {
+  background-color: #1a1a1a !important;
+  border-color: #2d2d2d !important;
+  opacity: 0.7;
+}
+
+/* Mantém cor do texto original no modo apagado */
+.result-number-box.bg-quina-dimmed.text-red { color: #e74c3c !important; }
+.result-number-box.bg-quina-dimmed.text-white { color: #ecf0f1 !important; }
+
+/* --- CORES DO FILTRO "SEQUÊNCIA" (Crescente/Decrescente) --- */
+
+/* Sequência Crescente (Verde Neon) */
+/* Ex: 1 -> 2 -> 3 */
+.result-number-box.bg-seq-asc {
+  background-color: #00b894 !important;
+  border-color: #55efc4 !important;
+  box-shadow: 0 0 5px rgba(0, 184, 148, 0.4);
+  color: #fff !important;
+}
+.legend-dot.bg-seq-asc { background-color: #00b894; }
+
+/* Sequência Decrescente (Laranja/Coral) */
+/* Ex: 3 -> 2 -> 1 */
+.result-number-box.bg-seq-desc {
+  background-color: #e17055 !important;
+  border-color: #fab1a0 !important;
+  box-shadow: 0 0 5px rgba(225, 112, 85, 0.4);
+  color: #fff !important;
+}
+.legend-dot.bg-seq-desc { background-color: #e17055; }
+
+/* Ponto de Inversão (Roxo) */
+/* Ex: 2 -> 3 -> 2 (O 3 é parte de subida e descida) */
+.result-number-box.bg-seq-mixed {
+  background-color: #a29bfe !important;
+  border-color: #6c5ce7 !important;
+  box-shadow: 0 0 5px rgba(108, 92, 231, 0.4);
+  color: #fff !important;
+}
+.legend-dot.bg-seq-mixed { background-color: #a29bfe; }
+
+/* Dimmed (Não sequencial) */
+.result-number-box.bg-seq-dimmed {
+  background-color: #1a1a1a !important;
+  border-color: #2d2d2d !important;
+  opacity: 0.7;
+}
+
+.result-number-box.bg-seq-dimmed.text-red { color: #e74c3c !important; }
+.result-number-box.bg-seq-dimmed.text-white { color: #ecf0f1 !important; }
 /* --- Container e Controles --- */
 .results-container {
   display: flex;
@@ -15,7 +161,36 @@
   padding: 0 5px;
   box-sizing: border-box;
 }
+/* --- CORES DO FILTRO "DUBLICADOS" (REPETIDOS) --- */
 
+/* Cor de destaque para o número repetido (Ex: Ciano Vibrante) */
+.result-number-box.bg-dublicados {
+  background-color: #00d2d3 !important;
+  border-color: #81ecec !important;
+  box-shadow: 0 0 5px rgba(0, 210, 211, 0.4);
+  color: #2d3436 !important; /* Texto escuro para contraste no ciano */
+}
+
+/* Números que NÃO são repetidos ficam foscos */
+.result-number-box.bg-dublicados-dimmed {
+  background-color: #1a1a1a !important;
+  border-color: #2d2d2d !important;
+  opacity: 0.7;
+}
+
+/* Mantém as cores do texto originais quando estão 'apagados' */
+.result-number-box.bg-dublicados-dimmed.text-red {
+  color: #e74c3c !important;
+}
+
+.result-number-box.bg-dublicados-dimmed.text-white {
+  color: #ecf0f1 !important;
+}
+
+/* Bolinha da legenda */
+.legend-dot.bg-dublicados { 
+  background-color: #00d2d3; 
+}
 .filter-dropdown {
   background-color: #2c3e50;
   color: white;
