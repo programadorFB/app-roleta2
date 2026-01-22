@@ -1,337 +1,390 @@
-import React, { useMemo } from 'react';
-import { Target, AlertTriangle, Clock } from 'lucide-react';
-import styles from './DeepAnalysisPanel.module.css';
+import React, { useState, useCallback, useMemo, memo } from 'react';
+import './ResultGrid.css';
 
-// --- Definição dos Setores Físicos da Roleta ---
-// Ordem física dos números na roda europeia
-const SECTORS = {
-  TM0: { name: 'Setor 0', numbers: [0, 32, 15, 19, 4, 21] },
-  TM1: { name: 'Setor 1', numbers: [2, 25, 17, 34, 6, 27] },
-  TM2: { name: 'Setor 2', numbers: [13, 36, 11, 30, 8, 23] },
-  TM3: { name: 'Setor 3', numbers: [10, 5, 24, 16, 33, 1] },
-  TM4: { name: 'Setor 4', numbers: [20, 14, 31, 9, 22, 18] },
-  TM5: { name: 'Setor 5', numbers: [29, 7, 28, 12, 35, 3, 26] }
+// --- Helpers ---
+const formatPullTooltip = (number, pullStats, previousStats) => {
+  const pullStatsMap = pullStats?.get(number);
+  const prevStatsMap = previousStats?.get(number);
+  
+  let pullString = "(Nenhum)";
+  if (pullStatsMap && pullStatsMap.size > 0) {
+    const pulledNumbers = [...pullStatsMap.keys()];
+    const displayPull = pulledNumbers.slice(0, 5);
+    pullString = displayPull.join(', ');
+    if (pulledNumbers.length > 5) pullString += ', ...';
+  }
+
+  let prevString = "(Nenhum)";
+  if (prevStatsMap && prevStatsMap.size > 0) {
+    const prevNumbers = [...prevStatsMap.keys()];
+    const displayPrev = prevNumbers.slice(0, 5);
+    prevString = displayPrev.join(', ');
+    if (prevNumbers.length > 5) prevString += ', ...';
+  }
+  return `Número: ${number}\nPuxou: ${pullString}\nVeio Antes: ${prevString}`;
 };
 
-const getNumberColor = (num) => {
-  if (num === 0) return 'green';
-  const redNumbers = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
-  return redNumbers.includes(num) ? 'red' : 'black';
-};
+// ✅ Lógica Centralizada de Estilos
+const getSpecialClass = (number, mode, color, isDuplicate, isTerminalMatch, sequenceType) => {
+  const terminal = number % 10;
 
-const SectorsAnalysis = ({ spinHistory }) => {
-  const analysis = useMemo(() => {
-    const totalSpins = spinHistory.length;
-    const history = spinHistory.filter;
+  // 1. Cavalos
+  if (mode === 'cavalos') {
+    if ([2, 5, 8].includes(terminal)) return 'bg-cavalo-blue';
+    if ([1, 4, 7].includes(terminal)) return 'bg-cavalo-green';
+    if ([0, 3, 6, 9].includes(terminal)) return 'bg-cavalo-red';
+  }
+
+  // 2. Coliseu (0 e 5)
+  if (mode === 'coliseu') {
+    if (terminal === 0) return 'bg-coliseu-blue';
+    if (terminal === 5) return 'bg-coliseu-green';
     
-    if (totalSpins === 0) {
-      return { sectors: [], totalSpins: 0, hottestSector: null, coldestSector: null };
+    const textColorClass = color === 'red' ? 'text-red' : 'text-white';
+    return `bg-coliseu-dimmed ${textColorClass}`;
+  }
+
+  // 3. Coliseu 6-2
+  if (mode === 'coliseu62') {
+    if (terminal === 6) return 'bg-coliseu62-blue';
+    if (terminal === 2) return 'bg-coliseu62-green';
+    
+    const textColorClass = color === 'red' ? 'text-red' : 'text-white';
+    return `bg-coliseu62-dimmed ${textColorClass}`;
+  }
+
+  // 4. Gêmeos
+  if (mode === 'gemeos') {
+    const dezena = Math.floor(number / 10);
+    const unidade = number % 10;
+    
+    if (dezena === unidade && number > 0) return 'bg-gemeos';
+    
+    const textColorClass = color === 'red' ? 'text-red' : 'text-white';
+    return `bg-gemeos-dimmed ${textColorClass}`;
+  }
+
+  // 5. Espelho
+  if (mode === 'espelho') {
+    const espelhoNumbers = [12, 21, 13, 31, 32, 23];
+    if (espelhoNumbers.includes(number)) return 'bg-espelho';
+    
+    const textColorClass = color === 'red' ? 'text-red' : 'text-white';
+    return `bg-espelho-dimmed ${textColorClass}`;
+  }
+
+  // 6. Duplicados (Repetidos)
+  if (mode === 'dublicados') {
+    if (isDuplicate) return 'bg-dublicados';
+    
+    const textColorClass = color === 'red' ? 'text-red' : 'text-white';
+    return `bg-dublicados-dimmed ${textColorClass}`;
+  }
+
+  // 7. Terminais Iguais (Somente Vizinhos) - Lógica Antiga Mantida
+  if (mode === 'terminais') {
+    if (isTerminalMatch) {
+      return `bg-terminal-${terminal}`;
     }
+    const textColorClass = color === 'red' ? 'text-red' : 'text-white';
+    return `bg-terminais-dimmed ${textColorClass}`;
+  }
 
-    // Analisar cada setor
-    const sectorStats = Object.entries(SECTORS).map(([key, sector]) => {
-      const sectorNumbers = sector.numbers;
-      
-      // Contar hits recentes (últimas 50 rodadas)
-      const recentHits = spinHistory.slice(0, Math.min(50, totalSpins)).filter(spin => 
-        sectorNumbers.includes(spin.number)
-      ).length;
-      
-      // Encontrar último número que saiu deste setor
-      const lastHitIndex = spinHistory.findIndex(spin => 
-        sectorNumbers.includes(spin.number)
-      );
-      
-      const lastNumber = lastHitIndex !== -1 ? spinHistory[lastHitIndex].number : null;
-      const spinsSinceLastHit = lastHitIndex === -1 ? totalSpins : lastHitIndex;
-      
-      // Encontrar o número "mais Ausente" (que não sai há mais tempo)
-      let driestNumber = null;
-      let maxDryness = -1;
-      
-      sectorNumbers.forEach(num => {
-        const index = spinHistory.findIndex(spin => spin.number === num);
-        const dryness = index === -1 ? totalSpins : index;
-        if (dryness > maxDryness) {
-          maxDryness = dryness;
-          driestNumber = num;
-        }
-      });
-      
-      // Calcular temperatura do setor (baseado em hits recentes)
-      const temperature = totalSpins > 0 ? (recentHits / Math.min(100, totalSpins)) * 100 : 0;
-      
-      return {
-        key,
-        name: sector.name,
-        numbers: sectorNumbers,
-        recentHits,
-        lastNumber,
-        spinsSinceLastHit,
-        driestNumber,
-        maxDryness,
-        temperature,
-        status: temperature > 20 ? 'hot' : temperature > 10 ? 'normal' : 'cold'
-      };
-    });
-    
-    // Ordenar por "Há" (maior tempo sem sair)
-    const sortedSectors = sectorStats.sort((a, b) => b.spinsSinceLastHit - a.spinsSinceLastHit);
-    
-    return {
-      sectors: sortedSectors,
-      totalSpins,
-      hottestSector: sectorStats.reduce((max, s) => s.temperature > max.temperature ? s : max, sectorStats[0]),
-      coldestSector: sectorStats.reduce((min, s) => s.temperature < min.temperature ? s : min, sectorStats[0])
-    };
-  }, [spinHistory]);
+  // ✅ 8. Mapa de Terminais (TODOS) - Nova Lógica Adicionada
+  if (mode === 'todos_terminais') {
+    // Pinta todos os números com a cor do seu terminal, sem verificar vizinhos
+    return `bg-terminal-${terminal}`;
+  }
 
-  const NumberChip = ({ number }) => {
-    const color = getNumberColor(number);
-    return (
-      <span 
-        className={`${styles['history-number']} ${styles[color]}`}
-        style={{ 
-          cursor: 'default',
-          fontSize: '0.7rem',
-          padding: '0.2rem 0.4rem',
-          minWidth: '20px'
-        }}
-      >
-        {number}
-      </span>
-    );
+  // 9. Quina
+  if (mode === 'quina') {
+    const group1 = [10, 5, 24]; // Azul
+    const group2 = [23, 8, 30]; // Verde
+    const group3 = [15, 32, 0]; // Amarelo
+    const group4 = [26, 3, 35]; // Roxo
+
+    if (group1.includes(number)) return 'bg-quina-1';
+    if (group2.includes(number)) return 'bg-quina-2';
+    if (group3.includes(number)) return 'bg-quina-3';
+    if (group4.includes(number)) return 'bg-quina-4';
+
+    const textColorClass = color === 'red' ? 'text-red' : 'text-white';
+    return `bg-quina-dimmed ${textColorClass}`;
+  }
+
+  // 10. Sequência
+  if (mode === 'sequencia') {
+    if (sequenceType === 'mixed') return 'bg-seq-mixed';
+    if (sequenceType === 'asc') return 'bg-seq-asc';
+    if (sequenceType === 'desc') return 'bg-seq-desc';
+
+    const textColorClass = color === 'red' ? 'text-red' : 'text-white';
+    return `bg-seq-dimmed ${textColorClass}`;
+  }
+
+  // 11. Gêmeos + Espelho
+  if (mode === 'gemeos-espelho') {
+    const dezena = Math.floor(number / 10);
+    const unidade = number % 10;
+    
+    if (dezena === unidade && number > 0) return 'bg-combo-gemeos';
+    
+    const espelhoNumbers = [12, 21, 13, 31, 32, 23];
+    if (espelhoNumbers.includes(number)) return 'bg-combo-espelho';
+    
+    const textColorClass = color === 'red' ? 'text-red' : 'text-white';
+    return `bg-combo-dimmed ${textColorClass}`;
+  }
+
+  return '';
+};
+
+// --- Componente ResultBox ---
+const ResultBox = memo(({ number, color, index, isHighlighted, customClass }) => (
+  <div 
+    data-number={number}
+    data-index={index}
+    className={`result-number-box ${customClass || color} ${isHighlighted ? 'highlighted' : ''}`}
+  >
+    {number}
+  </div>
+));
+
+ResultBox.displayName = 'ResultBox';
+
+// --- Componente Principal ---
+const ResultsGrid = memo(({ 
+  latestNumbers, 
+  numberPullStats, 
+  numberPreviousStats,
+  onResultClick,
+  isPremium = false, 
+  setIsPaywallOpen
+}) => {
+  const [hoveredNumber, setHoveredNumber] = useState(null);
+  const [filterMode, setFilterMode] = useState('default');
+
+  const handleMouseEvent = useCallback((e) => {
+    if (e.type === 'mouseleave') {
+      setHoveredNumber(null);
+      return;
+    }
+    const target = e.target.closest('[data-number]');
+    if (!target) return;
+    const number = parseInt(target.dataset.number, 10);
+    if (e.type === 'mouseenter' || e.type === 'mouseover') {
+      setHoveredNumber(number);
+    }
+  }, []);
+
+  const handleClick = useCallback((e) => {
+    const target = e.target.closest('[data-number]');
+    if (!target) return;
+    const index = parseInt(target.dataset.index, 10);
+    const result = latestNumbers[index];
+    if (result && onResultClick) {
+      onResultClick(e, result);
+    }
+  }, [latestNumbers, onResultClick]);
+
+  const handleFilterChange = (e) => {
+    setFilterMode(e.target.value);
   };
 
-  const StatCard = ({ title, icon, children }) => (
-    <div className={styles['strategy-card']}>
-      <div className={styles['strategy-header']}>
-        {icon}
-        <h4 className={styles['card-title']}>{title}</h4>
+  const activeTooltip = useMemo(() => {
+    if (hoveredNumber === null) return '';
+    return formatPullTooltip(hoveredNumber, numberPullStats, numberPreviousStats);
+  }, [hoveredNumber, numberPullStats, numberPreviousStats]);
+
+  const gridClassName = useMemo(() => 
+    `results-grid ${hoveredNumber !== null ? 'hover-active' : ''}`,
+    [hoveredNumber]
+  );
+
+  const renderOptionLabel = (label, isLocked) => {
+    return isLocked && !isPremium ? ` ${label}` : label;
+  };
+
+  return (
+    <div className="results-container">
+      <div className="controls-header">
+        
+        {/* --- ÁREA DAS LEGENDAS --- */}
+        <div className="legend-area">
+          
+          {filterMode === 'cavalos' && (
+            <div className="legend-group">
+              <div className="legend-item"><span className="legend-dot bg-cavalo-blue"></span><span>2, 5, 8</span></div>
+              <div className="legend-item"><span className="legend-dot bg-cavalo-green"></span><span>1, 4, 7</span></div>
+              <div className="legend-item"><span className="legend-dot bg-cavalo-red"></span><span>0, 3, 6, 9</span></div>
+            </div>
+          )}
+
+          {filterMode === 'coliseu' && (
+            <div className="legend-group">
+              <div className="legend-item"><span className="legend-dot bg-coliseu-blue"></span><span>Terminal 0</span></div>
+              <div className="legend-item"><span className="legend-dot bg-coliseu-green"></span><span>Terminal 5</span></div>
+            </div>
+          )}
+
+          {filterMode === 'coliseu62' && (
+            <div className="legend-group">
+              <div className="legend-item"><span className="legend-dot bg-coliseu62-blue"></span><span>Terminal 6</span></div>
+              <div className="legend-item"><span className="legend-dot bg-coliseu62-green"></span><span>Terminal 2</span></div>
+            </div>
+          )}
+
+          {filterMode === 'gemeos' && (
+            <div className="legend-group">
+              <div className="legend-item"><span className="legend-dot bg-gemeos"></span><span>Gêmeos</span></div>
+            </div>
+          )}
+
+          {filterMode === 'espelho' && (
+            <div className="legend-group">
+              <div className="legend-item"><span className="legend-dot bg-espelho"></span><span>Espelho</span></div>
+            </div>
+          )}
+
+          {filterMode === 'dublicados' && (
+            <div className="legend-group">
+              <div className="legend-item"><span className="legend-dot bg-dublicados"></span><span>Repetidos</span></div>
+            </div>
+          )}
+
+          {/* ✅ Legenda Terminais (Serve para 'terminais' e 'todos_terminais') */}
+          {(filterMode === 'terminais' || filterMode === 'todos_terminais') && (
+            <div className="legend-group" style={{maxWidth: '100%', flexWrap: 'wrap', gap: '8px'}}>
+              {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(t => (
+                <div key={t} className="legend-item" style={{marginRight: '0'}}>
+                  <span className={`legend-dot bg-terminal-${t}`}></span>
+                  <span>{t}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {filterMode === 'quina' && (
+            <div className="legend-group" style={{flexWrap: 'wrap'}}>
+              <div className="legend-item"><span className="legend-dot bg-quina-1"></span><span>10, 5, 24</span></div>
+              <div className="legend-item"><span className="legend-dot bg-quina-2"></span><span>23, 8, 30</span></div>
+              <div className="legend-item"><span className="legend-dot bg-quina-3"></span><span>15, 32, 0</span></div>
+              <div className="legend-item"><span className="legend-dot bg-quina-4"></span><span>26, 3, 35</span></div>
+            </div>
+          )}
+
+          {filterMode === 'sequencia' && (
+            <div className="legend-group">
+              <div className="legend-item"><span className="legend-dot bg-seq-asc"></span><span>Crescente</span></div>
+              <div className="legend-item"><span className="legend-dot bg-seq-desc"></span><span>Decrescente</span></div>
+              <div className="legend-item"><span className="legend-dot bg-seq-mixed"></span><span>Inversão</span></div>
+            </div>
+          )}
+
+          {filterMode === 'gemeos-espelho' && (
+            <div className="legend-group">
+              <div className="legend-item"><span className="legend-dot bg-combo-gemeos"></span><span>Gêmeos</span></div>
+              <div className="legend-item"><span className="legend-dot bg-combo-espelho"></span><span>Espelho</span></div>
+            </div>
+          )}
+        </div>
+
+        {/* --- DROPDOWN DE FILTROS --- */}
+        <div className="filter-wrapper">
+          <select 
+            value={filterMode} 
+            onChange={handleFilterChange}
+            className="filter-dropdown"
+            style={{ borderColor: (!isPremium && filterMode === 'default') ? '#34495e' : '#3498db' }}
+          >
+            <option value="default">Cores Padrão</option>
+            <option value="cavalos">Filtro: Cavalos</option>
+            
+            <option value="dublicados">{renderOptionLabel("Filtro: Duplicados", true)}</option>
+            
+            {/* Opção 1: Lógica original */}
+            <option value="terminais">{renderOptionLabel("Filtro: Terminais (Vizinhos)", true)}</option>
+            
+            {/* Opção 2: Nova lógica (Adicionada) */}
+            <option value="todos_terminais">{renderOptionLabel("Filtro: Mapa de Terminais (Todos)", true)}</option>
+            
+            <option value="quina">{renderOptionLabel("Filtro: Quina", true)}</option>
+            <option value="sequencia">{renderOptionLabel("Filtro: Sequência (+/- 1)", true)}</option>
+
+            <option value="coliseu">{renderOptionLabel("Filtro: Coliseu (0-5)", true)}</option>
+            <option value="coliseu62">{renderOptionLabel("Filtro: Coliseu (6-2)", true)}</option>
+            <option value="gemeos-espelho">{renderOptionLabel("Filtro: Gêmeos + Espelho", true)}</option>
+          </select>
+        </div>
       </div>
-      <div className={styles['analysis-content']}>
-        {children}
+
+      {/* --- GRID DE RESULTADOS --- */}
+      <div 
+        className={gridClassName}
+        onMouseOver={handleMouseEvent}
+        onMouseLeave={handleMouseEvent}
+        onClick={handleClick}
+        title={activeTooltip}
+      >
+        {latestNumbers.map((result, index) => {
+          
+          const olderNeighbor = latestNumbers[index + 1];
+          const newerNeighbor = latestNumbers[index - 1];
+          const currTerm = result.number % 10;
+          
+          const isDuplicate = (olderNeighbor && result.number === olderNeighbor.number) || 
+                              (newerNeighbor && result.number === newerNeighbor.number);
+
+          const matchTermOlder = olderNeighbor && (olderNeighbor.number % 10 === currTerm);
+          const matchTermNewer = newerNeighbor && (newerNeighbor.number % 10 === currTerm);
+          const isTerminalMatch = matchTermOlder || matchTermNewer;
+
+          let isAscending = false;
+          let isDescending = false;
+          const checkAsc = (t1, t2) => (t2 === t1 + 1) || (t1 === 9 && t2 === 0);
+          const checkDesc = (t1, t2) => (t2 === t1 - 1) || (t1 === 0 && t2 === 9);
+
+          if (olderNeighbor) {
+            const oldTerm = olderNeighbor.number % 10;
+            if (checkAsc(oldTerm, currTerm)) isAscending = true;
+            if (checkDesc(oldTerm, currTerm)) isDescending = true;
+          }
+          if (newerNeighbor) {
+            const newTerm = newerNeighbor.number % 10;
+            if (checkAsc(currTerm, newTerm)) isAscending = true;
+            if (checkDesc(currTerm, newTerm)) isDescending = true;
+          }
+
+          let sequenceType = null;
+          if (isAscending && isDescending) sequenceType = 'mixed';
+          else if (isAscending) sequenceType = 'asc';
+          else if (isDescending) sequenceType = 'desc';
+
+          const specialClass = getSpecialClass(
+            result.number, 
+            filterMode, 
+            result.color, 
+            isDuplicate, 
+            isTerminalMatch,
+            sequenceType
+          );
+
+          return (
+            <ResultBox
+              key={result.signalId || `${result.number}-${index}`}
+              number={result.number}
+              color={result.color}
+              index={index}
+              isHighlighted={hoveredNumber === result.number}
+              customClass={specialClass}
+            />
+          );
+        })}
       </div>
     </div>
   );
+});
 
-  const DrynessBadge = ({ spins }) => {
-    let color, label;
-    if (spins > 30) {
-      color = '#ef4444';
-      label = 'MUITO Ausente';
-    } else if (spins > 20) {
-      color = '#f59e0b';
-      label = 'Ausente';
-    } else if (spins > 10) {
-      color = '#eab308';
-      label = 'MORNO';
-    } else {
-      color = '#10b981';
-      label = 'ATIVO';
-    }
+ResultsGrid.displayName = 'ResultsGrid';
 
-    return (
-      <span style={{
-        padding: '0.25rem 0.5rem',
-        borderRadius: '0.25rem',
-        fontSize: '0.7rem',
-        fontWeight: 'bold',
-        backgroundColor: `${color}22`,
-        color: color,
-        border: `1px solid ${color}44`
-      }}>
-        {label}
-      </span>
-    );
-  };
-
-  // O estado de loading principal é tratado pelo DeepAnalysisPanel
-  if (analysis.totalSpins === 0) {
-    return null; // Não renderiza nada se não houver spins (DeepAnalysisPanel já mostra o loading)
-  }
-
-  return (
-    // Retorna um Fragmento <>...</> em vez de um <div>
-    <>
-      <h3 className={styles['dashboard-title']}>
-        Análise de Setores Físicos ({analysis.totalSpins} Sinais)
-      </h3>
-
-      {/* Resumo Geral */}
-      <StatCard 
-        title="Resumo dos Setores" 
-        icon={<Target size={24} className={styles['infoIcon']} />}
-      >
-        <div className={styles['stat-row']}>
-          <span className={styles['stat-label']}>Setor Mais Quente:</span>
-          <span className={styles['stat-value']}>
-            {analysis.hottestSector?.name} ({analysis.hottestSector?.temperature.toFixed(1)}%)
-          </span>
-        </div>
-        <div className={styles['stat-row']}>
-          <span className={styles['stat-label']}>Setor Mais Frio:</span>
-          <span className={styles['stat-value']}>
-            {analysis.coldestSector?.name} ({analysis.coldestSector?.temperature.toFixed(1)}%)
-          </span>
-        </div>
-
-      </StatCard>
-
-      {/* Tabela de Setores */}
-      <StatCard 
-        title="Status dos Setores" 
-        icon={<AlertTriangle size={24} className={styles['warningIcon']} />}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {analysis.sectors.map((sector) => (
-            <div 
-              key={sector.key}
-              style={{
-                background: 'rgba(0, 0, 0, 0.2)',
-                borderRadius: '0.5rem',
-                padding: '1rem',
-                border: `2px solid ${
-                  sector.status === 'hot' ? '#10b981' : 
-                  sector.status === 'cold' ? '#ef4444' : '#6b7280'
-                }`
-              }}
-            >
-              {/* Header do Setor */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '0.75rem',
-                paddingBottom: '0.5rem',
-                borderBottom: '1px solid #374151'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{
-                    fontSize: '1.1rem',
-                    fontWeight: 'bold',
-                    color: '#fde047'
-                  }}>
-                    {sector.name}
-                  </span>
-                  <DrynessBadge spins={sector.spinsSinceLastHit} />
-                </div>
-                
-              </div>
-
-              {/* Números do Setor */}
-              <div style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '0.4rem',
-                marginBottom: '0.75rem'
-              }}>
-                {sector.numbers.map(num => (
-                  <NumberChip key={num} number={num} />
-                ))}
-              </div>
-
-              {/* Estatísticas do Setor */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: '0.5rem',
-                fontSize: '0.85rem'
-              }}>
-                <div>
-                  <span style={{ color: '#9ca3af' }}>Último nº:</span>{' '}
-                  <span style={{ color: '#fde047', fontWeight: 'bold' }}>
-                    {sector.lastNumber !== null ? sector.lastNumber : 'N/A'}
-                  </span>
-                </div>
-                <div>
-                  <span style={{ color: '#9ca3af' }}>Há:</span>{' '}
-                  <span style={{ 
-                    color: sector.spinsSinceLastHit > 30 ? '#ef4444' : 
-                           sector.spinsSinceLastHit > 20 ? '#f59e0b' : '#10b981',
-                    fontWeight: 'bold' 
-                  }}>
-                    {sector.spinsSinceLastHit} rodadas
-                  </span>
-                </div>
-                <div>
-                  <span style={{ color: '#9ca3af' }}>Mais Ausente:</span>{' '}
-                  <span style={{ color: '#ef4444', fontWeight: 'bold' }}>
-                    {sector.driestNumber}
-                  </span>
-                </div>
-                <div>
-                  <span style={{ color: '#9ca3af' }}>Há:</span>{' '}
-                  <span style={{ 
-                    color: sector.maxDryness > 40 ? '#ef4444' : 
-                           sector.maxDryness > 25 ? '#f59e0b' : '#fde047',
-                    fontWeight: 'bold' 
-                  }}>
-                    {sector.maxDryness} rodadas
-                  </span>
-                </div>
-              </div>
-
-              {/* Barra de Temperatura */}
-              <div style={{ marginTop: '0.75rem' }}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  fontSize: '0.75rem',
-                  color: '#9ca3af',
-                  marginBottom: '0.25rem'
-                }}>
-                  <span>Temperatura</span>
-                  <span>{sector.temperature.toFixed(1)}%</span>
-                </div>
-                <div style={{
-                  width: '100%',
-                  height: '8px',
-                  background: '#374151',
-                  borderRadius: '4px',
-                  overflow: 'hidden'
-                }}>
-                  <div style={{
-                    width: `${Math.min(sector.temperature * 2, 100)}%`,
-                    height: '100%',
-                    background: sector.status === 'hot' ? 
-                      'linear-gradient(90deg, #10b981, #059669)' :
-                      sector.status === 'cold' ?
-                      'linear-gradient(90deg, #3b82f6, #2563eb)' :
-                      'linear-gradient(90deg, #eab308, #ca8a04)',
-                    transition: 'width 0.3s ease'
-                  }} />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </StatCard>
-
-      {/* Legenda */}
-      <div style={{
-        padding: '1rem',
-        background: 'rgba(0, 0, 0, 0.2)',
-        borderRadius: '0.75rem',
-        border: '1px solid #374151',
-        fontSize: '0.85rem',
-        color: '#9ca3af'
-      }}>
-        <div style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: '#fde047' }}>
-          📊 Legenda:
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem' }}>
-          <div>• <span style={{ color: '#ef4444' }}>Muito Ausente</span>: +30 rodadas</div>
-          <div>• <span style={{ color: '#f59e0b' }}>Ausente</span>: 20-30 rodadas</div>
-          <div>• <span style={{ color: '#eab308' }}>Morno</span>: 10-20 rodadas</div>
-          <div>• <span style={{ color: '#10b981' }}>Ativo</span>: -10 rodadas</div>
-        </div>
-        <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', fontStyle: 'italic' }}>
-          * Temperatura: % de repetições nas últimas 50 rodadas
-        </div>
-      </div>
-    </>
-  );
-};
-
-export default SectorsAnalysis;
+export default ResultsGrid;
