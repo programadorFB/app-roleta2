@@ -5,35 +5,27 @@ import { NotificationProvider } from './contexts/NotificationContext';
 import VideoExplicativo from './VideoExplicativo';
 import VideoExplicativo2 from './VideoExplicativo2';
 
-// 1. Captura os parâmetros da URL
 const params = new URLSearchParams(window.location.search);
-const mostrarVideo = params.get('video') === 'explicativo';
-const mostrarVideo2 = params.get('video') === 'explicativo2';
+const videoParam = params.get('video'); // Captura o valor uma vez
 
-// 2. Cria a raiz do React
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
-// 3. Decide o que renderizar
-if (mostrarVideo) {
-  // SEPARADO: Renderiza APENAS o vídeo (sem App, sem Auth, sem Contextos pesados)
+if (videoParam === 'explicativo') {
+  // Rota leve 1
   root.render(
     <React.StrictMode>
       <VideoExplicativo />
     </React.StrictMode>
   );
-  
-}
-if (mostrarVideo2) {
-  // SEPARADO: Renderiza APENAS o vídeo (sem App, sem Auth, sem Contextos pesados)
+} else if (videoParam === 'explicativo2') {
+  // Rota leve 2
   root.render(
     <React.StrictMode>
       <VideoExplicativo2 />
     </React.StrictMode>
   );
-  
-}
- else {
-  // PRINCIPAL: Renderiza o App normal com tudo
+} else {
+  // App Principal (Padrão)
   root.render(
     <React.StrictMode>
       <NotificationProvider> 
