@@ -36,7 +36,7 @@ export default function VideoExplicativo2() {
         }}
       >
         {/* Como o arquivo está na pasta 'public', a barra '/' na frente é suficiente */}
-        <source src="/explicativo.mp4" type="video/mp4" />
+        <source src="/explicativo2.mp4" type="video/mp4" />
         Seu navegador não suporta a tag de vídeo.
       </video>
     </div>
