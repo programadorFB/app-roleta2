@@ -149,7 +149,7 @@ ResultBox.displayName = 'ResultBox';
 
 // --- Componente Principal ---
 const ResultsGrid = memo(({ 
-  latestNumbers, 
+  latestNumbers = [], 
   numberPullStats, 
   numberPreviousStats,
   onResultClick,
