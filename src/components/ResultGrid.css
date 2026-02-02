@@ -489,7 +489,58 @@
 .filter-wrapper {
   flex-shrink: 0;
 }
+/* --- 11. Filtro: Setores da Roleta (Baseado no Racecourse) --- */
 
+/* Tiers: Azul (lado esquerdo da imagem) */
+.bg-tiers {
+  background-color: #007bff !important; /* Azul vibrante */
+  color: #fff !important;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+  border: 1px solid #0056b3;
+}
+
+/* Orphelins: Laranja (centro da imagem) */
+.bg-orphelins {
+  background-color: #fd7e14 !important; /* Laranja */
+  color: #fff !important;
+  box-shadow: 0 0 5px rgba(253, 126, 20, 0.5);
+  border: 1px solid #e65100;
+}
+
+/* Voisins: Rosa/Magenta (lado direito, antes do zero) */
+.bg-voisins {
+  background-color: #e83e8c !important; /* Magenta/Rosa */
+  color: #fff !important;
+  box-shadow: 0 0 5px rgba(232, 62, 140, 0.5);
+  border: 1px solid #c2185b;
+}
+
+/* Zero (Jeu Zéro): Amarelo/Dourado (destaque final à direita) */
+/* Usamos Amarelo/Verde-limão para diferenciar do verde padrão do 0 */
+.bg-zero {
+  background-color: #ffc107 !important; /* Amarelo Ouro */
+  color: #000 !important; /* Texto preto para leitura no amarelo */
+  font-weight: bold;
+  box-shadow: 0 0 5px rgba(255, 193, 7, 0.5);
+  border: 1px solid #d39e00;
+}
+
+/* --- Estado "Apagado" (Dimmed) --- */
+/* Quando o filtro está ativo, os números que NÃO são do setor ficam transparentes */
+.bg-setores-dimmed {
+  background-color: transparent !important;
+  opacity: 0.3; /* Deixa bem apagado */
+  border: 1px solid #444; /* Borda sutil */
+}
+
+/* Mantém as cores do texto (vermelho/branco) quando apagado */
+.bg-setores-dimmed.text-red {
+  color: #e74c3c !important;
+}
+
+.bg-setores-dimmed.text-white {
+  color: #ecf0f1 !important;
+}
 /* --- Media Queries --- */
 @media (max-width: 768px) {
   .results-grid {

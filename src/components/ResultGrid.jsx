@@ -131,6 +131,22 @@ const getSpecialClass = (number, mode, color, isDuplicate, isTerminalMatch, sequ
     return `bg-combo-dimmed ${textColorClass}`;
   }
 
+  // 11. Filtros de Setores da Roleta Europeia (NOVO)
+  if (mode === 'setores') {
+    const tiers = [27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33];
+    const orphelins = [1, 20, 14, 31, 9, 6, 34, 17];
+    const voisins = [19, 4, 21, 2, 25, 22, 18, 29, 7, 28];
+    const zero = [12, 35, 3, 26, 0, 32, 15];
+
+    if (tiers.includes(number)) return 'bg-tiers';
+    if (orphelins.includes(number)) return 'bg-orphelins';
+    if (voisins.includes(number)) return 'bg-voisins';
+    if (zero.includes(number)) return 'bg-zero';
+    
+    const textColorClass = color === 'red' ? 'text-red' : 'text-white';
+    return `bg-setores-dimmed ${textColorClass}`;
+  }
+
   return '';
 };
 
@@ -284,6 +300,16 @@ const ResultsGrid = memo(({
               <div className="legend-item"><span className="legend-dot bg-combo-espelho"></span><span>Espelho</span></div>
             </div>
           )}
+
+          {/* Legenda Setores (NOVO) */}
+          {filterMode === 'setores' && (
+            <div className="legend-group" style={{ flexWrap: 'wrap' }}>
+              <div className="legend-item"><span className="legend-dot bg-tiers"></span><span>Tiers</span></div>
+              <div className="legend-item"><span className="legend-dot bg-orphelins"></span><span>Orphelins</span></div>
+              <div className="legend-item"><span className="legend-dot bg-voisins"></span><span>Voisins</span></div>
+              <div className="legend-item"><span className="legend-dot bg-zero"></span><span>Zero</span></div>
+            </div>
+          )}
         </div>
 
         {/* --- DROPDOWN DE FILTROS --- */}
@@ -297,6 +323,7 @@ const ResultsGrid = memo(({
             <option value="default">Cores Padrão</option>
             <option value="cavalos">Filtro: Cavalos</option>
             
+            <option value="setores">{renderOptionLabel("Filtro: Setores do Cilindro", true)}</option> {/* NOVO */}
             <option value="dublicados">{renderOptionLabel("Filtro: Duplicados", true)}</option>
             <option value="terminais">{renderOptionLabel("Filtro: Terminais Iguais", true)}</option>
             <option value="quina">{renderOptionLabel("Filtro: Quina", true)}</option>
