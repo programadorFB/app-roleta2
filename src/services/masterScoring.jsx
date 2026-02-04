@@ -158,7 +158,7 @@ function analyzeNeighbors(spinHistory) {
  * Roda as 5 análises restantes e as compila.
  */
 export const calculateMasterScore = (spinHistory) => {
-  if (!spinHistory || spinHistory.length < 50) {
+  if (!spinHistory || spinHistory.length < 20) {
     return {
       globalAssertiveness: 0,
       totalSignals: 0,
@@ -216,7 +216,7 @@ export const calculateMasterScore = (spinHistory) => {
       convergence: convergenceCount,
       suggestedNumbers: top5Numbers,
       confidence: globalAssertiveness,
-      validFor: 2,
+      validFor: 3,
       reason: `${convergenceCount} estratégias alinhadas`
     };
   }

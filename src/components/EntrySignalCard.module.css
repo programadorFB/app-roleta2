@@ -1,0 +1,190 @@
+/* components/EntrySignalCard.module.css */
+
+/* --- Container Principal Compacto --- */
+.cardContainer {
+  background-color: rgba(15, 23, 42, 0.85); /* Mais escuro e sólido para elegância */
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 8px; /* Bordas menos arredondadas ocupam menos espaço visual */
+  padding: 0.8rem; /* Padding reduzido */
+  margin-bottom: 0.8rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(8px);
+}
+
+.headerTitle {
+  color: #10b981;
+  text-align: center;
+  font-size: 0.65rem; /* Fonte menor */
+  font-weight: 800;
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid rgba(16, 185, 129, 0.15);
+  padding-bottom: 0.4rem;
+}
+
+.conceptText {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-bottom: 0.8rem;
+  line-height: 1.2;
+}
+
+.sectionTitle {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  color: #fbbf24;
+  margin-bottom: 0.5rem;
+  padding-left: 0.2rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  opacity: 0.9;
+}
+
+/* --- Linha de Análise Compacta --- */
+.analysisRow {
+  display: flex;
+  align-items: stretch;
+  background: rgba(0, 0, 0, 0.3);
+  margin-bottom: 0.4rem; /* Menos espaço entre linhas */
+  border-radius: 6px;
+  overflow: hidden;
+  border-left: 3px solid #10b981; /* Borda mais fina */
+  min-height: 42px; /* Altura mínima controlada */
+  transition: all 0.2s ease;
+}
+
+.analysisRow:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Coluna Esquerda: O ALVO */
+.targetBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 45px; /* Largura fixa e reduzida */
+  min-width: 45px;
+  padding: 0.3rem 0;
+  background: rgba(255, 255, 255, 0.03);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.targetLabel {
+  font-size: 0.5rem;
+  color: #10b981;
+  margin-top: 3px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  opacity: 0.8;
+}
+
+/* Coluna Direita: Estatísticas */
+.statsColumn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0.3rem 0.6rem; /* Padding lateral reduzido */
+  gap: 2px;
+}
+
+.statRow {
+  display: flex;
+  align-items: flex-start; /* Alinha no topo caso quebre linha */
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+.statLabel {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b; /* Cinza mais elegante/discreto */
+  margin-right: 6px;
+  min-width: 50px; /* Largura fixa para alinhar : */
+  text-align: right;
+  padding-top: 1px; /* Ajuste fino vertical */
+}
+
+.statValue {
+  color: #e2e8f0;
+  font-family: 'Roboto Mono', monospace, sans-serif; /* Fonte mono fica mais técnica/bonita */
+  font-size: 0.75rem;
+  font-weight: 500;
+  word-break: break-word; /* Evita estourar o layout */
+}
+
+.emptyValue {
+  font-style: italic;
+  opacity: 0.3;
+  font-size: 0.7rem;
+}
+
+/* --- Rodapé --- */
+.playSection {
+  margin-top: 0.8rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 0.8rem;
+  text-align: center;
+}
+
+.playLabel {
+  display: block;
+  font-size: 0.6rem;
+  color: #94a3b8;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.playGrid {
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem; /* Menor gap entre chips */
+  flex-wrap: wrap;
+}
+
+/* --- Aviso --- */
+.warningBox {
+  margin-top: 0.8rem;
+  padding: 0.4rem 0.6rem;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.warningIcon {
+  font-size: 0.7rem;
+}
+
+.warningText {
+  color: #fbbf24;
+  font-size: 0.5rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  line-height: 1.1;
+  text-align: center;
+}
+
+/* --- Chips de Número (Compactos) --- */
+.numberChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px; /* Canto menos arredondado = mais moderno */
+  font-weight: 700;
+  cursor: default;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.green { background-color: #059669; color: #fff; border-color: #34d399; }
+.red   { background-color: #dc2626; color: #fff; border-color: #f87171; }
+.black { background-color: #1f2937; color: #fff; border-color: #4b5563; }
