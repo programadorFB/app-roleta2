@@ -78,14 +78,14 @@ const EntrySignalCard = ({ entrySignal,  spinHistory = [] }) => {
 
   return (
     <div className={styles.cardContainer}>
-      <br/>
+      
          <div className={styles.warningBox}>
            <span className={styles.warningIcon}>⚠️</span>
            <span className={styles.warningText}>
              Regiões de tendência baseadas em probabilidade. Não são garantias.
            </span>
          </div>
-      
+      <br/>
       {/* AVISO NO TOPO (Menos intrusivo) ou RODAPÉ conforme preferência. Mantendo layout original: */}
       <div className={styles.headerTitle}>
         TENDÊNCIA CONFIRMADA

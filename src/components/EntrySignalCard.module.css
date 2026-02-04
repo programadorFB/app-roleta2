@@ -2,8 +2,12 @@
 
 /* --- Container Principal Compacto --- */
 .cardContainer {
-  background-color: rgba(15, 23, 42, 0.85); /* Mais escuro e sólido para elegância */
-  border: 1px solid rgba(16, 185, 129, 0.2);
+    background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
+  border: 2px solid #10b981;
+  border-radius: 12px;
+  
+  box-shadow: 0 8px 32px rgba(16, 185, 129, 0.3);
+  animation: pulseGlow 2s ease-in-out infinite;
   border-radius: 8px; /* Bordas menos arredondadas ocupam menos espaço visual */
   padding: 0.8rem; /* Padding reduzido */
   margin-bottom: 0.8rem;

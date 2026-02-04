@@ -138,7 +138,7 @@ const calculateHistoricalStats = (history, neighborMode) => {
       if (analysis?.entrySignal) {
           const rawSuggestions = analysis.entrySignal.suggestedNumbers;
           
-          // AQUI ESTÁ A MÁGICA: Expandimos os números sugeridos com os vizinhos
+          // Expande os números sugeridos com os vizinhos
           const betNumbers = getCoveredNumbers(rawSuggestions, neighborMode);
           
           const validFor = analysis.entrySignal.validFor || 3;
@@ -149,7 +149,7 @@ const calculateHistoricalStats = (history, neighborMode) => {
               
               const resultNumber = history[i - j].number;
               
-              // Verifica se caiu em QUALQUER número coberto (Alvo ou Vizinho)
+              // Verifica se caiu em QUALQUER número coberto
               if (betNumbers.includes(resultNumber)) {
                   isWin = true;
                   break; 
@@ -172,7 +172,7 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate }) => {
   const [isSignalAccepted, setIsSignalAccepted] = useState(false);
   const [neighborMode, setNeighborMode] = useState(0); 
   
-  // Novo estado para controlar QUANDO o sinal começou
+  // Estado para controlar QUANDO o sinal começou
   const [signalStartLen, setSignalStartLen] = useState(0);
 
   const lastSignalRef = useRef(null);
@@ -192,24 +192,26 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate }) => {
     const newSignal = analysis?.entrySignal?.suggestedNumbers || [];
     const newSignalStr = JSON.stringify(newSignal);
     
-    // Se o sinal mudou (novo ou vazio)
+    // Se o sinal mudou (conteúdo diferente)
     if (lastSignalRef.current !== newSignalStr) {
         lastSignalRef.current = newSignalStr;
         onSignalUpdate(newSignal);
         
+        // Se temos um sinal NOVO e válido
         if (newSignal.length > 0) {
             setIsSignalAccepted(false);
-            // MARCA O MOMENTO QUE O SINAL COMEÇOU
+            // IMPORTANTE: Marca o comprimento do histórico no INÍCIO do sinal
             setSignalStartLen(spinHistory.length);
         } else {
             setSignalStartLen(0);
         }
     }
     
+    // Verifica vitória no giro atual
     if (analysis?.entrySignal && spinHistory.length > 0) {
-        // Verifica visualmente se o último número bate com a aposta expandida atual
         const currentBetNumbers = getCoveredNumbers(analysis.entrySignal.suggestedNumbers, neighborMode);
         
+        // Verifica se o último número sorteado (spinHistory[0]) é um win
         if (currentBetNumbers.includes(spinHistory[0].number)) {
             setIsSignalAccepted(true);
         }
@@ -218,12 +220,12 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate }) => {
     }
   }, [analysis, onSignalUpdate, spinHistory, neighborMode]);
 
-  // 4. Cálculo dos giros restantes (LÓGICA DA CONTAGEM REGRESSIVA)
+  // 4. Cálculo dos giros restantes (LÓGICA CORRIGIDA)
   const remainingSpins = useMemo(() => {
     if (!analysis?.entrySignal || signalStartLen === 0) return 0;
     
     const validTotal = analysis.entrySignal.validFor;
-    // Quantos giros aconteceram desde que o sinal apareceu?
+    // Quantos giros aconteceram desde que o sinal apareceu (Histórico Atual - Histórico do Início)
     const spinsPassed = spinHistory.length - signalStartLen;
     
     // Subtrai do total e garante que não fique negativo
@@ -246,19 +248,19 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate }) => {
   const unitsPerTarget = 1 + (neighborMode * 2); // 1, 3 ou 5 fichas por alvo
   const totalUnits = entrySignal ? entrySignal.suggestedNumbers.length * unitsPerTarget : 0;
 
-  // Define cor e texto do status do tempo
-  let timeStatusColor = '#fde047'; // Amarelo padrão
-  let timeText = `${remainingSpins} `;
+  // --- LÓGICA DE EXIBIÇÃO DO CONTADOR ---
+  let timeStatusColor = '#fde047'; // Amarelo (Padrão)
+  let timeText = `${remainingSpins}`; // Mostra o número por padrão (3, 2...)
 
   if (isSignalAccepted) {
-      timeStatusColor = '#10b981';
-      timeText = 'FINALIZADO';
+      timeStatusColor = '#10b981'; // Verde WIN
+      timeText = 'WIN';
   } else if (remainingSpins === 0 && entrySignal) {
-      timeStatusColor = '#ef4444';
+      timeStatusColor = '#ef4444'; // Vermelho LOSS
       timeText = 'ENCERRADO';
   } else if (remainingSpins === 1) {
-      timeStatusColor = '#f97316'; // Laranja para último giro
-      timeText = 'Última chance';
+      timeStatusColor = '#f97316'; // Laranja
+      timeText = 'ÚLTIMA';
   }
 
   return (
@@ -288,11 +290,11 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate }) => {
                 <div className={styles['stat-value']} style={{ justifyContent: 'center', fontSize: '15px' }}>{entrySignal.confidence.toFixed(0)}%</div>
               </div>
               
-              {/* LÓGICA DE CONTAGEM REGRESSIVA VISUAL */}
+              {/* CONTADOR DE RODADAS */}
               <div style={{ textAlign: 'center', flex: 1 }}>
                 <div className={styles['stat-label']} style={{ justifyContent: 'center', fontSize: '15px' }}>⏱️<br/> {isSignalAccepted ? 'Resultado' : 'Restam'} </div>
                 <div className={styles['stat-value']} style={{ justifyContent: 'center', fontSize: '15px', color: timeStatusColor, fontWeight: 'bold' }}>
-                   {timeText}/{entrySignal.validFor}
+                   {isSignalAccepted || remainingSpins === 0 || remainingSpins === 1 ? timeText : `${timeText}/${entrySignal.validFor}`}
                 </div>
               </div>
 
