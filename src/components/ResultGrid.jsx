@@ -131,7 +131,7 @@ const getSpecialClass = (number, mode, color, isDuplicate, isTerminalMatch, sequ
     return `bg-combo-dimmed ${textColorClass}`;
   }
 
-  // 11. Filtros de Setores da Roleta Europeia (NOVO)
+  // 11. Filtros de Setores da Roleta Europeia
   if (mode === 'setores') {
     const tiers = [27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33];
     const orphelins = [1, 20, 14, 31, 9, 6, 34, 17];
@@ -211,6 +211,23 @@ const ResultsGrid = memo(({
     `results-grid ${hoveredNumber !== null ? 'hover-active' : ''}`,
     [hoveredNumber]
   );
+
+  // Contagem de resultados por setor do cilindro
+  const sectorCounts = useMemo(() => {
+    const tiers = [27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33];
+    const orphelins = [1, 20, 14, 31, 9, 6, 34, 17];
+    const voisins = [19, 4, 21, 2, 25, 22, 18, 29, 7, 28];
+    const zero = [12, 35, 3, 26, 0, 32, 15];
+
+    return latestNumbers.reduce((acc, result) => {
+      const num = result.number;
+      if (tiers.includes(num)) acc.tiers++;
+      else if (orphelins.includes(num)) acc.orphelins++;
+      else if (voisins.includes(num)) acc.voisins++;
+      else if (zero.includes(num)) acc.zero++;
+      return acc;
+    }, { tiers: 0, orphelins: 0, voisins: 0, zero: 0 });
+  }, [latestNumbers]);
 
   const renderOptionLabel = (label, isLocked) => {
     return isLocked && !isPremium ? ` ${label}` : label;
@@ -301,13 +318,25 @@ const ResultsGrid = memo(({
             </div>
           )}
 
-          {/* Legenda Setores (NOVO) */}
+          {/* Legenda Setores com Contagem */}
           {filterMode === 'setores' && (
             <div className="legend-group" style={{ flexWrap: 'wrap' }}>
-              <div className="legend-item"><span className="legend-dot bg-tiers"></span><span>Tiers</span></div>
-              <div className="legend-item"><span className="legend-dot bg-orphelins"></span><span>Orphelins</span></div>
-              <div className="legend-item"><span className="legend-dot bg-voisins"></span><span>Voisins</span></div>
-              <div className="legend-item"><span className="legend-dot bg-zero"></span><span>Zero</span></div>
+              <div className="legend-item">
+                <span className="legend-dot bg-tiers"></span>
+                <span>Tiers ({sectorCounts.tiers})</span>
+              </div>
+              <div className="legend-item">
+                <span className="legend-dot bg-orphelins"></span>
+                <span>Orphelins ({sectorCounts.orphelins})</span>
+              </div>
+              <div className="legend-item">
+                <span className="legend-dot bg-voisins"></span>
+                <span>Voisins ({sectorCounts.voisins})</span>
+              </div>
+              <div className="legend-item">
+                <span className="legend-dot bg-zero"></span>
+                <span>Zero ({sectorCounts.zero})</span>
+              </div>
             </div>
           )}
         </div>
@@ -323,7 +352,7 @@ const ResultsGrid = memo(({
             <option value="default">Cores Padrão</option>
             <option value="cavalos">Filtro: Cavalos</option>
             
-            <option value="setores">{renderOptionLabel("Filtro: Setores do Cilindro", true)}</option> {/* NOVO */}
+            <option value="setores">{renderOptionLabel("Filtro: Setores do Cilindro", true)}</option>
             <option value="dublicados">{renderOptionLabel("Filtro: Duplicados", true)}</option>
             <option value="terminais">{renderOptionLabel("Filtro: Terminais Iguais", true)}</option>
             <option value="quina">{renderOptionLabel("Filtro: Quina", true)}</option>
