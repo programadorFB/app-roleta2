@@ -37,7 +37,7 @@ const getNumberColor = (num) => {
 };
 
 const ROULETTE_SOURCES = {
-  brasilPlay: '🇧🇷  Brasileira - Playtech',
+  // brasilPlay: '🇧🇷  Brasileira - Playtech',
   aovivo: '🇧🇷 Roleta Brasileira  - Evolution',
   immersive: '🌟 Immersive Roulette - Evolution',
   viproulette: '💎 Vip Roulette - Evolution',
