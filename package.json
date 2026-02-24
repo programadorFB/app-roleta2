@@ -12,6 +12,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@sentry/node": "^10.40.0",
     "cors": "^2.8.5",
     "csv-parser": "^3.2.0",
     "dotenv": "^17.2.3",
@@ -26,6 +27,7 @@
     "react-is": "^19.2.0",
     "rechart": "^0.0.1",
     "recharts": "^3.3.0",
+    "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.1",
     "zap": "^2.1.1"
   },
