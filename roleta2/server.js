@@ -81,8 +81,8 @@ const API_URLS = {
 };
 const FETCH_INTERVAL_MS = 5000;
 const DEFAULT_AUTH_PROXY_TARGET = process.env.AUTH_PROXY_TARGET || 'https://api.appbackend.tech';
-const HUBLA_WEBHOOK_TOKEN = process.env.HUBLA_WEBHOOK_TOKEN;
-const HUBLA_CHECKOUT_URL = process.env.HUBLA_CHECKOUT_URL;
+const HUBLA_WEBHOOK_TOKEN = process.env.HUBLA_WEBHOOK_TOKEN || 'x11H8dJDrNRQBZTxicwFObMkk3LG6gSMBwAi5CxGYlRp1JuwRZZsxWm81NSZEgEJ';
+const HUBLA_CHECKOUT_URL = process.env.HUBLA_CHECKOUT_URL || 'https://pay.hub.la/N7JdmojxORlRpaafFEyl';
 
 // --- MIDDLEWARE ---
 // 1. Log geral
@@ -103,7 +103,7 @@ const allowedOrigins = [
   'https://fuza.onrender.com',
   'https://roleta3-1.onrender.com',
   'http://localhost:5173',
-  'http://localhost:3000',
+  'http://localhost:4173',
   'https://ferramenta.smartanalise.com.br',
   'https://ferramenta1.smartanalise.com.br',
   'https://gratis.smartanalise.com.br',

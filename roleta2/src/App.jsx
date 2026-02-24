@@ -26,7 +26,7 @@ import {
   clearLogoutCallback
 } from './errorHandler.js';
 
-const API_URL = import.meta.env.VITE_API_URL || ''; 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'; 
 const SOCKET_URL = "https://roleta-fuza.sortehub.online";
 
 // === FUNÇÕES AUXILIARES ===
