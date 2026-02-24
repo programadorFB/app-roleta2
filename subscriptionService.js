@@ -1,7 +1,83 @@
-// subscriptionService.js
+// subscriptionService.js - COM REGRAS DE PREÇO (30 dias / 90 dias / 1 ano)
 // Gerenciamento de assinaturas e controle de acesso via Hubla com PostgreSQL
 
-import { query, transaction } from './db.js';
+import { query } from './db.js';
+
+/**
+ * --- NOVA FUNÇÃO DE SEGURANÇA ---
+ * Varre o payload inteiro em busca de dados do cliente de forma recursiva e segura.
+ */
+function extractCustomerData(payload) {
+    const candidates = [
+        payload.data?.customer,        
+        payload.data?.user,
+        payload.event?.member,         
+        payload.event?.user,
+        payload.event?.invoice?.payer, 
+        payload.member,
+        payload.user,
+        payload.customer,
+        payload.payer,
+        payload 
+    ];
+
+    let email = null;
+    let hublaId = null;
+    let name = null;
+
+    for (const candidate of candidates) {
+        if (candidate && candidate.email) {
+            email = candidate.email;
+            hublaId = candidate.id || candidate.customerId;
+            name = candidate.name;
+            break; 
+        }
+    }
+
+    if (!email) {
+        try {
+            const jsonString = JSON.stringify(payload);
+            const emailMatch = jsonString.match(/"email"\s*:\s*"([^"]+)"/);
+            if (emailMatch) {
+                email = emailMatch[1];
+                console.log('⚠️ [HUBLA_RESCUE] Email encontrado via Regex:', email);
+            }
+        } catch (e) {
+            console.error('Erro na varredura profunda de email:', e);
+        }
+    }
+
+    return { email, hublaId, name };
+}
+
+/**
+ * --- NOVA REGRA DE NEGÓCIO ---
+ * Calcula data de expiração baseada no valor pago (em centavos)
+ */
+function calculateExpirationByAmount(totalCents) {
+    if (!totalCents) return null;
+    
+    const cents = parseInt(totalCents, 10);
+    const date = new Date(); // Data de hoje (Data da compra)
+
+    // Regra 1: Até R$ 97,00 (9700 centavos) -> 30 dias
+    if (cents <= 9700) {
+        date.setDate(date.getDate() + 30);
+        console.log(`📅 [PRAZO] Valor R$ ${(cents/100).toFixed(2)} -> 30 dias de acesso`);
+    } 
+    // Regra 2: Até R$ 197,00 (19700 centavos) -> 90 dias
+    else if (cents <= 20700) {
+        date.setDate(date.getDate() + 90);
+        console.log(`📅 [PRAZO] Valor R$ ${(cents/100).toFixed(2)} -> 90 dias de acesso`);
+    } 
+    // Regra 3: Acima de R$ 197,00 -> 12 meses
+    else {
+        date.setFullYear(date.getFullYear() + 1);
+        console.log(`📅 [PRAZO] Valor R$ ${(cents/100).toFixed(2)} -> 12 meses de acesso`);
+    }
+
+    return date;
+}
 
 /**
  * Cria ou atualiza uma assinatura
@@ -17,6 +93,10 @@ export async function upsertSubscription(subscriptionData) {
             planName,
             expiresAt
         } = subscriptionData;
+        
+        if (!email) {
+            throw new Error('Email é obrigatório para criar/atualizar assinatura');
+        }
         
         const sql = `
             INSERT INTO subscriptions (
@@ -38,7 +118,7 @@ export async function upsertSubscription(subscriptionData) {
         
         const values = [
             userId,
-            email || null,
+            email,
             hublaCustomerId || null,
             subscriptionId || null,
             status || 'pending',
@@ -47,19 +127,14 @@ export async function upsertSubscription(subscriptionData) {
         ];
         
         const result = await query(sql, values);
-        const subscription = result.rows[0];
-        
-        console.log(`✅ [SUBSCRIPTIONS] Assinatura atualizada - userId: ${userId}, status: ${status}`);
-        return subscription;
+        return result.rows[0];
     } catch (error) {
         console.error('❌ [SUBSCRIPTIONS] Erro ao atualizar assinatura:', error);
         throw error;
     }
 }
 
-/**
- * Busca assinatura por userId
- */
+// ... [Funções de busca getSubscriptionBy... mantidas iguais] ...
 export async function getSubscriptionByUserId(userId) {
     try {
         const sql = 'SELECT * FROM subscriptions WHERE user_id = $1';
@@ -71,9 +146,6 @@ export async function getSubscriptionByUserId(userId) {
     }
 }
 
-/**
- * Busca assinatura por email
- */
 export async function getSubscriptionByEmail(email) {
     try {
         const sql = 'SELECT * FROM subscriptions WHERE email = $1';
@@ -85,9 +157,6 @@ export async function getSubscriptionByEmail(email) {
     }
 }
 
-/**
- * Busca assinatura por hublaCustomerId
- */
 export async function getSubscriptionByHublaId(hublaCustomerId) {
     try {
         const sql = 'SELECT * FROM subscriptions WHERE hubla_customer_id = $1';
@@ -99,32 +168,24 @@ export async function getSubscriptionByHublaId(hublaCustomerId) {
     }
 }
 
-/**
- * Verifica se o usuário tem acesso ativo
- */
 export async function hasActiveAccess(userId) {
     try {
         const subscription = await getSubscriptionByUserId(userId);
         
         if (!subscription) {
-            console.log(`⚠️ [ACCESS] Usuário ${userId} sem assinatura`);
             return false;
         }
         
-        // Verifica se o status está ativo
         const activeStatuses = ['active', 'trialing', 'paid'];
         if (!activeStatuses.includes(subscription.status)) {
-            console.log(`⚠️ [ACCESS] Usuário ${userId} com status inativo: ${subscription.status}`);
             return false;
         }
         
-        // Verifica se não expirou
         if (subscription.expires_at && new Date(subscription.expires_at) < new Date()) {
-            console.log(`⚠️ [ACCESS] Usuário ${userId} com assinatura expirada`);
+            console.log(`⚠️ [ACCESS] Assinatura expirada em: ${subscription.expires_at}`);
             return false;
         }
         
-        console.log(`✅ [ACCESS] Usuário ${userId} com acesso ativo`);
         return true;
     } catch (error) {
         console.error('❌ [ACCESS] Erro ao verificar acesso:', error);
@@ -132,30 +193,15 @@ export async function hasActiveAccess(userId) {
     }
 }
 
-/**
- * Registra evento de webhook no banco
- */
 export async function logWebhookEvent(eventType, payload, status = 'success', errorMessage = null) {
     try {
         const sql = `
-            INSERT INTO webhook_logs (
-                event_type, payload, status, error_message
-            )
-            VALUES ($1, $2, $3, $4)
-            RETURNING *;
+            INSERT INTO webhook_logs (event_type, payload, status, error_message)
+            VALUES ($1, $2, $3, $4) RETURNING *;
         `;
-        
-        const result = await query(sql, [
-            eventType,
-            JSON.stringify(payload),
-            status,
-            errorMessage
-        ]);
-        
-        return result.rows[0];
+        await query(sql, [eventType, JSON.stringify(payload || {}), status, errorMessage]);
     } catch (error) {
         console.error('❌ [WEBHOOK_LOG] Erro ao registrar evento:', error);
-        // Não lança erro para não interromper o processamento do webhook
     }
 }
 
@@ -170,54 +216,32 @@ export async function processHublaWebhook(eventType, payload) {
     try {
         let result;
         
-        // <-- CORREÇÃO: Nomes dos eventos atualizados para (v2)
         switch (eventType) {
-            
-            // Eventos de Membro (v2) -
-            case 'customer.member_added': // Antigo 'member.access_granted'
-                result = await handleAccessGranted(payload);
-                break;
-            
-            case 'customer.member_removed': // Antigo 'member.access_removed'
-                result = await handleAccessRemoved(payload);
-                break;
-            
-            // Eventos de Fatura (v2) -
-            case 'invoice.payment_succeeded':
-                result = await handlePaymentSucceeded(payload);
-                break;
-            
-            case 'invoice.status_updated':
-                result = await handleInvoiceStatusUpdated(payload);
-                break;
-            
-            // Eventos de Assinatura (v2) -
-            case 'subscription.created':
-                result = await handleSubscriptionCreated(payload);
-                break;
-            
-            case 'subscription.deactivated': // Antigo 'subscription.canceled'
-                result = await handleSubscriptionCanceled(payload);
-                break;
-            
-            case 'subscription.activated': // Antigo 'subscription.renewed'
-                result = await handleSubscriptionRenewed(payload);
-                break;
-            
-            // Eventos antigos (mantidos por segurança, caso a Hubla mude)
+            case 'customer.member_added':
             case 'member.access_granted':
                 result = await handleAccessGranted(payload);
                 break;
+            case 'customer.member_removed':
             case 'member.access_removed':
                 result = await handleAccessRemoved(payload);
                 break;
+            case 'invoice.payment_succeeded':
+                result = await handlePaymentSucceeded(payload);
+                break;
+            case 'invoice.status_updated':
+                result = await handleInvoiceStatusUpdated(payload);
+                break;
+            case 'subscription.created':
+                result = await handleSubscriptionCreated(payload);
+                break;
+            case 'subscription.deactivated':
             case 'subscription.canceled':
                 result = await handleSubscriptionCanceled(payload);
                 break;
+            case 'subscription.activated':
             case 'subscription.renewed':
                 result = await handleSubscriptionRenewed(payload);
                 break;
-
             default:
                 console.log(`⚠️ [HUBLA WEBHOOK] Evento não tratado: ${eventType}`);
                 await logWebhookEvent(eventType, payload, 'ignored', 'Evento não tratado');
@@ -225,11 +249,7 @@ export async function processHublaWebhook(eventType, payload) {
         }
         
         await logWebhookEvent(eventType, payload, 'success');
-        console.log(`✅ [HUBLA WEBHOOK] Evento processado com sucesso`);
-        console.log(`${'='.repeat(80)}\n`);
-        
         return result;
-        
     } catch (error) {
         console.error(`❌ [HUBLA WEBHOOK] Erro ao processar evento:`, error);
         await logWebhookEvent(eventType, payload, 'error', error.message);
@@ -237,270 +257,191 @@ export async function processHublaWebhook(eventType, payload) {
     }
 }
 
-/**
- * Handler: Acesso concedido
- */
 async function handleAccessGranted(payload) {
-    const member = payload.event?.member || payload.member;
-    const subscription = payload.event?.subscription || payload.subscription;
+    const { email, hublaId } = extractCustomerData(payload);
     
-    if (!member?.email) {
-        throw new Error('Email do membro não encontrado no payload (handleAccessGranted)');
-    }
+    if (!email) throw new Error('Email não encontrado para liberar acesso');
     
-    const userId = member.id || member.email.split('@')[0];
+    const subscription = payload.event?.subscription || payload.subscription || payload.data?.subscription;
+    const userId = hublaId || email.split('@')[0];
     
     const result = await upsertSubscription({
-        userId,
-        email: member.email,
-        hublaCustomerId: member.id,
-        subscriptionId: subscription?.id || null,
+        userId: userId.toString(),
+        email: email,
+        hublaCustomerId: hublaId,
+        subscriptionId: subscription?.id,
         status: 'active',
+        planName: subscription?.planName || 'Membro'
+    });
+    
+    console.log(`✅ [HUBLA] Acesso LIBERADO para: ${email}`);
+    return result;
+}
+
+async function handleAccessRemoved(payload) {
+    const { email } = extractCustomerData(payload);
+    
+    if (!email) throw new Error('Email não encontrado para remover acesso');
+    
+    const existing = await getSubscriptionByEmail(email);
+    if (existing) {
+        const result = await upsertSubscription({
+            userId: existing.user_id,
+            email: email,
+            status: 'canceled'
+        });
+        console.log(`🚫 [HUBLA] Acesso removido para: ${email}`);
+        return result;
+    }
+}
+
+/**
+ * Handler - Pagamento bem-sucedido (COM CÁLCULO DE PRAZO)
+ */
+async function handlePaymentSucceeded(payload) {
+    console.log('🔍 [HUBLA] Processando pagamento e calculando prazo...');
+    
+    const { email, hublaId } = extractCustomerData(payload);
+    if (!email) throw new Error('Email não encontrado no pagamento');
+    
+    const invoice = payload.event?.invoice || payload.invoice || payload.data?.invoice;
+    
+    // LÓGICA DE PREÇO AQUI
+    let expiresAt = invoice?.periodEnd; // Fallback (se houver na Hubla)
+    
+    // Tenta pegar o valor total (suporta v1 e v2 da API)
+    const totalCents = invoice?.amount?.totalCents || invoice?.totalCents;
+    
+    if (totalCents) {
+        const calculatedDate = calculateExpirationByAmount(totalCents);
+        if (calculatedDate) {
+            expiresAt = calculatedDate; // Usa nossa data calculada
+        }
+    } else {
+        console.warn('⚠️ [PRAZO] Valor da compra não encontrado, usando padrão do sistema');
+    }
+
+    const existing = await getSubscriptionByEmail(email);
+    const userId = existing ? existing.user_id : (hublaId || email.split('@')[0]);
+    const planName = invoice?.productName || 'Premium';
+
+    const result = await upsertSubscription({
+        userId: userId.toString(),
+        email: email,
+        hublaCustomerId: hublaId,
+        subscriptionId: invoice?.subscriptionId,
+        status: 'active',
+        planName: planName,
+        expiresAt: expiresAt // Data calculada inserida aqui
+    });
+    
+    const valorFormatado = totalCents ? `R$ ${(totalCents/100).toFixed(2)}` : 'Valor desconhecido';
+    console.log(`💰 [HUBLA] Pagamento: ${valorFormatado} | Prazo até: ${expiresAt instanceof Date ? expiresAt.toLocaleDateString() : expiresAt} | User: ${email}`);
+    
+    return result;
+}
+
+async function handleInvoiceStatusUpdated(payload) {
+    const { email } = extractCustomerData(payload);
+    const invoice = payload.event?.invoice || payload.invoice || payload.data?.invoice;
+    
+    if (!email) return { status: 'ignored' };
+    
+    const existing = await getSubscriptionByEmail(email);
+    if (existing && invoice?.status) {
+        const statusMap = { 'paid': 'active', 'pending': 'pending', 'canceled': 'canceled', 'failed': 'failed' };
+        const newStatus = statusMap[invoice.status] || existing.status;
+        
+        if (newStatus !== existing.status) {
+            await upsertSubscription({ userId: existing.user_id, email: email, status: newStatus });
+            console.log(`📊 [HUBLA] Status atualizado para ${email}: ${newStatus}`);
+        }
+        return existing;
+    }
+}
+
+async function handleSubscriptionCreated(payload) {
+    const { email, hublaId } = extractCustomerData(payload);
+    const subscription = payload.event?.subscription || payload.subscription || payload.data?.subscription;
+    
+    if (!email) throw new Error('Email não encontrado (handleSubscriptionCreated)');
+    
+    const userId = hublaId || email.split('@')[0];
+    const hublaStatus = subscription?.status;
+    let dbStatus = (hublaStatus === 'inactive') ? 'pending' : (hublaStatus || 'active');
+    
+    const result = await upsertSubscription({
+        userId: userId.toString(),
+        email: email,
+        hublaCustomerId: hublaId,
+        subscriptionId: subscription?.id,
+        status: dbStatus,
         planName: subscription?.planName || 'default',
         expiresAt: subscription?.nextBillingDate || null
     });
-    
-    console.log(`✅ [HUBLA] Acesso concedido para: ${member.email}`);
+    console.log(`🆕 [HUBLA] Assinatura criada: ${email} (${dbStatus})`);
     return result;
 }
 
-/**
- * Handler: Acesso removido
- */
-async function handleAccessRemoved(payload) {
-    const member = payload.event?.member || payload.member;
-    
-    if (!member?.email) {
-        throw new Error('Email do membro não encontrado no payload (handleAccessRemoved)');
-    }
-    
-    const existing = await getSubscriptionByEmail(member.email);
-    if (existing) {
-        const result = await upsertSubscription({
-            userId: existing.user_id,
-            status: 'canceled'
-        });
-        
-        console.log(`❌ [HUBLA] Acesso removido para: ${member.email}`);
-        return result;
-    }
-}
-
-/**
- * Handler: Pagamento realizado com sucesso
- */
-async function handlePaymentSucceeded(payload) {
-    const invoice = payload.event?.invoice || payload.invoice;
-    const customer = invoice?.customer;
-    
-    if (!customer?.email) {
-        throw new Error('Email do cliente não encontrado no payload (handlePaymentSucceeded)');
-    }
-    
-    const existing = await getSubscriptionByEmail(customer.email);
-    if (existing) {
-        const result = await upsertSubscription({
-            userId: existing.user_id,
-            status: 'paid' // 'paid' ou 'active'
-        });
-        
-        console.log(`💰 [HUBLA] Pagamento confirmado para: ${customer.email}`);
-        return result;
-    }
-}
-
-/**
- * Handler: Status da fatura atualizado
- */
-async function handleInvoiceStatusUpdated(payload) {
-    const invoice = payload.event?.invoice || payload.invoice;
-    const customer = invoice?.customer;
-    
-    if (!customer?.email) {
-        return { status: 'ignored', message: 'Email não encontrado (handleInvoiceStatusUpdated)' };
-    }
-    
-    const existing = await getSubscriptionByEmail(customer.email);
-    if (existing && invoice.status) {
-        // Mapeia status da invoice para status da assinatura
-        const statusMap = {
-            'paid': 'active',
-            'pending': 'pending',
-            'canceled': 'canceled',
-            'failed': 'failed'
-        };
-        
-        const newStatus = statusMap[invoice.status] || existing.status;
-        
-        const result = await upsertSubscription({
-            userId: existing.user_id,
-            status: newStatus
-        });
-        
-        console.log(`📊 [HUBLA] Status atualizado para ${customer.email}: ${newStatus}`);
-        return result;
-    }
-}
-
-/**
- * Handler: Assinatura criada
- */
-async function handleSubscriptionCreated(payload) {
-    const subscription = payload.event?.subscription || payload.subscription;
-    const customer = subscription?.customer;
-    
-    if (!customer?.email) {
-        throw new Error('Email do cliente não encontrado no payload (handleSubscriptionCreated)');
-    }
-    
-    const userId = customer.id || customer.email.split('@')[0];
-    
-    const result = await upsertSubscription({
-        userId,
-        email: customer.email,
-        hublaCustomerId: customer.id,
-        subscriptionId: subscription.id,
-        status: subscription.status || 'active',
-        planName: subscription.planName || 'default',
-        expiresAt: subscription.nextBillingDate || null
-    });
-    
-    console.log(`🆕 [HUBLA] Nova assinatura criada para: ${customer.email}`);
-    return result;
-}
-
-/**
- * Handler: Assinatura cancelada
- */
 async function handleSubscriptionCanceled(payload) {
-    const subscription = payload.event?.subscription || payload.subscription;
-    const customer = subscription?.customer;
+    const { email } = extractCustomerData(payload);
+    if (!email) throw new Error('Email não encontrado');
     
-    if (!customer?.email) {
-        throw new Error('Email do cliente não encontrado no payload (handleSubscriptionCanceled)');
-    }
-    
-    const existing = await getSubscriptionByEmail(customer.email);
+    const existing = await getSubscriptionByEmail(email);
     if (existing) {
-        const result = await upsertSubscription({
-            userId: existing.user_id,
-            status: 'canceled'
-        });
-        
-        console.log(`🚫 [HUBLA] Assinatura cancelada para: ${customer.email}`);
-        return result;
+        await upsertSubscription({ userId: existing.user_id, email: email, status: 'canceled' });
+        console.log(`🚫 [HUBLA] Assinatura cancelada: ${email}`);
     }
 }
 
-/**
- * Handler: Assinatura renovada
- */
 async function handleSubscriptionRenewed(payload) {
-    const subscription = payload.event?.subscription || payload.subscription;
-    const customer = subscription?.customer;
+    const { email } = extractCustomerData(payload);
+    const subscription = payload.event?.subscription || payload.subscription || payload.data?.subscription;
     
-    if (!customer?.email) {
-        throw new Error('Email do cliente não encontrado no payload (handleSubscriptionRenewed)');
-    }
+    if (!email) throw new Error('Email não encontrado');
     
-    const existing = await getSubscriptionByEmail(customer.email);
+    const existing = await getSubscriptionByEmail(email);
     if (existing) {
-        const result = await upsertSubscription({
+        await upsertSubscription({
             userId: existing.user_id,
+            email: email,
             status: 'active',
-            expiresAt: subscription.nextBillingDate || null
+            expiresAt: subscription?.nextBillingDate || null
         });
-        
-        console.log(`🔄 [HUBLA] Assinatura renovada para: ${customer.email}`);
-        return result;
+        console.log(`🔄 [HUBLA] Assinatura renovada: ${email}`);
     }
 }
 
-/**
- * Verifica a assinatura do token de webhook da Hubla
- */
 export function verifyHublaWebhook(hublaToken, expectedToken) {
-    // <-- CORREÇÃO DE SEGURANÇA CRÍTICA
-    if (!expectedToken) {
-        console.error('❌ [HUBLA] CRÍTICO: HUBLA_WEBHOOK_TOKEN não definido no .env');
-        console.error('❌ [HUBLA] Recusando todos os webhooks por segurança.');
-        return false; // <-- CORRIGIDO
-    }
-    
-    const isValid = hublaToken === expectedToken;
-    
-    if (!isValid) {
-        console.error('❌ [HUBLA] Token de webhook inválido');
-    }
-    
-    return isValid;
+    if (!expectedToken) console.error('❌ [HUBLA] Token .env ausente');
+    return hublaToken === expectedToken;
 }
 
-/**
- * Lista todas as assinaturas ativas
- */
 export async function getActiveSubscriptions() {
-    try {
-        const sql = `
-            SELECT * FROM subscriptions 
-            WHERE status IN ('active', 'trialing', 'paid')
-            AND (expires_at IS NULL OR expires_at > NOW())
-            ORDER BY created_at DESC;
-        `;
-        
-        const result = await query(sql);
-        return result.rows;
-    } catch (error) {
-        console.error('❌ [SUBSCRIPTIONS] Erro ao buscar assinaturas ativas:', error);
-        throw error;
-    }
+    const sql = `SELECT * FROM subscriptions WHERE status IN ('active', 'trialing', 'paid') AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY created_at DESC;`;
+    const result = await query(sql);
+    return result.rows;
 }
 
-/**
- * Estatísticas de assinaturas
- */
 export async function getSubscriptionStats() {
-    try {
-        const sql = `
-            SELECT 
-                COUNT(*) as total,
-                COUNT(CASE WHEN status IN ('active', 'trialing', 'paid') 
-                           AND (expires_at IS NULL OR expires_at > NOW()) 
-                           THEN 1 END) as active,
-                COUNT(CASE WHEN status = 'canceled' THEN 1 END) as canceled,
-                COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending,
-                COUNT(CASE WHEN expires_at IS NOT NULL AND expires_at < NOW() THEN 1 END) as expired
-            FROM subscriptions;
-        `;
-        
-        const result = await query(sql);
-        return result.rows[0];
-    } catch (error) {
-        console.error('❌ [SUBSCRIPTIONS] Erro ao buscar estatísticas:', error);
-        throw error;
-    }
+    const sql = `
+        SELECT COUNT(*) as total,
+        COUNT(CASE WHEN status IN ('active', 'trialing', 'paid') AND (expires_at IS NULL OR expires_at > NOW()) THEN 1 END) as active,
+        COUNT(CASE WHEN status = 'canceled' THEN 1 END) as canceled,
+        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending,
+        COUNT(CASE WHEN expires_at IS NOT NULL AND expires_at < NOW() THEN 1 END) as expired
+        FROM subscriptions;
+    `;
+    const result = await query(sql);
+    return result.rows[0];
 }
 
-/**
- * Lista logs de webhook
- */
 export async function getWebhookLogs(limit = 100) {
-    try {
-        const sql = `
-            SELECT * FROM webhook_logs 
-            ORDER BY created_at DESC 
-            LIMIT $1;
-        `;
-        
-        const result = await query(sql, [limit]);
-        return result.rows;
-    } catch (error) {
-        console.error('❌ [WEBHOOK_LOG] Erro ao buscar logs:', error);
-        throw error;
-    }
+    const sql = `SELECT * FROM webhook_logs ORDER BY created_at DESC LIMIT $1;`;
+    const result = await query(sql, [limit]);
+    return result.rows;
 }
 
-// Exporta funções principais
 export default {
     upsertSubscription,
     getSubscriptionByUserId,
