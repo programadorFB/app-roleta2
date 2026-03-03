@@ -21,7 +21,7 @@ import { loadAllExistingSignalIds, saveNewSignals, getFullHistory } from './src/
 import { SOURCES } from './src/utils/constants.js'; 
 
 // Importa serviços
-import { testConnection } from './db.js';
+import { testConnection, pool } from './db.js';
 import {
     hasActiveAccess,
     processHublaWebhook,
@@ -83,6 +83,7 @@ const FETCH_INTERVAL_MS = 5000;
 const DEFAULT_AUTH_PROXY_TARGET = process.env.AUTH_PROXY_TARGET || 'https://api.appbackend.tech';
 const HUBLA_WEBHOOK_TOKEN = process.env.HUBLA_WEBHOOK_TOKEN || 'x11H8dJDrNRQBZTxicwFObMkk3LG6gSMBwAi5CxGYlRp1JuwRZZsxWm81NSZEgEJ';
 const HUBLA_CHECKOUT_URL = process.env.HUBLA_CHECKOUT_URL || 'https://pay.hub.la/N7JdmojxORlRpaafFEyl';
+const FRONT_END_URL = process.env.FRONT_END_URL;;
 
 // --- MIDDLEWARE ---
 // 1. Log geral
@@ -102,24 +103,26 @@ app.use((req, res, next) => {
 const allowedOrigins = [
   'https://fuza.onrender.com',
   'https://roleta3-1.onrender.com',
-  'http://localhost:5173',
-  'http://localhost:4173',
   'https://ferramenta.smartanalise.com.br',
   'https://ferramenta1.smartanalise.com.br',
   'https://gratis.smartanalise.com.br',
-  'https://tool.smartanalise.com.br'
+  'https://tool.smartanalise.com.br',
+  'http://76.13.174.229',
+  'https://roleta2_vps.sortehub.online'
 ];
 
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.warn(`🚫 CORS bloqueado para origem: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
+    if (origin.startsWith(FRONT_END_URL)) {
+      return callback(null, true);
     }
-  },
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    console.warn(`🚫 CORS bloqueado para origem: ${origin}`);
+    callback(null, false);
+    },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   // ⚡ ADICIONADO: x-crawler-secret nos headers permitidos
@@ -413,6 +416,32 @@ app.get('/api/full-history', requireActiveSubscription, async (req, res) => {
         if (!sourceName || !SOURCES.includes(sourceName)) return res.status(400).json({ error: `source inválido` });
         const history = await getFullHistory(sourceName);
         res.json(history);
+    } catch (error) {
+        Sentry.captureException(error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ✅ ROTA /api/latest - Retorna os últimos N sinais de uma source
+app.get('/api/latest', requireActiveSubscription, async (req, res) => {
+    try {
+        const sourceName = req.query.source;
+        const limit = parseInt(req.query.limit) || 100;
+
+        if (!sourceName || !SOURCES.includes(sourceName)) {
+            return res.status(400).json({ error: `source inválido: ${sourceName}` });
+        }
+
+        const result = await pool.query(
+            `SELECT timestamp, signalId AS signalid, gameId AS gameid, signal
+             FROM signals
+             WHERE source = $1
+             ORDER BY timestamp DESC
+             LIMIT $2`,
+            [sourceName, limit]
+        );
+
+        res.json(result.rows);
     } catch (error) {
         Sentry.captureException(error);
         res.status(500).json({ error: error.message });

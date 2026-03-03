@@ -5,7 +5,7 @@ import pg from 'pg';
 import dotenv from 'dotenv';
 
 dotenv.config();
-
+export { pool};
 const { Pool } = pg;
 
 // Configuração do pool de conexões
