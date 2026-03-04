@@ -108,6 +108,7 @@ const allowedOrigins = [
   'https://gratis.smartanalise.com.br',
   'https://tool.smartanalise.com.br',
   'http://76.13.174.229',
+  'https://tool.smartanalise.com.br/',
   'https://roleta2_vps.sortehub.online'
 ];
 
