@@ -480,7 +480,7 @@ io.on('connection', (socket) => {
 
 // --- INICIALIZAÇÃO ---
 const startServer = async () => {
-    const PORT = process.env.PORT || 3001;
+    const PORT = process.env.PORT || 3078;
     try {
         console.log('🔍 Testando PostgreSQL...');
         await testConnection();
