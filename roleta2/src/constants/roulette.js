@@ -3,7 +3,7 @@
 // Fonte única de verdade para configuração de roleta
 // ════════════════════════════════════════════════
 
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3005';
 export const SOCKET_URL = 'https://roleta-fuza.sortehub.online';
 export const POLLING_INTERVAL_MS = 5000;
 
