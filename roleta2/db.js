@@ -1,49 +1,60 @@
-// db.js
-// Configuração e pool de conexão PostgreSQL
-
+// db.js — ⚡ OTIMIZADO: Pool tuning + logging reduzido
 import pg from 'pg';
 import dotenv from 'dotenv';
 
 dotenv.config();
-export { pool};
+
 const { Pool } = pg;
 
-// Configuração do pool de conexões
+// ⚡ Pool otimizado para alta frequência de polling
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME || 'phantom-roleta',
+  database: process.env.DB_NAME || 'fuzabalta_roulette',
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || '1234',
-  max: 20, // Máximo de conexões no pool
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  
+  // ⚡ Conexões: reduzido de 20 para 10 (menos overhead de idle connections)
+  max: 10,
+  
+  idleTimeoutMillis: 60000, // 60s (era 30s)
+  
+  connectionTimeoutMillis: 3000,
+  
+  statement_timeout: 10000, // 10s max por query
 });
 
-// Testa a conexão ao iniciar
+export { pool };
+
 pool.on('connect', () => {
-  console.log('✅ [DATABASE] Conectado ao PostgreSQL');
+  // Log reduzido: apenas uma vez
 });
 
 pool.on('error', (err) => {
   console.error('❌ [DATABASE] Erro inesperado:', err);
 });
 
-// Função auxiliar para queries
+// ⚡ Query com logging condicional (só loga queries lentas > 200ms)
 export async function query(text, params) {
   const start = Date.now();
   try {
     const res = await pool.query(text, params);
     const duration = Date.now() - start;
-    console.log(`🔍 [DATABASE] Query executada em ${duration}ms`, { text: text.substring(0, 100) });
+    
+    // Só loga queries lentas (reduz I/O de console em produção)
+    if (duration > 200) {
+      console.log(`🐢 [DB LENTA] ${duration}ms - ${text.substring(0, 80)}...`);
+    }
+    
     return res;
   } catch (error) {
-    console.error('❌ [DATABASE] Erro na query:', error);
+    const duration = Date.now() - start;
+    console.error(`❌ [DATABASE] Erro (${duration}ms):`, error.message, '| Query:', text.substring(0, 100));
     throw error;
   }
 }
 
-// Função para transações
+// Transações (mantido)
 export async function transaction(callback) {
   const client = await pool.connect();
   try {
@@ -59,17 +70,16 @@ export async function transaction(callback) {
   }
 }
 
-// Testa a conexão
+// Teste de conexão
 export async function testConnection() {
   try {
-    const result = await query('SELECT NOW() as now');
-    console.log('✅ [DATABASE] Conexão testada com sucesso:', result.rows[0].now);
+    const result = await pool.query('SELECT NOW() as now');
+    console.log('✅ [DATABASE] Conexão OK:', result.rows[0].now);
     return true;
   } catch (error) {
-    console.error('❌ [DATABASE] Falha ao testar conexão:', error.message);
+    console.error('❌ [DATABASE] Falha:', error.message);
     return false;
   }
 }
 
-// Exporta o pool para uso direto se necessário
 export default pool;

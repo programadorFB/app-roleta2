@@ -1,5 +1,5 @@
-// components/MasterDashboard.jsx
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+// components/MasterDashboard.jsx — ⚡ OTIMIZADO: Backtest cacheado + debounce
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { calculateMasterScore } from '../services/masterScoring.jsx';
 import EntrySignalCard from '../components/EntrySignalCard.jsx';
 import styles from './MasterDashboard.module.css';
@@ -10,23 +10,17 @@ const WHEEL_ORDER = [
   5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26
 ];
 
-// Helper para expandir a aposta com vizinhos
 const getCoveredNumbers = (targetNumbers, neighborMode) => {
   if (neighborMode === 0) return targetNumbers;
-
   const covered = new Set();
-  
   targetNumbers.forEach(num => {
-    covered.add(num); // Adiciona o alvo
+    covered.add(num);
     const idx = WHEEL_ORDER.indexOf(num);
-    
-    // Adiciona vizinhos (frente e trás, cuidando do loop do array)
     for (let i = 1; i <= neighborMode; i++) {
-      covered.add(WHEEL_ORDER[(idx + i) % 37]); // Vizinho da direita
-      covered.add(WHEEL_ORDER[(idx - i + 37) % 37]); // Vizinho da esquerda
+      covered.add(WHEEL_ORDER[(idx + i) % 37]);
+      covered.add(WHEEL_ORDER[(idx - i + 37) % 37]);
     }
   });
-
   return Array.from(covered);
 };
 
@@ -44,8 +38,6 @@ const WinLossScoreboard = ({ wins, losses, analyzed, neighborMode, setNeighborMo
 
   return (
     <div className={styles.strategyCard} style={{ marginTop: '0', padding: '0.8rem', marginBottom: '1rem', borderTop: `4px solid ${scoreColor}` }}>
-      
-      {/* SELETOR DE VIZINHOS (FILTRO) */}
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '8px' }}>
         <div style={{ display: 'flex', gap: '5px', background: 'rgba(0,0,0,0.3)', padding: '4px', borderRadius: '20px' }}>
           {[0, 1, 2].map(v => (
@@ -71,14 +63,10 @@ const WinLossScoreboard = ({ wins, losses, analyzed, neighborMode, setNeighborMo
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        
-        {/* WINS */}
         <div style={{ textAlign: 'center' }}>
           <div className={styles['stat-label']} style={{ justifyContent: 'center', fontSize: '10px', color: '#10b981' }}>WINS</div>
           <div className={styles['stat-value']} style={{ fontSize: '1.2rem', color: '#10b981' }}>{wins}</div>
         </div>
-
-        {/* ASSERTIVIDADE */}
         <div style={{ textAlign: 'center', flex: 2, borderLeft: '1px solid #334155', borderRight: '1px solid #334155', margin: '0 1rem' }}>
           <div className={styles['stat-label']} style={{ justifyContent: 'center', fontSize: '10px', marginBottom: '4px' }}>ASSERTIVIDADE</div>
           <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: scoreColor }}>
@@ -88,13 +76,10 @@ const WinLossScoreboard = ({ wins, losses, analyzed, neighborMode, setNeighborMo
             {totalEntries} Entradas (Cobrindo {neighborMode === 0 ? '1' : (neighborMode * 2 + 1)}x/núm)
           </div>
         </div>
-
-        {/* LOSSES */}
         <div style={{ textAlign: 'center' }}>
           <div className={styles['stat-label']} style={{ justifyContent: 'center', fontSize: '10px', color: '#ef4444' }}>LOSSES</div>
           <div className={styles['stat-value']} style={{ fontSize: '1.2rem', color: '#ef4444' }}>{losses}</div>
         </div>
-
       </div>
     </div>
   );
@@ -119,14 +104,26 @@ const StrategyMiniCard = React.memo(({ name, score, status }) => {
   );
 });
 
-// --- HELPER DE BACKTEST (Com Lógica de Vizinhos) ---
+// ═══════════════════════════════════════════════════════════════
+// ⚡ BACKTEST OTIMIZADO — Limite reduzido + sem recalcular a cada render
+// ANTES: Loop de até history.length-50 iterações, cada uma chama 
+//        calculateMasterScore (que roda 5 análises pesadas)
+//        = ~200+ chamadas de scoring por render
+// AGORA: 
+//   1) Limite fixo de MAX_BACKTEST_ITERATIONS (25 em vez de ~200)
+//   2) Resultado cacheado via useRef + só recalcula quando 
+//      spinHistory.length muda significativamente (a cada 5 spins)
+// ═══════════════════════════════════════════════════════════════
+const MAX_BACKTEST_ITERATIONS = 25; // ⚡ Reduzido drasticamente
+
 const calculateHistoricalStats = (history, neighborMode) => {
   if (!history || history.length < 50) return { wins: 0, losses: 0, analyzed: 0 };
 
   let wins = 0;
   let losses = 0;
   
-  const startIndex = history.length - 50; 
+  // ⚡ Limita a iteração: analisa apenas os últimos MAX_BACKTEST_ITERATIONS pontos
+  const startIndex = Math.min(history.length - 50, MAX_BACKTEST_ITERATIONS);
   let analyzedCount = 0;
 
   for (let i = startIndex; i >= 1; i--) {
@@ -137,19 +134,13 @@ const calculateHistoricalStats = (history, neighborMode) => {
 
       if (analysis?.entrySignal) {
           const rawSuggestions = analysis.entrySignal.suggestedNumbers;
-          
-          // Expande os números sugeridos com os vizinhos
           const betNumbers = getCoveredNumbers(rawSuggestions, neighborMode);
-          
           const validFor = analysis.entrySignal.validFor || 3;
           let isWin = false;
 
           for (let j = 1; j <= validFor; j++) {
               if (i - j < 0) break; 
-              
               const resultNumber = history[i - j].number;
-              
-              // Verifica se caiu em QUALQUER número coberto
               if (betNumbers.includes(resultNumber)) {
                   isWin = true;
                   break; 
@@ -171,20 +162,34 @@ const calculateHistoricalStats = (history, neighborMode) => {
 const MasterDashboard = ({ spinHistory, onSignalUpdate }) => { 
   const [isSignalAccepted, setIsSignalAccepted] = useState(false);
   const [neighborMode, setNeighborMode] = useState(0); 
-  
-  // Estado para controlar QUANDO o sinal começou
   const [signalStartLen, setSignalStartLen] = useState(0);
 
   const lastSignalRef = useRef(null);
+  
+  // ⚡ Cache do backtest — evita recalcular a cada spin
+  const backtestCacheRef = useRef({ 
+    key: '', // spinHistory.length + neighborMode
+    result: { wins: 0, losses: 0, analyzed: 0 }
+  });
   
   // 1. Gera o sinal AO VIVO
   const analysis = useMemo(() => {
     return calculateMasterScore(spinHistory);
   }, [spinHistory]);
 
-  // 2. Gera o placar PASSADO (Reage à mudança de neighborMode)
+  // ⚡ 2. Backtest com cache — só recalcula a cada 5 spins novos
   const stats = useMemo(() => {
-    return calculateHistoricalStats(spinHistory, neighborMode);
+    // Arredonda para múltiplo de 5 para cachear melhor
+    const roundedLen = Math.floor(spinHistory.length / 5) * 5;
+    const cacheKey = `${roundedLen}-${neighborMode}`;
+    
+    if (backtestCacheRef.current.key === cacheKey) {
+      return backtestCacheRef.current.result;
+    }
+    
+    const result = calculateHistoricalStats(spinHistory, neighborMode);
+    backtestCacheRef.current = { key: cacheKey, result };
+    return result;
   }, [spinHistory, neighborMode]);
 
   // 3. Efeitos e Lógica de Sinal
@@ -192,26 +197,20 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate }) => {
     const newSignal = analysis?.entrySignal?.suggestedNumbers || [];
     const newSignalStr = JSON.stringify(newSignal);
     
-    // Se o sinal mudou (conteúdo diferente)
     if (lastSignalRef.current !== newSignalStr) {
         lastSignalRef.current = newSignalStr;
         onSignalUpdate(newSignal);
         
-        // Se temos um sinal NOVO e válido
         if (newSignal.length > 0) {
             setIsSignalAccepted(false);
-            // IMPORTANTE: Marca o comprimento do histórico no INÍCIO do sinal
             setSignalStartLen(spinHistory.length);
         } else {
             setSignalStartLen(0);
         }
     }
     
-    // Verifica vitória no giro atual
     if (analysis?.entrySignal && spinHistory.length > 0) {
         const currentBetNumbers = getCoveredNumbers(analysis.entrySignal.suggestedNumbers, neighborMode);
-        
-        // Verifica se o último número sorteado (spinHistory[0]) é um win
         if (currentBetNumbers.includes(spinHistory[0].number)) {
             setIsSignalAccepted(true);
         }
@@ -220,15 +219,11 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate }) => {
     }
   }, [analysis, onSignalUpdate, spinHistory, neighborMode]);
 
-  // 4. Cálculo dos giros restantes (LÓGICA CORRIGIDA)
+  // 4. Cálculo dos giros restantes
   const remainingSpins = useMemo(() => {
     if (!analysis?.entrySignal || signalStartLen === 0) return 0;
-    
     const validTotal = analysis.entrySignal.validFor;
-    // Quantos giros aconteceram desde que o sinal apareceu (Histórico Atual - Histórico do Início)
     const spinsPassed = spinHistory.length - signalStartLen;
-    
-    // Subtrai do total e garante que não fique negativo
     return Math.max(0, validTotal - spinsPassed);
   }, [analysis, spinHistory.length, signalStartLen]);
   
@@ -244,29 +239,26 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate }) => {
 
   const { entrySignal, strategyScores } = analysis;
 
-  // Calcula custo estimado em unidades (apenas visual)
-  const unitsPerTarget = 1 + (neighborMode * 2); // 1, 3 ou 5 fichas por alvo
+  const unitsPerTarget = 1 + (neighborMode * 2);
   const totalUnits = entrySignal ? entrySignal.suggestedNumbers.length * unitsPerTarget : 0;
 
-  // --- LÓGICA DE EXIBIÇÃO DO CONTADOR ---
-  let timeStatusColor = '#fde047'; // Amarelo (Padrão)
-  let timeText = `${remainingSpins}`; // Mostra o número por padrão (3, 2...)
+  let timeStatusColor = '#fde047';
+  let timeText = `${remainingSpins}`;
 
   if (isSignalAccepted) {
-      timeStatusColor = '#10b981'; // Verde WIN
+      timeStatusColor = '#10b981';
       timeText = 'WIN';
   } else if (remainingSpins === 0 && entrySignal) {
-      timeStatusColor = '#ef4444'; // Vermelho LOSS
+      timeStatusColor = '#ef4444';
       timeText = 'ENCERRADO';
   } else if (remainingSpins === 1) {
-      timeStatusColor = '#f97316'; // Laranja
+      timeStatusColor = '#f97316';
       timeText = 'ÚLTIMA';
   }
 
   return (
     <div className={styles.masterDashboardContainer}>
       
-      {/* Placar Interativo */}
       <WinLossScoreboard 
         wins={stats.wins} 
         losses={stats.losses} 
@@ -275,7 +267,6 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate }) => {
         setNeighborMode={setNeighborMode}
       />
 
-      {/* Info do Sinal */}
       {entrySignal && (
         <div className={styles.strategyCard}>
             <div className={styles['stats-grid']} style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', marginTop: '0.5rem', width: '100%' }}>
@@ -290,7 +281,6 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate }) => {
                 <div className={styles['stat-value']} style={{ justifyContent: 'center', fontSize: '15px' }}>{entrySignal.confidence.toFixed(0)}%</div>
               </div>
               
-              {/* CONTADOR DE RODADAS */}
               <div style={{ textAlign: 'center', flex: 1 }}>
                 <div className={styles['stat-label']} style={{ justifyContent: 'center', fontSize: '15px' }}>⏱️<br/> {isSignalAccepted ? 'Resultado' : 'Restam'} </div>
                 <div className={styles['stat-value']} style={{ justifyContent: 'center', fontSize: '15px', color: timeStatusColor, fontWeight: 'bold' }}>
@@ -302,7 +292,6 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate }) => {
         </div>
       )}
 
-      {/* Grid */}
       <div className={styles.masterGridContainer}>
         {strategyScores.map(strategy => (
           <StrategyMiniCard
@@ -314,7 +303,6 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate }) => {
         ))}
       </div>
 
-      {/* Card Visual */}
       <EntrySignalCard 
         entrySignal={entrySignal} 
         isSignalAccepted={isSignalAccepted} 

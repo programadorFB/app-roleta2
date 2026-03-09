@@ -5,10 +5,10 @@ import {
   expressIntegration, 
 } from "@sentry/node";
 
-// server.js - 🚀 COM SOCKET.IO + INTEGRAÇÃO PYTHON 🚀
+// server.js - 🚀 COM SOCKET.IO + INTEGRAÇÃO PYTHON + ⚡ FETCH INCREMENTAL 🚀
 import express from 'express';
-import http from 'http'; // ⚡ NOVO: Necessário para Socket.io
-import { Server } from 'socket.io'; // ⚡ NOVO: Biblioteca WebSocket
+import http from 'http';
+import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fetch from 'node-fetch';
@@ -16,11 +16,9 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 
-// [CAMINHO CORRIGIDO] Caminhos de importação na raiz
-import { loadAllExistingSignalIds, saveNewSignals, getFullHistory } from './src/utils/dbService.js';
+import { loadAllExistingSignalIds, saveNewSignals, getFullHistory, getHistorySince } from './src/utils/dbService.js';
 import { SOURCES } from './src/utils/constants.js'; 
 
-// Importa serviços
 import { testConnection, pool } from './db.js';
 import {
     hasActiveAccess,
@@ -40,11 +38,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
 
-// ⚡ NOVO: Criação do Servidor HTTP para suportar Socket.io
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "*", // Aceita conexões de qualquer front-end
+        origin: "*",
         methods: ["GET", "POST"]
     }
 });
@@ -60,7 +57,6 @@ Sentry.init({
 });
 
 // --- CONSTANTES ---
-// ⚡ NOVO: Senha para o Python (Se não tiver no .env, usa o padrão)
 const CRAWLER_SECRET = process.env.CRAWLER_SECRET || "minha_senha_secreta_python"; 
 
 const API_URLS = {
@@ -86,15 +82,21 @@ const HUBLA_CHECKOUT_URL = process.env.HUBLA_CHECKOUT_URL || 'https://pay.hub.la
 const FRONT_END_URL = process.env.FRONT_END_URL;;
 
 // --- MIDDLEWARE ---
-// 1. Log geral
+// 1. Log geral (⚡ otimizado: reduz log verboso em produção)
 app.use((req, res, next) => {
     req._startTime = Date.now();
-    const timestamp = new Date().toISOString();
-    console.log(`[${timestamp}] 📥 ${req.method} ${req.url} - IP: ${req.ip}`);
+    // Log reduzido: não loga polling de history-since (muito frequente)
+    const isPolling = req.url.startsWith('/api/history-since') || req.url.startsWith('/api/full-history');
+    if (!isPolling) {
+        console.log(`[${new Date().toISOString()}] 📥 ${req.method} ${req.url}`);
+    }
     res.on('finish', () => {
         const duration = Date.now() - req._startTime;
-        const emoji = res.statusCode >= 500 ? '❌' : res.statusCode >= 400 ? '⚠️' : '✅';
-        console.log(`${emoji} [${timestamp}] ${req.method} ${req.url} - ${res.statusCode} - ${duration}ms`);
+        // Loga apenas requests lentos (>500ms) ou erros
+        if (duration > 500 || res.statusCode >= 400) {
+            const emoji = res.statusCode >= 500 ? '❌' : res.statusCode >= 400 ? '⚠️' : '🐢';
+            console.log(`${emoji} ${req.method} ${req.url} - ${res.statusCode} - ${duration}ms`);
+        }
     });
     next();
 });
@@ -126,7 +128,6 @@ app.use(cors({
     },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  // ⚡ ADICIONADO: x-crawler-secret nos headers permitidos
   allowedHeaders: ['Content-Type', 'Authorization', 'x-hubla-token', 'x-crawler-secret']
 }));
 
@@ -138,7 +139,6 @@ app.use('/login', createProxyMiddleware({
     followRedirects: true,
     pathRewrite: { '^/': '/login' },
     onProxyReq: (proxyReq, req, res) => {
-        // ... (Mantendo seus logs detalhados)
         proxyReq.setHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
         proxyReq.setHeader('Accept', 'application/json');
     },
@@ -241,30 +241,24 @@ app.use(express.static(path.join(__dirname, 'dist')));
 // ⚡⚡⚡ NOVAS ROTAS PARA O ROBÔ PYTHON (COM SENHA) ⚡⚡⚡
 // ------------------------------------------------------------------------
 
-// Receber giro (POST)
 app.post('/api/report-spin', express.json(), async (req, res) => {
     try {
         const payload = req.body;
         const secret = req.headers['x-crawler-secret'];
 
-        // 1. Segurança
         if (secret !== CRAWLER_SECRET) {
             console.warn(`⛔ [SECURITY] Tentativa sem senha correta: ${req.ip}`);
             return res.status(403).json({ error: 'Acesso negado: Senha incorreta' });
         }
 
-        // 2. Validação
         if (!payload.signal || !payload.source) {
             return res.status(400).json({ error: 'Payload inválido (falta signal ou source)' });
         }
 
         console.log(`🐍 [PYTHON RECEBIDO] ${payload.source}: ${payload.signal} (Croupier: ${payload.croupier})`);
 
-        // 3. Salvar no Banco (dbService)
-        // O banco ignora o campo 'croupier' se não tiver coluna, mas salva o número
         await saveNewSignals([payload], payload.source);
 
-        // 4. Emitir via Socket.io (O PULO DO GATO 🐱)
         io.emit('novo-giro', { 
             source: payload.source, 
             data: payload 
@@ -279,7 +273,6 @@ app.post('/api/report-spin', express.json(), async (req, res) => {
     }
 });
 
-// Atualizar Croupier (POST)
 app.post('/api/update-croupier', express.json(), (req, res) => {
     const { croupier, source } = req.body;
     const secret = req.headers['x-crawler-secret'];
@@ -287,13 +280,10 @@ app.post('/api/update-croupier', express.json(), (req, res) => {
     if (secret !== CRAWLER_SECRET) return res.status(403).json({ error: 'Acesso negado' });
 
     if (croupier) {
-        // console.log(`👤 [CROUPIER UPDATE] ${source}: ${croupier}`);
         io.emit('troca-croupier', { source: source || 'brasileira', croupier });
     }
     res.json({ status: 'ok' });
 });
-
-// ------------------------------------------------------------------------
 
 // Webhook Hubla (MANTIDO)
 app.post('/api/webhooks/hubla', express.json(), async (req, res) => {
@@ -370,7 +360,68 @@ app.get('/api/admin/webhooks/logs', async (req, res) => {
     try { const logs = await getWebhookLogs(parseInt(req.query.limit)||100); res.json(logs); } catch (e) { Sentry.captureException(e); res.status(500).json({error: e.message}); }
 });
 
-// --- SCRAPER (MANTIDO) ---
+// ═══════════════════════════════════════════════════════════════
+// 📊 MONITOR DE SAÚDE DAS FONTES — Diagnóstico de gaps
+// Rastreia POR FONTE: último signalId, latência da API, tempo
+// sem dados novos, e erros. Loga um painel a cada 60 segundos.
+// ═══════════════════════════════════════════════════════════════
+const sourceHealth = new Map();
+
+function getSourceHealth(sourceName) {
+    if (!sourceHealth.has(sourceName)) {
+        sourceHealth.set(sourceName, {
+            lastSignalId: null,        // Último signalId visto da API externa
+            lastNewDataAt: null,       // Timestamp (Date) de quando veio dado NOVO
+            lastFetchAt: null,         // Timestamp do último fetch (sucesso ou não)
+            lastApiLatencyMs: 0,       // Latência do endpoint externo
+            lastDbSaveMs: 0,           // Tempo para salvar no DB
+            totalFetches: 0,           // Total de ciclos de fetch
+            totalNewSignals: 0,        // Total de sinais novos recebidos
+            totalErrors: 0,            // Total de erros
+            lastError: null,           // Último erro
+            consecutiveEmpty: 0,       // Fetches seguidos sem dado novo (mede gap)
+            apiReturnedItems: 0,       // Quantos items a API retornou no último fetch
+        });
+    }
+    return sourceHealth.get(sourceName);
+}
+
+// Painel de saúde — loga a cada 60s
+let healthLogInterval = null;
+function startHealthLogger() {
+    if (healthLogInterval) return;
+    healthLogInterval = setInterval(() => {
+        if (sourceHealth.size === 0) return;
+
+        const now = Date.now();
+        const lines = [];
+        let hasGap = false;
+
+        for (const [name, h] of sourceHealth) {
+            const secSinceNew = h.lastNewDataAt ? Math.round((now - h.lastNewDataAt) / 1000) : '∞';
+            const gapFlag = (typeof secSinceNew === 'number' && secSinceNew > 120) || secSinceNew === '∞';
+            if (gapFlag && h.totalFetches > 2) hasGap = true;
+
+            const status = h.lastError ? '❌' : gapFlag ? '⚠️' : '✅';
+            lines.push(
+                `  ${status} ${name.padEnd(14)} | API: ${String(h.lastApiLatencyMs).padStart(5)}ms | DB: ${String(h.lastDbSaveMs).padStart(4)}ms | Sem novo: ${String(secSinceNew).padStart(5)}s | Empty streak: ${h.consecutiveEmpty} | Items: ${h.apiReturnedItems} | Erros: ${h.totalErrors}`
+            );
+        }
+
+        // Só loga o painel completo se houver gap ou a cada 5 minutos
+        const shouldLog = hasGap || (now % 300000 < 60000);
+        if (shouldLog) {
+            console.log(`\n📊 ─── SAÚDE DAS FONTES ─── ${new Date().toLocaleTimeString()} ───`);
+            lines.sort().forEach(l => console.log(l));
+            if (hasGap) {
+                console.log(`  🔴 FONTES COM GAP (>120s sem dado novo) — PROBLEMA É DA API EXTERNA`);
+            }
+            console.log(`${'─'.repeat(80)}\n`);
+        }
+    }, 60000); // A cada 60 segundos
+}
+
+// --- SCRAPER INSTRUMENTADO ---
 const normalizeData = (data) => {
     if (Array.isArray(data)) return data;
     if (data?.games) return data.games;
@@ -379,14 +430,63 @@ const normalizeData = (data) => {
 };
 
 async function fetchAndSaveFromSource(url, sourceName) {
+    const health = getSourceHealth(sourceName);
+    health.totalFetches++;
+    health.lastFetchAt = Date.now();
+
     try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`Status: ${response.status}`);
+        // ── 1. Mede latência da API externa ──
+        const apiStart = Date.now();
+        const response = await fetch(url, { timeout: 15000 });
+        health.lastApiLatencyMs = Date.now() - apiStart;
+
+        if (!response.ok) {
+            health.totalErrors++;
+            health.lastError = `HTTP ${response.status}`;
+            throw new Error(`Status: ${response.status}`);
+        }
+
         const data = await response.json();
         const normalizedData = normalizeData(data);
-        if (normalizedData.length > 0) await saveNewSignals(normalizedData, sourceName);
+        health.apiReturnedItems = normalizedData.length;
+
+        if (normalizedData.length === 0) {
+            health.consecutiveEmpty++;
+            health.lastError = null; // Não é erro, só vazio
+            return;
+        }
+
+        // ── 2. Detecta se veio dado NOVO vs repetido ──
+        const newestId = normalizedData[0]?.signalId || normalizedData[0]?.id;
+        
+        if (newestId && newestId === health.lastSignalId) {
+            // API retornou os mesmos dados — gap é da FONTE EXTERNA
+            health.consecutiveEmpty++;
+            return;
+        }
+
+        // Dado novo!
+        health.lastSignalId = newestId;
+        health.lastNewDataAt = Date.now();
+        health.consecutiveEmpty = 0;
+        health.lastError = null;
+
+        // ── 3. Mede tempo de save no DB ──
+        const dbStart = Date.now();
+        await saveNewSignals(normalizedData, sourceName);
+        health.lastDbSaveMs = Date.now() - dbStart;
+
+        // Conta sinais novos (estimativa — saveNewSignals faz ON CONFLICT)
+        health.totalNewSignals += normalizedData.length;
+
     } catch (err) {
-        console.error(`❌ [FETCH - ${sourceName}]:`, err.message);
+        health.totalErrors++;
+        health.lastError = err.message?.substring(0, 80);
+        
+        // Só loga se não for erro repetido (evita flood)
+        if (health.totalErrors <= 3 || health.totalErrors % 10 === 0) {
+            console.error(`❌ [FETCH - ${sourceName}]: ${err.message} (erro #${health.totalErrors})`);
+        }
         Sentry.captureException(err, { tags: { source: sourceName } });
     }
 }
@@ -394,12 +494,32 @@ async function fetchAndSaveFromSource(url, sourceName) {
 async function fetchAllData() {
     const sourcesToFetch = Object.keys(API_URLS);
     const fetchPromises = sourcesToFetch.map(sourceName => {
-        // Ignora string vazia (como no seu exemplo 'brasileiraPlay')
         if (!API_URLS[sourceName]) return;
         return fetchAndSaveFromSource(API_URLS[sourceName], sourceName);
     });
     try { await Promise.all(fetchPromises); } catch (error) { Sentry.captureException(error); }
 }
+
+// ── Rota para consultar saúde em tempo real ──
+app.get('/api/source-health', (req, res) => {
+    const result = {};
+    const now = Date.now();
+    for (const [name, h] of sourceHealth) {
+        result[name] = {
+            status: h.lastError ? 'error' : (h.consecutiveEmpty > 5 ? 'gap' : 'ok'),
+            apiLatencyMs: h.lastApiLatencyMs,
+            dbSaveMs: h.lastDbSaveMs,
+            secondsSinceNewData: h.lastNewDataAt ? Math.round((now - h.lastNewDataAt) / 1000) : null,
+            consecutiveEmpty: h.consecutiveEmpty,
+            apiReturnedItems: h.apiReturnedItems,
+            totalFetches: h.totalFetches,
+            totalNewSignals: h.totalNewSignals,
+            totalErrors: h.totalErrors,
+            lastError: h.lastError,
+        };
+    }
+    res.json(result);
+});
 
 app.get('/api/fetch/all', requireActiveSubscription, async (req, res) => {
     try { await fetchAllData(); res.json({ status: 'ok' }); } catch (e) { Sentry.captureException(e); res.status(500).json({error: e.message}); }
@@ -411,6 +531,9 @@ app.get('/api/fetch/:source', requireActiveSubscription, async (req, res) => {
     try { await fetchAndSaveFromSource(url, req.params.source); res.json({ status: 'ok' }); } catch (e) { Sentry.captureException(e); res.status(500).json({error: e.message}); }
 });
 
+// ═══════════════════════════════════════════════════════════════
+// ROTA ORIGINAL — Full History (mantida para compatibilidade)
+// ═══════════════════════════════════════════════════════════════
 app.get('/api/full-history', requireActiveSubscription, async (req, res) => {
     try {
         const sourceName = req.query.source;
@@ -423,7 +546,30 @@ app.get('/api/full-history', requireActiveSubscription, async (req, res) => {
     }
 });
 
-// ✅ ROTA /api/latest - Retorna os últimos N sinais de uma source
+// ═══════════════════════════════════════════════════════════════
+// ⚡ NOVA ROTA — Fetch Incremental (só registros novos)
+// Query param: ?source=xxx&since=2025-01-01T00:00:00Z&userEmail=xxx
+// Retorna APENAS registros com timestamp > since
+// Payload: ~0-5 rows vs ~5000 rows do full-history
+// ═══════════════════════════════════════════════════════════════
+app.get('/api/history-since', requireActiveSubscription, async (req, res) => {
+    try {
+        const sourceName = req.query.source;
+        const sinceTimestamp = req.query.since || null;
+
+        if (!sourceName || !SOURCES.includes(sourceName)) {
+            return res.status(400).json({ error: `source inválido: ${sourceName}` });
+        }
+
+        const history = await getHistorySince(sourceName, sinceTimestamp);
+        res.json(history);
+    } catch (error) {
+        Sentry.captureException(error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ✅ ROTA /api/latest (MANTIDA)
 app.get('/api/latest', requireActiveSubscription, async (req, res) => {
     try {
         const sourceName = req.query.source;
@@ -480,21 +626,33 @@ io.on('connection', (socket) => {
 
 // --- INICIALIZAÇÃO ---
 const startServer = async () => {
-    const PORT = process.env.PORT || 3001;
+    const PORT = process.env.PORT || 3005;
     try {
         console.log('🔍 Testando PostgreSQL...');
         await testConnection();
         await loadAllExistingSignalIds();
+
+        // ⚡ Garante index para fetch incremental (roda uma vez, idempotente)
+        try {
+            await pool.query(`
+                CREATE INDEX IF NOT EXISTS idx_signals_source_timestamp 
+                ON signals (source, timestamp DESC);
+            `);
+            console.log('✅ Index source+timestamp garantido.');
+        } catch (idxErr) {
+            console.warn('⚠️ Index já existe ou erro:', idxErr.message);
+        }
         
-        // ⚡ MUDANÇA CRÍTICA: server.listen em vez de app.listen
         server.listen(PORT, '0.0.0.0', () => {
             console.log(`\n${'='.repeat(80)}`);
             console.log(`🚀 SERVIDOR + SOCKET RODANDO NA PORTA ${PORT}`);
             console.log(`📡 Endpoint Python: POST /api/report-spin (Protegido)`);
+            console.log(`⚡ Endpoint Incremental: GET /api/history-since?source=xxx&since=timestamp`);
             console.log(`${'='.repeat(80)}\n`);
             
             fetchAllData();
             setInterval(fetchAllData, FETCH_INTERVAL_MS);
+            startHealthLogger(); // 📊 Inicia painel de monitoramento
         });
     } catch (err) {
         console.error("❌ ERRO CRÍTICO:", err);
