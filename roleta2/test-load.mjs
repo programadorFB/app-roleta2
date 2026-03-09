@@ -5,8 +5,8 @@
 //   3. npm run server (em outro terminal)
 //   4. node test-load.mjs
 
-const BASE_URL = process.env.VITE_API_URL || 'http://localhost:3005';
-const TEST_EMAIL = 'teste@teste.com';
+const BASE_URL = process.env.VITE_API_URL || 'http://localhost:3001';
+const TEST_EMAIL = 'rogerallan4004@gmail.com';
 const CONCURRENT_USERS = 50;
 const POLLING_CYCLES = 6;        // 6 ciclos de 5s = 30s de simulação
 const POLLING_INTERVAL_MS = 5000;
