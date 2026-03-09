@@ -122,3 +122,11 @@ tmp/
 # =========================================================
 sessions/
 *.session
+
+# TESTE LOCAL REDIS
+docker-compose.local.yml
+init-local-db.sql
+test-redis-integration.mjs
+test-load.mjs
+.env.local
+.env.prod.backup
