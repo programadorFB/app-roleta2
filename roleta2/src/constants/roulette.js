@@ -19,6 +19,7 @@ export const getNumberColor = (num) => {
 export const ROULETTE_SOURCES = {
   aovivo:       '🇧🇷 Roleta Brasileira  - Evolution',
   immersive:    '🌟 Immersive Roulette - Evolution',
+  immersivevip: '🌟 Immersive VIP Roulette - Evolution',
   viproulette:  '💎 Vip Roulette - Evolution',
   xxxtreme:     '⚡ XXXtreme Lightning - Evolution',
   speed:        '💨 Speed Roulette - Evolution',
@@ -33,7 +34,7 @@ export const ROULETTE_SOURCES = {
 
 export const ROULETTE_GAME_IDS = {
   auto: 120, vipauto: 31, bacbo: 54, malta: 80, footballstudio: 53,
-  immersive: 55, lightning: 33, reddoor: 35, aovivo: 34,
+  immersive: 55, lightning: 33, reddoor: 35, aovivo: 34, immersivevip: 103,
   brasileira: 101, brasilPlay: 102, relampago: 81, speedauto: 82,
   speed: 36, viproulette: 32, xxxtreme: 83,
 };

@@ -72,6 +72,7 @@ Sentry.init({
 const CRAWLER_SECRET = process.env.CRAWLER_SECRET || "minha_senha_secreta_python"; 
 
 const API_URLS = {
+    immersivevip: 'https://apptemporario-production.up.railway.app/api/bd9c8298-1453-4694-8d9c-b32be9f972e7',
     immersive: 'https://apptemporario-production.up.railway.app/api/0194b479-654d-70bd-ac50-9c5a9b4d14c5',
     brasileira: 'https://apptemporario-production.up.railway.app/api/0194b473-2ab3-778f-89ee-236e803f3c8e',
     speed: 'https://apptemporario-production.up.railway.app/api/0194b473-c347-752f-9eaf-783721339479',
