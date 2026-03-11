@@ -3,6 +3,18 @@
 // Orquestrador principal — conecta hooks e renderiza layout.
 // Toda lógica pesada vive nos hooks e services.
 // ════════════════════════════════════════════════
+// 🔧 CORREÇÕES:
+//   1. useGameLauncher recebe userEmail
+//   2. Paywall listener unificado (game + history)
+//   3. GameIframe com onRetry (sem reload de página)
+//   4. REMOVIDO overlay fullscreen de iframe error
+//   5. Botões de ação contextuais baseados em failureType:
+//      - PAYWALL → "Renovar Assinatura"
+//      - FORBIDDEN → "Fazer Login Novamente"
+//      - SERVER_ERROR / NETWORK → "Tentar Novamente" + "Cancelar"
+//      - NOT_FOUND → nenhum botão extra (mensagem sugere trocar)
+//      - SESSION_EXPIRED → logout automático (sem botão)
+// ════════════════════════════════════════════════
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { BarChart3, Clock, Layers, LogOut, PlayCircle, Filter } from 'lucide-react';
@@ -17,7 +29,7 @@ import {
 import { useAuth }               from './hooks/useAuth';
 import { useSpinHistory }        from './hooks/useSpinHistory';
 import { usePullStats }          from './hooks/usePullStats';
-import { useGameLauncher }       from './hooks/useGameLauncher';
+import { useGameLauncher, LAUNCH_FAILURE } from './hooks/useGameLauncher';
 import { useInactivityTimeout }  from './hooks/useInactivityTimeout';
 
 // ── Components ────────────────────────────────
@@ -47,6 +59,17 @@ const formatPullTooltip = (number, pullStats, previousStats) => {
   return `Número: ${number}\nPuxou: ${fmt(pullStats?.get(number))}\nVeio Antes: ${fmt(previousStats?.get(number))}`;
 };
 
+// ── Estilo dos botões de ação de erro ──
+const errorActionBtnStyle = {
+  padding: '0.5rem 1rem',
+  borderRadius: '0.375rem',
+  cursor: 'pointer',
+  fontSize: '0.75rem',
+  fontWeight: 'bold',
+  marginTop: '0.5rem',
+  border: 'none',
+};
+
 // ════════════════════════════════════════════════
 const App = () => {
   // ── State via hooks ──
@@ -59,7 +82,8 @@ const App = () => {
     selectedRoulette, auth.userInfo?.email, auth.jwtToken, auth.isAuthenticated
   );
 
-  const game = useGameLauncher(selectedRoulette, auth.jwtToken, auth.isAuthenticated);
+  // 🔧 FIX 1: Passa userEmail para verificação de assinatura no backend
+  const game = useGameLauncher(selectedRoulette, auth.jwtToken, auth.isAuthenticated, auth.userInfo?.email);
   const { numberPullStats, numberPreviousStats } = usePullStats(spinHistory);
 
   useInactivityTimeout(
@@ -74,10 +98,10 @@ const App = () => {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [mobileTooltip, setMobileTooltip] = useState({ visible: false, content: '', x: 0, y: 0, isBelow: false });
 
-  // ── Paywall event listener (vindo do useSpinHistory) ──
+  // 🔧 FIX 2: Listener unificado de paywall (game + history)
   useEffect(() => {
     const handler = (e) => {
-      setCheckoutUrl(e.detail.checkoutUrl || '');
+      setCheckoutUrl(e.detail?.checkoutUrl || '');
       setIsPaywallOpen(true);
     };
     window.addEventListener('paywall-required', handler);
@@ -143,10 +167,16 @@ const App = () => {
     game.resetGame();
   }, [game]);
 
-  // ── Game iframe memo ──
+  // 🔧 FIX 3: gameIframe com onRetry (sem window.location.reload)
   const gameIframe = useMemo(
-    () => game.gameUrl ? <GameIframe url={game.gameUrl} onError={game.handleIframeError} /> : null,
-    [game.gameUrl, game.handleIframeError]
+    () => game.gameUrl
+      ? <GameIframe
+          url={game.gameUrl}
+          onError={game.handleIframeError}
+          onRetry={() => { game.resetGame(); game.handleLaunchGame(); }}
+        />
+      : null,
+    [game.gameUrl, game.handleIframeError, game.resetGame, game.handleLaunchGame]
   );
 
   // ── Guards ──
@@ -166,15 +196,8 @@ const App = () => {
         </>
       )}
 
-      {/* Iframe Error Overlay */}
-      {game.iframeError && (
-        <div className="iframe-error-overlay">
-          <div className="iframe-error-content">
-            <p>⚠️ Erro de renderização detectado</p>
-            <button onClick={() => { game.resetGame(); game.setIframeError(false); window.location.reload(); }}>Recarregar Página</button>
-          </div>
-        </div>
-      )}
+      {/* 🔧 FIX 4: REMOVIDO overlay fullscreen de iframe error
+          Agora tratado dentro do GameIframe.jsx */}
 
       {/* Navbar */}
       <nav className="navbar">
@@ -209,7 +232,61 @@ const App = () => {
             <button onClick={game.handleLaunchGame} disabled={game.isLaunching || !ROULETTE_GAME_IDS[selectedRoulette]} className="launch-button">
               {game.isLaunching ? <><div className="spinner" />Iniciando...</> : <><PlayCircle size={20} />{game.gameUrl ? `Reiniciar ${ROULETTE_SOURCES[selectedRoulette]}` : `Iniciar ${ROULETTE_SOURCES[selectedRoulette]}`}</>}
             </button>
-            {game.launchError && <p className="launch-error">{game.launchError}</p>}
+
+            {/* ═══════════════════════════════════════════
+                🔧 FIX 5: Bloco de erro com botões de ação contextuais
+                Cada failureType gera um botão diferente
+                ═══════════════════════════════════════════ */}
+            {game.launchError && (
+              <div style={{ textAlign: 'center' }}>
+                <p className="launch-error">{game.launchError}</p>
+
+                {/* PAYWALL: Botão abre modal de checkout */}
+                {game.failureType === LAUNCH_FAILURE.PAYWALL && (
+                  <button
+                    onClick={() => setIsPaywallOpen(true)}
+                    style={{ ...errorActionBtnStyle, background: '#eab308', color: '#111827' }}
+                  >
+                    💳 Renovar Assinatura
+                  </button>
+                )}
+
+                {/* FORBIDDEN: Botão de relogin */}
+                {game.failureType === LAUNCH_FAILURE.FORBIDDEN && (
+                  <button
+                    onClick={auth.handleLogout}
+                    style={{ ...errorActionBtnStyle, background: '#ef4444', color: '#fff' }}
+                  >
+                    🔄 Fazer Login Novamente
+                  </button>
+                )}
+
+                {/* SERVER_ERROR / NETWORK: Botão de retentar + cancelar retry */}
+                {(game.failureType === LAUNCH_FAILURE.SERVER_ERROR || game.failureType === LAUNCH_FAILURE.NETWORK_ERROR) && (
+                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginTop: '0.5rem' }}>
+                    <button
+                      onClick={game.handleLaunchGame}
+                      disabled={game.isLaunching}
+                      style={{ ...errorActionBtnStyle, background: '#3b82f6', color: '#fff' }}
+                    >
+                      🔄 Tentar Novamente
+                    </button>
+                    {game.retryCount > 0 && (
+                      <button
+                        onClick={game.cancelRetry}
+                        style={{ ...errorActionBtnStyle, background: 'transparent', color: '#9ca3af', border: '1px solid #4b5563' }}
+                      >
+                        Cancelar
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* NOT_FOUND: Nenhum botão extra, a mensagem já sugere trocar de roleta */}
+
+                {/* SESSION_EXPIRED: Nenhum botão, logout automático já foi disparado */}
+              </div>
+            )}
           </div>
 
           <div className="stats-card">

@@ -86,7 +86,7 @@ const API_URLS = {
     viproulette: 'https://apptemporario-production.up.railway.app/api/0194b474-bb9a-7451-b430-c451b14de1de',
     relampago: 'https://apptemporario-production.up.railway.app/api/0194b474-d82f-76e0-9242-70f601984069',
     malta: 'https://apptemporario-production.up.railway.app/api/0194b476-6091-730c-b971-7e66d9d8c44a',
-    brasilPlay: 'https://pbrapi.sortehub.online/sinais/historico' 
+    // brasilPlay: 'https://pbrapi.sortehub.online/sinais/historico' 
 };
 const FETCH_INTERVAL_MS = 1000;
 const DEFAULT_AUTH_PROXY_TARGET = process.env.AUTH_PROXY_TARGET || 'https://api.appbackend.tech';
@@ -228,22 +228,118 @@ app.use('/start-game', createProxyMiddleware({
     changeOrigin: true,
     timeout: 60000,
     pathRewrite: (path) => `/start-game${path}`,
+
     onProxyReq: (proxyReq, req) => {
         if (req.headers.authorization) proxyReq.setHeader('Authorization', req.headers.authorization);
         proxyReq.setHeader('User-Agent', 'Mozilla/5.0');
+        proxyReq.setHeader('Accept', 'application/json');
     },
+
     onProxyRes: (proxyRes, req, res) => {
         let body = [];
         proxyRes.on('data', chunk => body.push(chunk));
-        proxyRes.on('end', () => {
+        proxyRes.on('end', async () => {
             const responseBody = Buffer.concat(body).toString('utf8');
-            Object.keys(proxyRes.headers).forEach(key => res.setHeader(key, proxyRes.headers[key]));
-            res.status(proxyRes.statusCode).end(responseBody);
+            const backendStatusCode = proxyRes.statusCode;
+
+            // 🔧 FIX: Se o backend externo retornou erro, repassa direto
+            if (backendStatusCode < 200 || backendStatusCode >= 300) {
+                console.warn(`[start-game] ⚠️ Backend retornou ${backendStatusCode}`);
+                Object.keys(proxyRes.headers).forEach((key) => {
+                    try { res.setHeader(key, proxyRes.headers[key]); } catch (e) { /* ignore */ }
+                });
+                res.status(backendStatusCode).send(responseBody);
+                return;
+            }
+
+            // 🔧 FIX: Verifica assinatura ANTES de liberar o game
+            try {
+                // Extrai email do query param (enviado pelo frontend corrigido)
+                const url = new URL(req.url, `http://${req.headers.host}`);
+                let email = url.searchParams.get('userEmail');
+
+                // Fallback: tenta extrair do JWT (se seu JWT tiver email no payload)
+                if (!email && req.headers.authorization?.startsWith('Bearer ')) {
+                    try {
+                        const token = req.headers.authorization.split(' ')[1];
+                        const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+                        email = payload.email || payload.sub;
+                    } catch (e) {
+                        // JWT pode não ter email, segue sem
+                    }
+                }
+
+                if (email) {
+                    const cleanEmail = email.trim().toLowerCase();
+                    const subscription = await getSubscriptionByEmail(cleanEmail);
+
+                    let canPlay = false;
+                    if (subscription) {
+                        const activeStatuses = ['active', 'trialing', 'paid'];
+                        if (activeStatuses.includes(subscription.status) &&
+                            (!subscription.expires_at || new Date(subscription.expires_at) >= new Date())) {
+                            canPlay = true;
+                        }
+                    }
+
+                    if (!canPlay) {
+                        console.warn(`🚫 [start-game] Assinatura inválida para: ${cleanEmail}`);
+                        res.status(403).json({
+                            error: true,
+                            message: 'Assinatura inválida. Renove para continuar jogando.',
+                            code: 'FORBIDDEN_SUBSCRIPTION',
+                            checkoutUrl: HUBLA_CHECKOUT_URL
+                        });
+                        return;
+                    }
+
+                    console.log(`✅ [start-game] Assinatura OK para: ${cleanEmail}`);
+                } else {
+                    // Se não conseguiu extrair email, loga aviso mas permite (backward compat)
+                    console.warn('⚠️ [start-game] Email não encontrado na request. Permitindo sem verificação.');
+                }
+
+                // Tudo OK → repassa a resposta do backend
+                Object.keys(proxyRes.headers).forEach((key) => {
+                    try { res.setHeader(key, proxyRes.headers[key]); } catch (e) { /* ignore */ }
+                });
+                res.status(backendStatusCode).send(responseBody);
+
+            } catch (dbError) {
+                console.error('❌ [start-game] Erro ao verificar assinatura:', dbError.message);
+                Sentry.captureException(dbError);
+                // Em caso de erro no DB, permite o game (melhor UX que bloquear)
+                Object.keys(proxyRes.headers).forEach((key) => {
+                    try { res.setHeader(key, proxyRes.headers[key]); } catch (e) { /* ignore */ }
+                });
+                res.status(backendStatusCode).send(responseBody);
+            }
         });
     },
+
     onError: (err, req, res) => {
+        const timestamp = new Date().toISOString();
+        console.error(`[${timestamp}] ❌ Game Proxy Error:`, err.message, '| Code:', err.code);
         Sentry.captureException(err);
-        if (!res.headersSent) res.status(500).json({ error: true, message: 'Erro no proxy de game' });
+
+        // 🔧 FIX: Mapa de erros mais detalhado (antes era genérico)
+        const errorMap = {
+            'ECONNREFUSED': { status: 503, message: 'Servidor de jogos indisponível. Tente novamente.' },
+            'ETIMEDOUT':     { status: 504, message: 'Timeout ao conectar com o servidor de jogos.' },
+            'ECONNRESET':    { status: 502, message: 'Conexão com servidor de jogos foi interrompida.' },
+            'ENOTFOUND':     { status: 502, message: 'Servidor de jogos não encontrado.' },
+        };
+
+        const error = errorMap[err.code] || { status: 500, message: 'Erro ao iniciar jogo' };
+
+        if (!res.headersSent) {
+            res.status(error.status).json({
+                error: true,
+                message: error.message,
+                code: err.code,
+                timestamp
+            });
+        }
     }
 }));
 

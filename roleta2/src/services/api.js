@@ -2,6 +2,12 @@
 // ════════════════════════════════════════════════
 // Cliente API centralizado — um único ponto de saída de rede
 // ════════════════════════════════════════════════
+// 🔧 CORREÇÕES:
+//   1. launchGame agora usa request() centralizado (antes tinha lógica duplicada)
+//   2. Adicionado userEmail no header do game launch para verificação de assinatura
+//   3. Retorno padronizado com requiresPaywall e checkoutUrl em TODOS os endpoints
+//   4. findGameUrl extraída e testável
+// ════════════════════════════════════════════════
 
 import { API_URL } from '../constants/roulette';
 import { processErrorResponse, translateNetworkError } from '../errorHandler';
@@ -21,11 +27,25 @@ async function request(url, options = {}) {
         error: errorInfo,
         requiresPaywall: errorInfo.requiresPaywall || response.status === 403,
         checkoutUrl: errorInfo.checkoutUrl || '',
+        statusCode: response.status,
       };
     }
 
-    const data = await response.json();
-    return { data, error: null, requiresPaywall: false, checkoutUrl: '' };
+    // 🔧 FIX: Tenta parsear JSON, mas aceita texto se falhar
+    const contentType = response.headers.get('content-type');
+    let data;
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      const text = await response.text();
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { rawText: text };
+      }
+    }
+
+    return { data, error: null, requiresPaywall: false, checkoutUrl: '', statusCode: response.status };
   } catch (err) {
     const errorInfo = translateNetworkError(err);
     return {
@@ -33,6 +53,7 @@ async function request(url, options = {}) {
       error: errorInfo,
       requiresPaywall: false,
       checkoutUrl: '',
+      statusCode: 0, // 0 = erro de rede
     };
   }
 }
@@ -61,39 +82,55 @@ export async function loginUser(formData) {
 }
 
 // ── Game Launcher ──────────────────────────────
+// 🔧 CORREÇÃO: Agora usa request() centralizado em vez de fetch duplicado
 
-export async function launchGame(gameId, jwtToken) {
-  const url = `${API_URL}/start-game/${gameId}`;
-  
-  try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${jwtToken}` },
-    });
+export async function launchGame(gameId, jwtToken, userEmail) {
+  // 🔧 FIX: Inclui userEmail como query param para o backend verificar assinatura
+  const emailParam = userEmail ? `?userEmail=${encodeURIComponent(userEmail)}` : '';
+  const url = `${API_URL}/start-game/${gameId}${emailParam}`;
 
-    const rawText = await response.text();
+  const result = await request(url, {
+    method: 'GET',
+    headers: { 'Authorization': `Bearer ${jwtToken}` },
+    context: 'game',
+  });
 
-    if (!response.ok) {
-      const errorInfo = await processErrorResponse(response, 'game');
-      return { gameUrl: null, error: errorInfo };
-    }
-
-    const data = JSON.parse(rawText);
-    const gameUrl = findGameUrl(data);
-    
-    return gameUrl
-      ? { gameUrl, error: null }
-      : { gameUrl: null, error: { message: 'URL do jogo não encontrada.' } };
-  } catch (err) {
-    const errorInfo = translateNetworkError(err);
-    return { gameUrl: null, error: errorInfo };
+  // Se houve erro, retorna no formato esperado pelo useGameLauncher
+  if (result.error) {
+    return {
+      gameUrl: null,
+      error: result.error,
+      requiresPaywall: result.requiresPaywall,
+      checkoutUrl: result.checkoutUrl,
+      statusCode: result.statusCode,
+    };
   }
+
+  // Sucesso: busca a game_url no payload
+  const gameUrl = findGameUrl(result.data);
+
+  if (gameUrl) {
+    return { gameUrl, error: null, requiresPaywall: false, checkoutUrl: '', statusCode: result.statusCode };
+  }
+
+  // Payload veio OK mas não tinha game_url
+  return {
+    gameUrl: null,
+    error: {
+      title: 'Erro no Jogo',
+      message: 'URL do jogo não encontrada na resposta. Tente novamente ou escolha outro jogo.',
+      icon: '🎮',
+    },
+    requiresPaywall: false,
+    checkoutUrl: '',
+    statusCode: result.statusCode,
+  };
 }
 
 /** Busca recursiva de game_url no payload da API. */
 function findGameUrl(obj) {
   if (!obj || typeof obj !== 'object') return null;
-  
+
   // Caminhos conhecidos (fast path)
   const direct = obj?.launchOptions?.launch_options?.game_url
     || obj?.launch_options?.game_url
