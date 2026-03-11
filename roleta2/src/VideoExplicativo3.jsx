@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-export default function VideoExplicativo2() {
+export default function VideoExplicativo3() {
   const videoRef = useRef(null);
 
   useEffect(() => {
