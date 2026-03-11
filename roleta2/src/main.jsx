@@ -4,6 +4,7 @@ import App from './App';
 import { NotificationProvider } from './contexts/NotificationContext';
 import VideoExplicativo from './VideoExplicativo';
 import VideoExplicativo2 from './VideoExplicativo2';
+import VideoExplicativo3 from './VideoExplicativo3';
 
 const params = new URLSearchParams(window.location.search);
 const videoParam = params.get('video'); // Captura o valor uma vez
@@ -22,6 +23,13 @@ if (videoParam === 'explicativo') {
   root.render(
     <React.StrictMode>
       <VideoExplicativo2 />
+    </React.StrictMode>
+  );
+} else if (videoParam === 'explicativo3') {
+  // Rota leve 2
+  root.render(
+    <React.StrictMode>
+      <VideoExplicativo3 />
     </React.StrictMode>
   );
 } else {
