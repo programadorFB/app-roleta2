@@ -3,7 +3,8 @@
 export const SOURCES = [
     'immersive', 
     'brasileira', // Mantenha se quiser acessar o histórico antigo
-    'brasilPlay', // <--- NOVO (Exatamente igual ao main.py)
+    'brasilPlay', 
+    'immersivevip',
     'default', 'speed', 'xxxtreme', 'vipauto',
     'auto', 'macau', 'footballstudio', 'vip', 'lightning', 'rapida2', 
     'blazemega', 'aovivo', 'speedauto', 'lucky6', 'azure', 'romena', 

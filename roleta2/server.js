@@ -5,7 +5,7 @@ import {
   expressIntegration, 
 } from "@sentry/node";
 
-// server.js - 🚀 COM SOCKET.IO + INTEGRAÇÃO PYTHON + ⚡ FETCH INCREMENTAL 🚀
+// server.js - 🚀 COM SOCKET.IO + INTEGRAÇÃO PYTHON + ⚡ FETCH INCREMENTAL + 🔴 REDIS CACHE 🚀
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
@@ -29,6 +29,18 @@ import {
     getWebhookLogs,
     getSubscriptionByEmail
 } from './subscriptionService.js';
+
+// ⚡ REDIS: Imports do cache
+import { testRedisConnection, isRedisReady } from './redisClient.js';
+import {
+    getCachedSubscription,
+    setCachedSubscription,
+    invalidateSubscriptionCache,
+    getCachedLatest,
+    setCachedLatest,
+    getCacheStats,
+    setCachedSourceHealth,
+} from './redisCache.js';
 
 dotenv.config();
 
@@ -60,6 +72,7 @@ Sentry.init({
 const CRAWLER_SECRET = process.env.CRAWLER_SECRET || "minha_senha_secreta_python"; 
 
 const API_URLS = {
+    immersivevip: 'https://apptemporario-production.up.railway.app/api/bd9c8298-1453-4694-8d9c-b32be9f972e7',
     immersive: 'https://apptemporario-production.up.railway.app/api/0194b479-654d-70bd-ac50-9c5a9b4d14c5',
     brasileira: 'https://apptemporario-production.up.railway.app/api/0194b473-2ab3-778f-89ee-236e803f3c8e',
     speed: 'https://apptemporario-production.up.railway.app/api/0194b473-c347-752f-9eaf-783721339479',
@@ -75,24 +88,22 @@ const API_URLS = {
     malta: 'https://apptemporario-production.up.railway.app/api/0194b476-6091-730c-b971-7e66d9d8c44a',
     brasilPlay: 'https://pbrapi.sortehub.online/sinais/historico' 
 };
-const FETCH_INTERVAL_MS = 5000;
+const FETCH_INTERVAL_MS = 1000;
 const DEFAULT_AUTH_PROXY_TARGET = process.env.AUTH_PROXY_TARGET || 'https://api.appbackend.tech';
 const HUBLA_WEBHOOK_TOKEN = process.env.HUBLA_WEBHOOK_TOKEN || 'x11H8dJDrNRQBZTxicwFObMkk3LG6gSMBwAi5CxGYlRp1JuwRZZsxWm81NSZEgEJ';
 const HUBLA_CHECKOUT_URL = process.env.HUBLA_CHECKOUT_URL || 'https://pay.hub.la/N7JdmojxORlRpaafFEyl';
 const FRONT_END_URL = process.env.FRONT_END_URL;;
 
 // --- MIDDLEWARE ---
-// 1. Log geral (⚡ otimizado: reduz log verboso em produção)
+// 1. Log geral (otimizado: reduz log verboso em produção)
 app.use((req, res, next) => {
     req._startTime = Date.now();
-    // Log reduzido: não loga polling de history-since (muito frequente)
     const isPolling = req.url.startsWith('/api/history-since') || req.url.startsWith('/api/full-history');
     if (!isPolling) {
         console.log(`[${new Date().toISOString()}] 📥 ${req.method} ${req.url}`);
     }
     res.on('finish', () => {
         const duration = Date.now() - req._startTime;
-        // Loga apenas requests lentos (>500ms) ou erros
         if (duration > 500 || res.statusCode >= 400) {
             const emoji = res.statusCode >= 500 ? '❌' : res.statusCode >= 400 ? '⚠️' : '🐢';
             console.log(`${emoji} ${req.method} ${req.url} - ${res.statusCode} - ${duration}ms`);
@@ -187,6 +198,8 @@ app.use('/login', createProxyMiddleware({
                 }
 
                 if (canLogin) {
+                    // ⚡ Cache positivo no login (pré-aquece para requests subsequentes)
+                    setCachedSubscription(cleanEmail, { hasAccess: true, subscription }).catch(() => {});
                     Object.keys(proxyRes.headers).forEach((key) => { res.setHeader(key, proxyRes.headers[key]); });
                     res.status(backendStatusCode).send(responseBody);
                 } else {
@@ -285,12 +298,22 @@ app.post('/api/update-croupier', express.json(), (req, res) => {
     res.json({ status: 'ok' });
 });
 
-// Webhook Hubla (MANTIDO)
+// Webhook Hubla — ⚡ COM INVALIDAÇÃO DE CACHE REDIS
 app.post('/api/webhooks/hubla', express.json(), async (req, res) => {
     try {
         const hublaToken = req.headers['x-hubla-token'];
         if (!verifyHublaWebhook(hublaToken, HUBLA_WEBHOOK_TOKEN)) return res.status(401).json({ error: 'Token inválido' });
         const result = await processHublaWebhook(req.body.type, req.body);
+
+        // ⚡ REDIS: Invalida cache da assinatura do usuário afetado
+        const subscriberEmail = req.body?.data?.subscriber?.email 
+          || req.body?.data?.email 
+          || req.body?.subscriber?.email;
+        if (subscriberEmail) {
+          await invalidateSubscriptionCache(subscriberEmail);
+          console.log(`🔄 [REDIS] Cache de assinatura invalidado: ${subscriberEmail}`);
+        }
+
         res.status(200).json({ success: true, result });
     } catch (error) {
         Sentry.captureException(error);
@@ -298,26 +321,53 @@ app.post('/api/webhooks/hubla', express.json(), async (req, res) => {
     }
 });
 
-// Middleware de assinatura (MANTIDO)
+// ═══════════════════════════════════════════════════════════════
+// 🔴 MIDDLEWARE DE ASSINATURA — COM CACHE REDIS (sub-ms)
+// Antes: ~5-20ms (query PG a cada request)
+// Agora: ~0.1ms (Redis) com fallback para PG no cache miss
+// ═══════════════════════════════════════════════════════════════
 const requireActiveSubscription = async (req, res, next) => {
     try {
         const userEmail = req.query.userEmail;
         if (!userEmail) return res.status(401).json({ error: 'userEmail obrigatório', requiresSubscription: true });
         
         const cleanEmail = userEmail.trim().toLowerCase();
+
+        // ⚡ CAMADA 1: Redis cache (sub-milissegundo)
+        const cached = await getCachedSubscription(cleanEmail);
+        if (cached) {
+            if (cached.hasAccess) {
+                req.subscription = cached.subscription;
+                return next();
+            }
+            return res.status(403).json({
+                error: cached.reason || 'Assinatura inválida',
+                requiresSubscription: true,
+                checkoutUrl: HUBLA_CHECKOUT_URL
+            });
+        }
+
+        // CAMADA 2: PostgreSQL (cache miss)
         const subscription = await getSubscriptionByEmail(cleanEmail);
         
-        if (!subscription) return res.status(403).json({ error: 'Assinatura não encontrada', requiresSubscription: true, checkoutUrl: HUBLA_CHECKOUT_URL });
+        if (!subscription) {
+            setCachedSubscription(cleanEmail, { hasAccess: false, subscription: null, reason: 'Assinatura não encontrada' }).catch(() => {});
+            return res.status(403).json({ error: 'Assinatura não encontrada', requiresSubscription: true, checkoutUrl: HUBLA_CHECKOUT_URL });
+        }
 
         const activeStatuses = ['active', 'trialing', 'paid'];
         if (!activeStatuses.includes(subscription.status)) {
+            setCachedSubscription(cleanEmail, { hasAccess: false, subscription, reason: `Assinatura inativa (${subscription.status})` }).catch(() => {});
             return res.status(403).json({ error: `Assinatura inativa (${subscription.status})`, requiresSubscription: true, checkoutUrl: HUBLA_CHECKOUT_URL });
         }
         
         if (subscription.expires_at && new Date(subscription.expires_at) < new Date()) {
+            setCachedSubscription(cleanEmail, { hasAccess: false, subscription, reason: 'Assinatura expirada' }).catch(() => {});
             return res.status(403).json({ error: 'Assinatura expirada', requiresSubscription: true, checkoutUrl: HUBLA_CHECKOUT_URL });
         }
         
+        // ✅ Acesso válido — cache positivo (60s TTL)
+        setCachedSubscription(cleanEmail, { hasAccess: true, subscription }).catch(() => {});
         req.subscription = subscription;
         next();
     } catch (error) {
@@ -361,32 +411,29 @@ app.get('/api/admin/webhooks/logs', async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// 📊 MONITOR DE SAÚDE DAS FONTES — Diagnóstico de gaps
-// Rastreia POR FONTE: último signalId, latência da API, tempo
-// sem dados novos, e erros. Loga um painel a cada 60 segundos.
+// 📊 MONITOR DE SAÚDE DAS FONTES
 // ═══════════════════════════════════════════════════════════════
 const sourceHealth = new Map();
 
 function getSourceHealth(sourceName) {
     if (!sourceHealth.has(sourceName)) {
         sourceHealth.set(sourceName, {
-            lastSignalId: null,        // Último signalId visto da API externa
-            lastNewDataAt: null,       // Timestamp (Date) de quando veio dado NOVO
-            lastFetchAt: null,         // Timestamp do último fetch (sucesso ou não)
-            lastApiLatencyMs: 0,       // Latência do endpoint externo
-            lastDbSaveMs: 0,           // Tempo para salvar no DB
-            totalFetches: 0,           // Total de ciclos de fetch
-            totalNewSignals: 0,        // Total de sinais novos recebidos
-            totalErrors: 0,            // Total de erros
-            lastError: null,           // Último erro
-            consecutiveEmpty: 0,       // Fetches seguidos sem dado novo (mede gap)
-            apiReturnedItems: 0,       // Quantos items a API retornou no último fetch
+            lastSignalId: null,
+            lastNewDataAt: null,
+            lastFetchAt: null,
+            lastApiLatencyMs: 0,
+            lastDbSaveMs: 0,
+            totalFetches: 0,
+            totalNewSignals: 0,
+            totalErrors: 0,
+            lastError: null,
+            consecutiveEmpty: 0,
+            apiReturnedItems: 0,
         });
     }
     return sourceHealth.get(sourceName);
 }
 
-// Painel de saúde — loga a cada 60s
 let healthLogInterval = null;
 function startHealthLogger() {
     if (healthLogInterval) return;
@@ -408,7 +455,9 @@ function startHealthLogger() {
             );
         }
 
-        // Só loga o painel completo se houver gap ou a cada 5 minutos
+        // ⚡ REDIS: Persiste saúde para dashboards externos
+        setCachedSourceHealth(sourceHealth).catch(() => {});
+
         const shouldLog = hasGap || (now % 300000 < 60000);
         if (shouldLog) {
             console.log(`\n📊 ─── SAÚDE DAS FONTES ─── ${new Date().toLocaleTimeString()} ───`);
@@ -418,7 +467,7 @@ function startHealthLogger() {
             }
             console.log(`${'─'.repeat(80)}\n`);
         }
-    }, 60000); // A cada 60 segundos
+    }, 60000);
 }
 
 // --- SCRAPER INSTRUMENTADO ---
@@ -435,7 +484,6 @@ async function fetchAndSaveFromSource(url, sourceName) {
     health.lastFetchAt = Date.now();
 
     try {
-        // ── 1. Mede latência da API externa ──
         const apiStart = Date.now();
         const response = await fetch(url, { timeout: 15000 });
         health.lastApiLatencyMs = Date.now() - apiStart;
@@ -452,38 +500,32 @@ async function fetchAndSaveFromSource(url, sourceName) {
 
         if (normalizedData.length === 0) {
             health.consecutiveEmpty++;
-            health.lastError = null; // Não é erro, só vazio
+            health.lastError = null;
             return;
         }
 
-        // ── 2. Detecta se veio dado NOVO vs repetido ──
         const newestId = normalizedData[0]?.signalId || normalizedData[0]?.id;
         
         if (newestId && newestId === health.lastSignalId) {
-            // API retornou os mesmos dados — gap é da FONTE EXTERNA
             health.consecutiveEmpty++;
             return;
         }
 
-        // Dado novo!
         health.lastSignalId = newestId;
         health.lastNewDataAt = Date.now();
         health.consecutiveEmpty = 0;
         health.lastError = null;
 
-        // ── 3. Mede tempo de save no DB ──
         const dbStart = Date.now();
         await saveNewSignals(normalizedData, sourceName);
         health.lastDbSaveMs = Date.now() - dbStart;
 
-        // Conta sinais novos (estimativa — saveNewSignals faz ON CONFLICT)
         health.totalNewSignals += normalizedData.length;
 
     } catch (err) {
         health.totalErrors++;
         health.lastError = err.message?.substring(0, 80);
         
-        // Só loga se não for erro repetido (evita flood)
         if (health.totalErrors <= 3 || health.totalErrors % 10 === 0) {
             console.error(`❌ [FETCH - ${sourceName}]: ${err.message} (erro #${health.totalErrors})`);
         }
@@ -532,7 +574,7 @@ app.get('/api/fetch/:source', requireActiveSubscription, async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// ROTA ORIGINAL — Full History (mantida para compatibilidade)
+// Full History (com cache Redis no dbService)
 // ═══════════════════════════════════════════════════════════════
 app.get('/api/full-history', requireActiveSubscription, async (req, res) => {
     try {
@@ -547,10 +589,7 @@ app.get('/api/full-history', requireActiveSubscription, async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// ⚡ NOVA ROTA — Fetch Incremental (só registros novos)
-// Query param: ?source=xxx&since=2025-01-01T00:00:00Z&userEmail=xxx
-// Retorna APENAS registros com timestamp > since
-// Payload: ~0-5 rows vs ~5000 rows do full-history
+// ⚡ Fetch Incremental (sem cache — payload minúsculo)
 // ═══════════════════════════════════════════════════════════════
 app.get('/api/history-since', requireActiveSubscription, async (req, res) => {
     try {
@@ -569,7 +608,9 @@ app.get('/api/history-since', requireActiveSubscription, async (req, res) => {
     }
 });
 
-// ✅ ROTA /api/latest (MANTIDA)
+// ═══════════════════════════════════════════════════════════════
+// ✅ /api/latest — ⚡ COM CACHE REDIS
+// ═══════════════════════════════════════════════════════════════
 app.get('/api/latest', requireActiveSubscription, async (req, res) => {
     try {
         const sourceName = req.query.source;
@@ -579,6 +620,11 @@ app.get('/api/latest', requireActiveSubscription, async (req, res) => {
             return res.status(400).json({ error: `source inválido: ${sourceName}` });
         }
 
+        // ⚡ Redis primeiro
+        const cached = await getCachedLatest(sourceName, limit);
+        if (cached) return res.json(cached);
+
+        // Cache miss → PG
         const result = await pool.query(
             `SELECT timestamp, signalId AS signalid, gameId AS gameid, signal
              FROM signals
@@ -588,6 +634,9 @@ app.get('/api/latest', requireActiveSubscription, async (req, res) => {
             [sourceName, limit]
         );
 
+        // Write-through
+        setCachedLatest(sourceName, limit, result.rows).catch(() => {});
+
         res.json(result.rows);
     } catch (error) {
         Sentry.captureException(error);
@@ -595,11 +644,23 @@ app.get('/api/latest', requireActiveSubscription, async (req, res) => {
     }
 });
 
-// Health Check
+// ═══════════════════════════════════════════════════════════════
+// Health Check — ⚡ COM STATUS REDIS
+// ═══════════════════════════════════════════════════════════════
 app.get('/health', async (req, res) => {
     try {
         await testConnection();
-        res.json({ status: 'OK', uptime: process.uptime(), hubla: HUBLA_WEBHOOK_TOKEN ? '✅' : '⚠️', database: '✅' });
+        const redisOk = await testRedisConnection();
+        const cacheStats = await getCacheStats();
+
+        res.json({
+            status: 'OK',
+            uptime: process.uptime(),
+            hubla: HUBLA_WEBHOOK_TOKEN ? '✅' : '⚠️',
+            database: '✅',
+            redis: redisOk ? '✅' : '⚠️ (fallback memória)',
+            cache: cacheStats,
+        });
     } catch (dbError) {
         res.status(503).json({ status: 'ERROR', message: 'Serviço indisponível', database: '❌' });
     }
@@ -626,13 +687,20 @@ io.on('connection', (socket) => {
 
 // --- INICIALIZAÇÃO ---
 const startServer = async () => {
-    const PORT = process.env.PORT || 3005;
+    const PORT = process.env.PORT || 3001;
     try {
         console.log('🔍 Testando PostgreSQL...');
         await testConnection();
         await loadAllExistingSignalIds();
 
-        // ⚡ Garante index para fetch incremental (roda uma vez, idempotente)
+        // ⚡ Testa Redis
+        const redisOk = await testRedisConnection();
+        console.log(redisOk 
+            ? '✅ [REDIS] Conectado e pronto — cache ativo' 
+            : '⚠️ [REDIS] Indisponível — usando fallback memória'
+        );
+
+        // ⚡ Index para fetch incremental
         try {
             await pool.query(`
                 CREATE INDEX IF NOT EXISTS idx_signals_source_timestamp 
@@ -645,14 +713,15 @@ const startServer = async () => {
         
         server.listen(PORT, '0.0.0.0', () => {
             console.log(`\n${'='.repeat(80)}`);
-            console.log(`🚀 SERVIDOR + SOCKET RODANDO NA PORTA ${PORT}`);
+            console.log(`🚀 SERVIDOR + SOCKET + 🔴 REDIS RODANDO NA PORTA ${PORT}`);
             console.log(`📡 Endpoint Python: POST /api/report-spin (Protegido)`);
             console.log(`⚡ Endpoint Incremental: GET /api/history-since?source=xxx&since=timestamp`);
+            console.log(`🔴 Redis: ${redisOk ? 'ATIVO' : 'FALLBACK memória'}`);
             console.log(`${'='.repeat(80)}\n`);
             
             fetchAllData();
             setInterval(fetchAllData, FETCH_INTERVAL_MS);
-            startHealthLogger(); // 📊 Inicia painel de monitoramento
+            startHealthLogger();
         });
     } catch (err) {
         console.error("❌ ERRO CRÍTICO:", err);

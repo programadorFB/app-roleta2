@@ -8,6 +8,7 @@ services:
       - "3001:3001"
     environment:
       - NODE_ENV=production
+      - REDIS_URL=redis://redis:6379
     restart: unless-stopped
     networks:
       - rede_externa
@@ -28,7 +29,7 @@ services:
   cloudflared:
     container_name: roleta2_tunnel
     image: cloudflare/cloudflared:latest
-    command: tunnel --no-autoupdate run --token eyJhIjoiOGQ2YTZmYWY4YzMwM2EzNDU2YzNlZDUwMGYzNjBlNDciLCJ0IjoiYjg0YzFmNTgtNDMzMi00MWQ5LTg5NjAtZDIzM2FhYTdjYWRmIiwicyI6Ik9HSXhaamMxTUdRdFpEQTJNQzAwWmpsakxXSTJZbVl0T0RJME1UWTJaamszWVRoaSJ9
+    command: tunnel --no-autoupdate --protocol http2 run --token eyJhIjoiOGQ2YTZmYWY4YzMwM2EzNDU2YzNlZDUwMGYzNjBlNDciLCJ0IjoiYjg0YzFmNTgtNDMzMi00MWQ5LTg5NjAtZDIzM2FhYTdjYWRmIiwicyI6Ik1UTmlPR1V4WVRVdE1HRmxOaTAwTlRNeUxUbGlPRFV0T0RJMk9XRXhZVEEwTWpKbE1UQmxaakk0TldZdE56WTVNeTAwTVRNeExXSmlZamd0TTJZd016WXhZakpoWlRnNSJ9
     restart: unless-stopped
     networks:
       - rede_externa
