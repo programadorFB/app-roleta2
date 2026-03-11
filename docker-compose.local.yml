@@ -1,0 +1,28 @@
+### docker-compose.local.yml — Ambiente de teste local (Windows)
+### Uso: docker-compose -f docker-compose.local.yml up -d
+
+services:
+  redis:
+    container_name: redis_local
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru --save "" --appendonly no
+    restart: unless-stopped
+
+  postgres:
+    container_name: postgres_local
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: phantom-roleta
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1234
+    volumes:
+      - pgdata_local:/var/lib/postgresql/data
+      - ./init-local-db.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+
+volumes:
+  pgdata_local:
