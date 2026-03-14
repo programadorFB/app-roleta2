@@ -1,321 +1,82 @@
-/* ========================================
-   RACING TRACK - ESTILO "DARK MODE" (IMAGEM)
-   ======================================== */
-/* ========================================
-   BOTÃO DE INVERTER E BARRA CENTRAL
-   ======================================== */
+/* RacingTrack.css — STADIUM RACETRACK v6 — GREEN TARGETS + GOLD NEIGHBORS */
 
-/* Substitui o <div> de altura fixa por um container de barra */
-.racetrack-divider-bar {
-  height: 20px;
-  background-color: #4a4a4a;
-  position: relative; /* Necessário para posicionar o botão */
-  z-index: 50; /* Garante que fique acima das linhas mas abaixo de popups */
-}
-
-/* O botão de ícone */
-.racetrack-flip-button {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%); /* Centraliza o botão */
-  
-  /* Aparência */
-  background: #2d3748; /* Fundo cinza-azulado escuro */
-  border: 1px solid #718096; /* Borda cinza */
-  color: #e2e8f0; /* Cor do ícone (cinza claro) */
-  border-radius: 50%; /* Botão redondo */
-  
-  /* Tamanho */
-  width: 26px;  /* Tamanho pequeno */
-  height: 26px;
-  padding: 4px; /* Espaçamento interno para o SVG */
-  
-  /* Comportamento */
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.racetrack-flip-button:hover {
-  background: #4a5568; /* Fundo mais claro no hover */
-  color: #fff;
-  transform: translate(-50%, -50%) scale(1.1); /* Efeito de zoom */
-  border-color: #a0aec0;
-}
-
-/* Garante que o SVG dentro do botão se ajuste */
-.racetrack-flip-button svg {
+.racetrack-oval-container {
   width: 100%;
-  height: 100%;
+  padding: 0.25rem 0;
 }
-.racetrack-flat-container {
+
+.racetrack-oval-svg {
   width: 100%;
-  min-width: 70px; /* Reduzido para um visual mais compacto */
-  background: #1a1a1a; /* Fundo escuro */
-  border-radius: 60px; /* Bordas bem arredondadas */
-  padding: 0px; 
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
-  margin: 2rem auto;
-  position: relative;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 2px 12px rgba(0,0,0,0.3));
 }
 
-.racetrack-flat-inner {
-  display: flex; 
-  border: 1px solid #555; /* Borda cinza escura */
-  border-radius: 30px; /* Raio interno */
-  background: #000; /* Miolo preto */
-  overflow: hidden; 
+/* Cell hover */
+.rt-cell:hover circle {
+  fill: rgba(201,160,82,0.1) !important;
+  stroke: rgba(201,160,82,0.25) !important;
+}
+.rt-cell:hover text {
+  filter: drop-shadow(0 0 3px rgba(201,160,82,0.5));
 }
 
-/* Colunas (Esquerda, Centro, Direita) */
-.racetrack-flat-col {
-  display: flex;
-  flex-direction: column;
+/* Active pulse (amarelo) */
+.rt-active-ring {
+  animation: rt-pulse 1.5s ease-in-out infinite;
+}
+@keyframes rt-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
 }
 
-.racetrack-flat-col.center {
-  flex: 1; 
-  /* Adiciona a borda preta central para separar as linhas */
-  background: #000;
-  border-left: 1px solid #444;
-  border-right: 1px solid #444;
+/* Target ring pulse (verde — números alvo) */
+.rt-target-ring {
+  animation: rt-target 1.4s ease-in-out infinite;
+}
+@keyframes rt-target {
+  0%, 100% { opacity: 0.9; stroke-width: 2; }
+  50% { opacity: 0.4; stroke-width: 3; }
 }
 
-.racetrack-flat-col.left,
-.racetrack-flat-col.right {
-  flex-basis: 50px; 
+/* Neighbor ring pulse (ouro — vizinhos expandidos) */
+.rt-entry-ring {
+  animation: rt-entry 1.2s ease-in-out infinite;
+}
+@keyframes rt-entry {
+  0%, 100% { opacity: 0.7; stroke-width: 1.5; }
+  50% { opacity: 0.2; stroke-width: 2.5; }
 }
 
-/* Linhas (Superior, Inferior) */
-.racetrack-flat-row {
-  display: flex;
-  width: 100%;
+/* Flip button */
+.rt-flip-btn circle {
+  transition: all 0.25s ease;
+}
+.rt-flip-btn:hover circle {
+  fill: rgba(201,160,82,0.15) !important;
+  stroke: rgba(201,160,82,0.4) !important;
+}
+.rt-flip-btn:hover path {
+  fill: rgba(201,160,82,0.8) !important;
 }
 
-/* Caixa de Número Individual */
-.racetrack-flat-number {
-  flex: 1; /* <- Modificado para flex: 1 */
-  padding: 12px 0;
-  font-weight: bold;
-  font-size: 0.9rem;
-  text-align: center;
-  border: 1px solid #444; 
-  cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
-  z-index: 10;
+@media (max-width: 768px) {
+  .racetrack-oval-container { padding: 0.15rem 0; }
 }
 
-/* Cores (AGORA SÃO CORES DE TEXTO) */
-.racetrack-flat-number.red { 
-  background: transparent; 
-  color: #e53e3e; /* Vermelho */
-}
-.racetrack-flat-number.black { 
-  background: transparent; 
-  color: #fff; /* Branco */
-}
-.racetrack-flat-number.green { 
-  background: transparent; 
-  color: #38b2ac; /* Verde/Cyan */
-}
-
-/* Hover */
-.racetrack-flat-number:hover {
-  background: #2d3748; /* Fundo cinza-azulado no hover */
-  z-index: 20;
-  transform: scale(1.05);
-}
-
-/* Ativo (Animação de Pulse) - Mantido igual */
-.racetrack-flat-number.active {
-  animation: pulse-number-flat 1.5s ease-in-out;
-  border: 3px solid #fde047 !important;
-  box-shadow: 0 0 30px rgba(253, 224, 71, 0.9);
-  z-index: 100;
-  transform: scale(1.1);
-}
-
-@keyframes pulse-number-flat {
-  0%, 100% { 
-    transform: scale(1.1);
-    box-shadow: 0 0 30px rgba(253, 224, 71, 0.9);
-  }
-  50% { 
-    transform: scale(1.25);
-    box-shadow: 0 0 45px rgba(253, 224, 71, 1);
-  }
-}
-
-/* ========================================
-   SINAIS DE ENTRADA (FICHA DE ROLETA)
-   ======================================== */
-
-/* O elemento principal agora serve como container */
-.racetrack-flat-number.entry-signal-glow {
-  z-index: 90;
-  /* Garante que o número fique visível (caso a ficha tampe) */
-  /* Isso pode ser ajustado se preferir que a ficha tampe o número */
-  overflow: visible; 
-}
-
-/* A ficha é criada com o ::after */
-.racetrack-flat-number.entry-signal-glow::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  
-  /* Tamanho da ficha */
-  width: 24px; 
-  height: 24px;
-
-  /* Cor roxa do sinal */
-  /* background: #ffffff;  */
-  /* Borda branca da ficha */
-  border: 3px solid #ffffff; 
-  border-radius: 50%;
-  /* Sombra para profundidade */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); 
-  z-index: 100;
-
-  /* Animação de pulsação */
-  animation: chip-pulse 1.2s infinite;
-}
-
-
-/* ========================================
-   FIM DA MODIFICAÇÃO
-   ======================================== */
-
-
-/* Números das Curvas (Esquerda e Direita) */
-.racetrack-flat-col.left .racetrack-flat-number,
-.racetrack-flat-col.right .racetrack-flat-number {
-  flex: 1; 
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 10px;
-  /* Removemos a rotação para ficar igual à imagem */
-  writing-mode: unset; 
-  transform: none; 
-}
-
-/* Adiciona bordas arredondadas para simular a curva */
-.racetrack-flat-col.left .racetrack-flat-number:first-child {
-  border-top-left-radius: 46px; /* (50px do inner - 4px) */
-}
-.racetrack-flat-col.left .racetrack-flat-number:last-child {
-  border-bottom-left-radius: 46px;
-}
-.racetrack-flat-col.right .racetrack-flat-number:first-child {
-  border-top-right-radius: 46px;
-}
-.racetrack-flat-col.right .racetrack-flat-number:last-child {
-  border-bottom-right-radius: 46px;
-}
-
-/* Remove a borda interna das colunas de curva */
-.racetrack-flat-col.left .racetrack-flat-number {
-  border-right: none;
-}
-.racetrack-flat-col.right .racetrack-flat-number {
-  border-left: none;
-}
-
-/* Remove a borda interna entre os números da curva */
-.racetrack-flat-col.left .racetrack-flat-number:not(:last-child) {
-  border-bottom: none;
-}
-.racetrack-flat-col.right .racetrack-flat-number:not(:last-child) {
-  border-bottom: none;
-}
-
-/* ========================================
-   RESPONSIVIDADE (Simplificada)
-   ======================================== */
-
-@media (max-width: 900px) {
-  .racetrack-flat-number {
-    font-size: 0.75rem;
-    padding: 8px 0;
-  }
-  .racetrack-flat-col.left,
-  .racetrack-flat-col.right {
-    flex-basis: 40px;
-  }
-  
-  .racetrack-flat-number.entry-signal-glow::after {
-    width: 18px;
-    height: 18px;
-    border-width: 2px;
-  }
-}
 @media (max-width: 480px) {
-    .racetrack-flat-container {
-      width: 390px;
-     border-radius: 20px;
-     padding: 5px;
-     background-color: transparent;
-
+  .racetrack-oval-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0.1rem 0;
   }
-  .racetrack-flat-col {
-  display: flex;
-  height: 70px;
+  .racetrack-oval-svg { max-width: 410px; margin-left:  8px; }
 }
-     .racetrack-flat-inner {
-     height: 70px;
-     width: 380px;
+@media (max-width: 380px) {
+  .racetrack-oval-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0.1rem 0;
   }
-}
-@media (max-width: 600px) {
-  .racetrack-flat-container {
-     border-radius: 40px;
-     padding: 5px;
-  }
-   .racetrack-flat-inner {
-     border-radius: 35px;
-  }
-  .racetrack-flat-col.left .racetrack-flat-number:first-child {
-    border-top-left-radius: 32px; 
-  }
-  .racetrack-flat-col.left .racetrack-flat-number:last-child {
-    border-bottom-left-radius: 32px;
-  }
-  .racetrack-flat-col.right .racetrack-flat-number:first-child {
-    border-top-right-radius: 32px;
-  }
-  .racetrack-flat-col.right .racetrack-flat-number:last-child {
-    border-bottom-right-radius: 32px;
-  }
-  .racetrack-flat-number {
-    font-size: 0.6rem;
-    padding: 6px 0;
-  }
-  .racetrack-flat-col.left,
-  .racetrack-flat-col.right {
-    flex-basis: 30px;
-  }
-  
-  .racetrack-flat-number.entry-signal-glow::after {
-    width: 16px;
-    height: 16px;
-    border-width: 2px;
-  }
-}
-
-/* Animação para a ficha */
-@keyframes chip-pulse {
-  0%, 100% {
-    transform: translate(-50%, -50%) scale(1);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.5), 0 0 10px rgba(239, 237, 240, 0.5);
-  }
-  50% {
-    transform: translate(-50%, -50%) scale(1.1);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.7), 0 0 20px rgba(168, 85, 247, 0,5);
-  }
+  .racetrack-oval-svg { max-width: 350px; margin-left:  8px; }
 }
