@@ -28,7 +28,7 @@ dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const IS_PROD = process.env.NODE_ENV === 'production';
+const IS_PROD = (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production');
 
 // ── Express + Socket.IO setup ─────────────────────────────────
 const app = express();
