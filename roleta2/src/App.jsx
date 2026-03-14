@@ -1,9 +1,57 @@
+<<<<<<< HEAD
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   X, BarChart3, Clock, Hash, Percent, Layers,
   LogOut, PlayCircle, Filter, Crosshair
 } from 'lucide-react';
 import PaywallModal from './components/PaywallModal.jsx';
+=======
+// src/App.jsx
+// ════════════════════════════════════════════════
+// Orquestrador principal — conecta hooks e renderiza layout.
+// Toda lógica pesada vive nos hooks e services.
+// ════════════════════════════════════════════════
+// 🔧 CORREÇÕES:
+//   1. useGameLauncher recebe userEmail
+//   2. Paywall listener unificado (game + history)
+//   3. GameIframe com onRetry (sem reload de página)
+//   4. REMOVIDO overlay fullscreen de iframe error
+//   5. Botões de ação contextuais baseados em failureType:
+//      - PAYWALL → "Renovar Assinatura"
+//      - FORBIDDEN → "Fazer Login Novamente"
+//      - SERVER_ERROR / NETWORK → "Tentar Novamente" + "Cancelar"
+//      - NOT_FOUND → nenhum botão extra (mensagem sugere trocar)
+//      - SESSION_EXPIRED → logout automático (sem botão)
+// ════════════════════════════════════════════════
+
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { BarChart3, Clock, Layers, LogOut, PlayCircle, Filter } from 'lucide-react';
+
+// ── Constants ─────────────────────────────────
+import {
+  ROULETTE_SOURCES, ROULETTE_GAME_IDS, FILTER_OPTIONS,
+  DEFAULT_ROULETTE, getNumberColor,
+} from './constants/roulette';
+
+// ── Hooks ─────────────────────────────────────
+import { useAuth }               from './hooks/useAuth';
+import { useSpinHistory }        from './hooks/useSpinHistory';
+import { usePullStats }          from './hooks/usePullStats';
+import { useGameLauncher, LAUNCH_FAILURE } from './hooks/useGameLauncher';
+import { useInactivityTimeout }  from './hooks/useInactivityTimeout';
+
+// ── Components ────────────────────────────────
+import Login              from './components/auth/Login';
+import GameIframe         from './components/game/GameIframe';
+import NumberStatsPopup   from './components/common/NumberStatsPopup';
+import PaywallModal       from './components/PaywallModal';
+import MasterDashboard    from './pages/MasterDashboard';
+import RacingTrack        from './components/RacingTrack';
+import DeepAnalysisPanel  from './components/DeepAnalysisPanel';
+import ResultsGrid        from './components/ResultGrid';
+
+// ── Styles ────────────────────────────────────
+>>>>>>> d25e5d7015e35a85bc4ac0c451400a6956e0010b
 import './components/PaywallModal.css';
 import MasterDashboard from './pages/MasterDashboard.jsx';
 import RacingTrack from './components/RacingTrack.jsx';
@@ -60,6 +108,21 @@ NumberStatsPopup.displayName = 'NumberStatsPopup';
 // === APP PRINCIPAL ===
 // ════════════════════════════════════════════════════════════
 
+<<<<<<< HEAD
+=======
+// ── Estilo dos botões de ação de erro ──
+const errorActionBtnStyle = {
+  padding: '0.5rem 1rem',
+  borderRadius: '0.375rem',
+  cursor: 'pointer',
+  fontSize: '0.75rem',
+  fontWeight: 'bold',
+  marginTop: '0.5rem',
+  border: 'none',
+};
+
+// ════════════════════════════════════════════════
+>>>>>>> d25e5d7015e35a85bc4ac0c451400a6956e0010b
 const App = () => {
   // Auth
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -69,8 +132,27 @@ const App = () => {
   const [isPaywallOpen, setIsPaywallOpen] = useState(false);
   const [checkoutUrl, setCheckoutUrl] = useState('');
 
+<<<<<<< HEAD
   // UI
   const [selectedRoulette, setSelectedRoulette] = useState(Object.keys(ROULETTE_SOURCES)[0]);
+=======
+  const { spinHistory, selectedResult } = useSpinHistory(
+    selectedRoulette, auth.userInfo?.email, auth.jwtToken, auth.isAuthenticated
+  );
+
+  // 🔧 FIX 1: Passa userEmail para verificação de assinatura no backend
+  const game = useGameLauncher(selectedRoulette, auth.jwtToken, auth.isAuthenticated, auth.userInfo?.email);
+  const { numberPullStats, numberPreviousStats } = usePullStats(spinHistory);
+
+  useInactivityTimeout(
+    !!(game.gameUrl && auth.isAuthenticated),
+    auth.handleLogout
+  );
+
+  // ── UI state local ──
+  const [entrySignals, setEntrySignals] = useState([]);
+  const [historyFilter, setHistoryFilter] = useState(FILTER_OPTIONS[1].value);
+>>>>>>> d25e5d7015e35a85bc4ac0c451400a6956e0010b
   const [popupNumber, setPopupNumber] = useState(null);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [entrySignals, setEntrySignals] = useState({ targets: [], expanded: [] });
@@ -84,6 +166,7 @@ const App = () => {
   // AUTH
   // ════════════════════════════════════════════════════════════
 
+<<<<<<< HEAD
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     const email = localStorage.getItem('userEmail');
@@ -147,6 +230,14 @@ const App = () => {
 
   useEffect(() => {
     const handler = (e) => { setCheckoutUrl(e.detail?.checkoutUrl || ''); setIsPaywallOpen(true); };
+=======
+  // 🔧 FIX 2: Listener unificado de paywall (game + history)
+  useEffect(() => {
+    const handler = (e) => {
+      setCheckoutUrl(e.detail?.checkoutUrl || '');
+      setIsPaywallOpen(true);
+    };
+>>>>>>> d25e5d7015e35a85bc4ac0c451400a6956e0010b
     window.addEventListener('paywall-required', handler);
     return () => window.removeEventListener('paywall-required', handler);
   }, []);
@@ -249,9 +340,23 @@ const App = () => {
     resetGame();
   }, [clearHistory, resetGame]);
 
+<<<<<<< HEAD
   // ════════════════════════════════════════════════════════════
   // COMPUTED VALUES
   // ════════════════════════════════════════════════════════════
+=======
+  // 🔧 FIX 3: gameIframe com onRetry (sem window.location.reload)
+  const gameIframe = useMemo(
+    () => game.gameUrl
+      ? <GameIframe
+          url={game.gameUrl}
+          onError={game.handleIframeError}
+          onRetry={() => { game.resetGame(); game.handleLaunchGame(); }}
+        />
+      : null,
+    [game.gameUrl, game.handleIframeError, game.resetGame, game.handleLaunchGame]
+  );
+>>>>>>> d25e5d7015e35a85bc4ac0c451400a6956e0010b
 
   const popupStats = useMemo(() => {
     if (popupNumber === null || !isPopupOpen) return null;
@@ -276,6 +381,7 @@ const App = () => {
     <div className="app-root">
       {mobileTooltip.visible && (<><div className="tooltip-backdrop" onClick={closeMobileTooltip} /><div className="mobile-tooltip" style={{ position: 'fixed', top: mobileTooltip.y, left: mobileTooltip.x, transform: mobileTooltip.isBelow ? 'translate(-50%, 0)' : 'translate(-50%, -100%)', zIndex: 2000 }}>{mobileTooltip.content.split('\n').map((line, i) => <span key={i} className="tooltip-line">{line}</span>)}</div></>)}
 
+<<<<<<< HEAD
       {/* ═══════════════════════════════════════════
           NAVBAR — Command bar com seletores integrados
           ═══════════════════════════════════════════ */}
@@ -324,6 +430,10 @@ const App = () => {
             <span className="navbar-signal-label">sinais</span>
           </div>
         </div>
+=======
+      {/* 🔧 FIX 4: REMOVIDO overlay fullscreen de iframe error
+          Agora tratado dentro do GameIframe.jsx */}
+>>>>>>> d25e5d7015e35a85bc4ac0c451400a6956e0010b
 
         {/* Direita: Plataforma + Logout */}
         <div className="navbar-right">
@@ -363,6 +473,90 @@ const App = () => {
 
         {/* Sidebar Esquerda — Apenas MasterDashboard */}
         <aside className="stats-dashboard">
+<<<<<<< HEAD
+=======
+          <h3 className="dashboard-title">Estatísticas e Ações</h3>
+          <div className="selectors-card">
+            <div className="selectors-grid">
+              <div className="selector-group">
+                <h4 className="selector-label"><Layers size={15} /> Roletas</h4>
+                <select className="roulette-selector" value={selectedRoulette} onChange={handleRouletteChange}>
+                  {Object.keys(ROULETTE_SOURCES).map(key => <option key={key} value={key}>{ROULETTE_SOURCES[key]}</option>)}
+                </select>
+              </div>
+              <div className="selector-group">
+                <h4 className="selector-label"><Filter size={15} /> Rodadas</h4>
+                <select className="roulette-selector" value={historyFilter} onChange={(e) => setHistoryFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}>
+                  {FILTER_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                </select>
+              </div>
+            </div>
+            <button onClick={game.handleLaunchGame} disabled={game.isLaunching || !ROULETTE_GAME_IDS[selectedRoulette]} className="launch-button">
+              {game.isLaunching ? <><div className="spinner" />Iniciando...</> : <><PlayCircle size={20} />{game.gameUrl ? `Reiniciar ${ROULETTE_SOURCES[selectedRoulette]}` : `Iniciar ${ROULETTE_SOURCES[selectedRoulette]}`}</>}
+            </button>
+
+            {/* ═══════════════════════════════════════════
+                🔧 FIX 5: Bloco de erro com botões de ação contextuais
+                Cada failureType gera um botão diferente
+                ═══════════════════════════════════════════ */}
+            {game.launchError && (
+              <div style={{ textAlign: 'center' }}>
+                <p className="launch-error">{game.launchError}</p>
+
+                {/* PAYWALL: Botão abre modal de checkout */}
+                {game.failureType === LAUNCH_FAILURE.PAYWALL && (
+                  <button
+                    onClick={() => setIsPaywallOpen(true)}
+                    style={{ ...errorActionBtnStyle, background: '#eab308', color: '#111827' }}
+                  >
+                    💳 Renovar Assinatura
+                  </button>
+                )}
+
+                {/* FORBIDDEN: Botão de relogin */}
+                {game.failureType === LAUNCH_FAILURE.FORBIDDEN && (
+                  <button
+                    onClick={auth.handleLogout}
+                    style={{ ...errorActionBtnStyle, background: '#ef4444', color: '#fff' }}
+                  >
+                    🔄 Fazer Login Novamente
+                  </button>
+                )}
+
+                {/* SERVER_ERROR / NETWORK: Botão de retentar + cancelar retry */}
+                {(game.failureType === LAUNCH_FAILURE.SERVER_ERROR || game.failureType === LAUNCH_FAILURE.NETWORK_ERROR) && (
+                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginTop: '0.5rem' }}>
+                    <button
+                      onClick={game.handleLaunchGame}
+                      disabled={game.isLaunching}
+                      style={{ ...errorActionBtnStyle, background: '#3b82f6', color: '#fff' }}
+                    >
+                      🔄 Tentar Novamente
+                    </button>
+                    {game.retryCount > 0 && (
+                      <button
+                        onClick={game.cancelRetry}
+                        style={{ ...errorActionBtnStyle, background: 'transparent', color: '#9ca3af', border: '1px solid #4b5563' }}
+                      >
+                        Cancelar
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* NOT_FOUND: Nenhum botão extra, a mensagem já sugere trocar de roleta */}
+
+                {/* SESSION_EXPIRED: Nenhum botão, logout automático já foi disparado */}
+              </div>
+            )}
+          </div>
+
+          <div className="stats-card">
+            <h4 className="stats-card-title"><BarChart3 size={18} /> Total de Sinais</h4>
+            <p className="stats-card-value">{filteredSpinHistory.length}</p>
+          </div>
+
+>>>>>>> d25e5d7015e35a85bc4ac0c451400a6956e0010b
           <div className="master-dashboard-wrapper">
             {stats.historyFilter >= 20
               ? <MasterDashboard spinHistory={filteredSpinHistory} onSignalUpdate={setEntrySignals} />
