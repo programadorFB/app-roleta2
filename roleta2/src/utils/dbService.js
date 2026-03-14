@@ -132,20 +132,12 @@ export const getLatestSpins = async (sourceName, limit = 100) => {
 // ✅ Delta updates — retorna apenas sinais mais novos
 // que o lastSignalId fornecido pelo frontend.
 //
-// Usa o campo `id` (serial auto-increment) como cursor eficiente.
+// Usa o campo `timestamp` como cursor (índice já existente).
 // Cache de 5s no Redis para evitar queries repetidas no mesmo ciclo.
 //
-// 🔧 FIX: Retorna mesmas colunas/aliases que getFullHistory:
-//    - timestamp já é o nome real da coluna (não existe created_at)
-//    - signalid   → AS "signalId" (antes: signalid lowercase)
-//    - gameid     → AS "gameId"   (antes: gameid lowercase)
-//    - removido 'source' do SELECT (frontend não usa, evita payload extra)
-//
-// REQUISITO: rodar no PostgreSQL uma vez:
-//   CREATE INDEX IF NOT EXISTS idx_signals_source_signalid
-//     ON signals(source, signalid);
-//   CREATE INDEX IF NOT EXISTS idx_signals_source_id
-//     ON signals(source, id DESC);
+// Índices usados (já existem na tabela):
+//   - idx_signals_source_timestamp (source, timestamp DESC)
+//   - idx_signals_source_signalid  (source, signalid)
 // ══════════════════════════════════════════════════════════════
 
 export const getNewSignalsSince = async (sourceName, lastSignalId) => {
@@ -162,11 +154,11 @@ export const getNewSignalsSince = async (sourceName, lastSignalId) => {
              timestamp
       FROM signals
       WHERE source = $1
-        AND id > COALESCE(
-          (SELECT id FROM signals WHERE source = $1 AND signalid = $2 LIMIT 1),
-          0
+        AND timestamp > COALESCE(
+          (SELECT timestamp FROM signals WHERE source = $1 AND signalid = $2 LIMIT 1),
+          '-infinity'::timestamptz
         )
-      ORDER BY id DESC
+      ORDER BY timestamp DESC
       LIMIT 100
     `;
 
