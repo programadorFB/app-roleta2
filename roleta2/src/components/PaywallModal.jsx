@@ -1,7 +1,8 @@
-// PaywallModal.jsx — Obsidian Glass Premium v3 (polished)
+// PaywallModal.jsx
+// Componente React para exibir modal de assinatura - Design Profissional e Clean
 
 import React, { useState, useEffect } from 'react';
-import { X, Check, CreditCard, Shield, Zap, Info } from 'lucide-react';
+import { X, Check, CreditCard, Shield, Zap, Info } from 'lucide-react'; // Ícone 'Info' adicionado
 import './PaywallModal.css';
 
 const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
@@ -9,30 +10,29 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
   const [loading, setLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState('annual');
 
-  const plans = {
+   const plans = {
     monthly: {
       price: 97,
       period: 'mês',
-      checkoutUrl: 'https://pay.hub.la/1fA5DOZnF8bzlGTNW1XS',
+      checkoutUrl: 'https://pay.hub.la/dBlQouYA2q2Q7a4TV6oz?utm_source=ph',
       savings: null,
       installments: null
     },
     quarterly: {
       price: 197,
       period: 'trimestre',
-      checkoutUrl: 'https://pay.hub.la/MMSfqPB6rwwmraNweEUh',
+      checkoutUrl: 'https://pay.hub.la/MMSfqPB6rwwmraNweEUh?utm_source=ph',
       savings: 'Economize R$ 94',
       installments: '3x R$ 70,04'
     },
     annual: {
       price: 497,
       period: 'ano',
-      checkoutUrl: 'https://pay.hub.la/zwcPAbXDNlfSzhAcs9bg',
+      checkoutUrl: 'https://pay.hub.la/NGeiiXVSbzSGwjbLzZhT?utm_source=ph',
       savings: 'Economize R$ 667',
       installments: '12x R$ 50,80'
     }
   };
-
   useEffect(() => {
     if (isOpen && userId) {
       checkSubscriptionStatus();
@@ -68,7 +68,7 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
         {/* Header */}
         <div className="paywall-header">
           <button className="paywall-close" onClick={onClose}>
-            <X size={20} />
+            <X size={24} />
           </button>
         </div>
 
@@ -81,17 +81,19 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
             </div>
           ) : (
             <>
-              {/* Badge & Title */}
+              {/* Badge & Title Section */}
               <div className="paywall-badge">
-                <Shield size={32} className="badge-icon" />
+                <Shield size={40} className="badge-icon" />
               </div>
 
-              <h2 className="paywall-title">Acesso Premium Necessário</h2>
+              <h2 className="paywall-title">
+                Acesso Premium Necessário
+              </h2>
               <p className="paywall-subtitle">
                 Desbloqueie análises avançadas de roleta e maximize suas estratégias
               </p>
 
-              {/* Status */}
+              {/* Status Section */}
               {subscriptionStatus && (
                 <div className="paywall-status">
                   {subscriptionStatus.subscription ? (
@@ -111,68 +113,70 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
                   )}
                 </div>
               )}
-
-              {/* Email Warning Top */}
               <div className="paywall-email-warning-top">
-                <Info size={16} />
+                <Info size={78} /> 
                 <span>Importante: A compra deve ser realizada com o <strong>mesmo e-mail</strong> de acesso da plataforma.</span>
               </div>
-
-              {/* Features */}
+              {/* Features Section */}
               <div className="paywall-features">
                 <h3 className="features-title">O que você terá acesso:</h3>
                 <ul className="features-list">
                   <li className="feature-item">
-                    <Check size={16} className="feature-icon" />
-                    <span>Análise de 14 fontes de roleta em tempo real</span>
+                    <Check size={18} className="feature-icon" />
+                    <span>Análise de 6 fontes de roleta em tempo real</span>
                   </li>
                   <li className="feature-item">
-                    <Check size={16} className="feature-icon" />
+                    <Check size={18} className="feature-icon" />
                     <span>Sistema de detecção de padrões avançado</span>
                   </li>
                   <li className="feature-item">
-                    <Check size={16} className="feature-icon" />
+                    <Check size={18} className="feature-icon" />
                     <span>Alertas de convergência estatística</span>
                   </li>
                   <li className="feature-item">
-                    <Check size={16} className="feature-icon" />
+                    <Check size={18} className="feature-icon" />
                     <span>Dashboard Master com scoring inteligente</span>
                   </li>
                   <li className="feature-item">
-                    <Check size={16} className="feature-icon" />
+                    <Check size={18} className="feature-icon" />
                     <span>Análise de vizinhos e setores</span>
                   </li>
                   <li className="feature-item">
-                    <Check size={16} className="feature-icon" />
+                    <Check size={18} className="feature-icon" />
                     <span>Histórico completo de sinais</span>
                   </li>
                 </ul>
               </div>
 
-              {/* Free Mode */}
-              <button className="paywall-cta-free" onClick={handleFreeRedirect}>
+              {/* Free Mode Button - Positioned at top */}
+              <button 
+                className="paywall-cta-free"
+                onClick={handleFreeRedirect}
+              >
                 <span>Continuar no Modo Free</span>
               </button>
 
               {/* Plan Selector */}
               <div className="plan-selector">
-                <button
+                <button 
                   className={`plan-option ${selectedPlan === 'annual' ? 'active' : ''}`}
                   onClick={() => setSelectedPlan('annual')}
                 >
                   <div className="plan-badge-popular">
-                    <Zap size={10} />
+                    <Zap size={12} />
                     <span>Mais Popular</span>
                   </div>
                   <div className="plan-option-header">
                     <span className="plan-name">Anual</span>
                     <span className="plan-savings">Economize R$ 667</span>
                   </div>
-                  <div className="plan-monthly">{plans.annual.installments}</div>
+                  {plans.annual.installments && (
+                    <div className="plan-monthly">{plans.annual.installments}</div>
+                  )}
                   <div className="plan-price">R$ 497/ano</div>
                 </button>
 
-                <button
+                <button 
                   className={`plan-option ${selectedPlan === 'quarterly' ? 'active' : ''}`}
                   onClick={() => setSelectedPlan('quarterly')}
                 >
@@ -180,11 +184,13 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
                     <span className="plan-name">Trimestral</span>
                     <span className="plan-savings">Economize R$ 94</span>
                   </div>
-                  <div className="plan-monthly">{plans.quarterly.installments}</div>
-                  <div className="plan-price">R$ 197/tri</div>
+                  {plans.quarterly.installments && (
+                    <div className="plan-monthly">{plans.quarterly.installments}</div>
+                  )}
+                  <div className="plan-price">R$ 197/trimestre</div>
                 </button>
-
-                <button
+                
+                <button 
                   className={`plan-option ${selectedPlan === 'monthly' ? 'active' : ''}`}
                   onClick={() => setSelectedPlan('monthly')}
                 >
@@ -198,9 +204,7 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
               {/* Selected Plan Details */}
               <div className="paywall-pricing">
                 <div className="price-card">
-                  <h4 className="price-title">
-                    Plano {selectedPlan === 'monthly' ? 'Mensal' : selectedPlan === 'quarterly' ? 'Trimestral' : 'Anual'}
-                  </h4>
+                  <h4 className="price-title">Plano {selectedPlan === 'monthly' ? 'Mensal' : selectedPlan === 'quarterly' ? 'Trimestral' : 'Anual'}</h4>
                   <div className="price-value">
                     {plans[selectedPlan].installments ? (
                       <>
@@ -229,34 +233,39 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
                 </div>
               </div>
 
-              {/* Email Warning Bottom */}
+              {/* --- NOVO AVISO DE E-MAIL --- */}
               <div className="paywall-email-warning">
-                <Info size={16} />
+                <Info size={78} /> 
                 <span>Importante: A compra deve ser realizada com o <strong>mesmo e-mail</strong> de acesso da plataforma.</span>
               </div>
+              {/* --- FIM DO NOVO AVISO --- */}
 
-              {/* CTA */}
-              <button className="paywall-cta" onClick={handleSubscribe}>
-                <CreditCard size={18} />
+              {/* CTA Button */}
+              <button 
+                className="paywall-cta"
+                onClick={handleSubscribe}
+              >
+                <CreditCard size={20} />
                 <span>Assinar Agora</span>
               </button>
 
-              {/* Trust */}
+              {/* Trust badges */}
               <div className="paywall-trust">
                 <div className="trust-item">
-                  <Shield size={13} />
+                  <Shield size={14} />
                   <span>Pagamento Seguro</span>
                 </div>
                 <div className="trust-item">
-                  <Check size={13} />
+                  <Check size={14} />
                   <span>Garantia de 7 dias</span>
                 </div>
                 <div className="trust-item">
-                  <Zap size={13} />
+                  <Zap size={14} />
                   <span>Acesso Imediato</span>
                 </div>
               </div>
 
+              {/* Footer */}
               <p className="paywall-footer">
                 Pagamento processado de forma segura pela Hubla
               </p>

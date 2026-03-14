@@ -1,20 +1,24 @@
-// hooks/useAuth.js
-
+// src/hooks/useAuth.js
 import { useState, useEffect, useCallback } from 'react';
 import { registerLogoutCallback, clearLogoutCallback } from '../errorHandler';
 
-export const useAuth = () => {
+/**
+ * Gerencia autenticação: login, logout, JWT e localStorage.
+ * 
+ * Retorna estado e handlers prontos para o App orquestrar.
+ */
+export function useAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [jwtToken, setJwtToken] = useState(null);
 
-  // Check stored auth on mount
+  // Restaura sessão do localStorage no mount
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     const email = localStorage.getItem('userEmail');
     const brand = localStorage.getItem('userBrand');
-    
+
     if (token) {
       setIsAuthenticated(true);
       setJwtToken(token);
@@ -23,18 +27,16 @@ export const useAuth = () => {
     setCheckingAuth(false);
   }, []);
 
-  // Login handler
   const handleLoginSuccess = useCallback((data) => {
     setIsAuthenticated(true);
     setJwtToken(data.jwt);
     setUserInfo({
       email: localStorage.getItem('userEmail'),
       brand: localStorage.getItem('userBrand'),
-      ...data
+      ...data,
     });
   }, []);
 
-  // Logout handler
   const handleLogout = useCallback(() => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('userEmail');
@@ -44,7 +46,7 @@ export const useAuth = () => {
     setJwtToken(null);
   }, []);
 
-  // Register global logout callback
+  // Registra callback de logout global (errorHandler pode forçar logout)
   useEffect(() => {
     registerLogoutCallback(handleLogout);
     return () => clearLogoutCallback();
@@ -56,6 +58,6 @@ export const useAuth = () => {
     checkingAuth,
     jwtToken,
     handleLoginSuccess,
-    handleLogout
+    handleLogout,
   };
-};
+}

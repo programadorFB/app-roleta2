@@ -1,703 +1,333 @@
-/* MasterDashboard.module.css — RECHARTS RADIAL GAUGE v5 — CLEAN UI */
-/* ✅ Zero emojis — ícones Lucide SVG */
-/* ✅ Tipografia recalibrada */
-/* ✅ Responsive completo */
+/* === MASTER DASHBOARD - TEMA CASSINO ELEGANTE === */
 
 .masterDashboardContainer {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1.5rem;
+  /* padding: 1rem; */
+
+  border-radius: 12px;
+  
 }
 
-/* ================================================
-   HERO PANEL
-   ================================================ */
-.heroPanel {
-  position: relative;
-  background: linear-gradient(165deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.018) 40%, rgba(255,255,255,0.004) 100%);
-  border: 1px solid rgba(180,120,50,0.09);
-  border-top: 1px solid rgba(201,160,82,0.18);
-  padding: 0.6rem 0.6rem 0.5rem;
-  overflow: hidden;
-  box-shadow:
-    0 20px 60px rgba(0,0,0,0.8),
-    inset 0 1px 2px rgba(201,160,82,0.05),
-    inset 0 -1px 2px rgba(0,0,0,0.3);
-}
-
-.heroShine {
-  position: absolute;
-  top: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, transparent 5%, rgba(255,255,255,0.18) 35%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.18) 65%, transparent 95%);
-  pointer-events: none;
-}
-
-/* Mode selector */
-.modeSelector {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 0.4rem;
-}
-
-.modeBtn {
-  background: rgba(255,255,255,0.03);
-  color: rgba(255,255,255,0.4);
-  border: 1px solid rgba(180,120,50,0.07);
-  border-top: 1px solid rgba(201,160,82,0.1);
-  padding: 3px 14px;
-  font-size: 0.65rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.25s;
-  font-family: 'Outfit', sans-serif;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  min-height: 28px;
-}
-
-.modeBtn:first-child { border-right: none; }
-.modeBtn:last-child { border-left: none; }
-
-.modeBtnActive {
-  background: linear-gradient(165deg, rgba(201,160,82,0.2) 0%, rgba(201,160,82,0.06) 100%);
-  color: #c9a052;
-  border-color: rgba(201,160,82,0.25);
-  border-top-color: rgba(201,160,82,0.4);
-  box-shadow: 0 0 12px rgba(201,160,82,0.08), inset 0 1px 0 rgba(201,160,82,0.12);
-  text-shadow: 0 0 10px rgba(201,160,82,0.3);
-}
-
-/* Hero layout: WIN | GAUGE | LOSS */
-.heroLayout {
-  display: grid;
-  grid-template-columns: 1fr 2.4fr 1fr;
-  align-items: center;
-  gap: 0;
-  min-height: 80px;
-}
-
-.counterBox {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  padding: 0.4rem 0;
-}
-
-.counterValue {
-  font-size: 1.7rem;
-  font-weight: 800;
-  font-family: 'Outfit', sans-serif;
-  line-height: 1;
-}
-
-.counterLabel {
-  font-size: 0.6rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-family: 'Outfit', sans-serif;
-}
-
-/* Central gauge wrapper */
-.heroGaugeWrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.heroGaugeWrap .recharts-wrapper {
-  margin: 0 auto;
-}
-
-.heroGaugeOverlay {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  padding-bottom: 0;
-  pointer-events: none;
-}
-
-.heroPercent {
-  font-size: 1.6rem;
-  font-weight: 900;
-  font-family: 'Outfit', sans-serif;
-  line-height: 1;
-  letter-spacing: -0.02em;
-}
-
-.heroPercentSign {
-  font-size: 0.8rem;
-  font-weight: 700;
-  opacity: 0.7;
-  margin-left: 1px;
-}
-
-.heroSubtext {
-  font-size: 0.6rem;
-  color: rgba(255,255,255,0.3);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-top: 2px;
-  font-family: 'Outfit', sans-serif;
-}
-
-/* ================================================
-   SIGNAL BAR — Clean, ícones SVG Lucide
-   ================================================ */
-.signalBar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: nowrap;
-  gap: 0;
-  margin-top: 0.5rem;
-  padding: 0.4rem 0.4rem;
-  background: linear-gradient(165deg, rgba(201,160,82,0.06) 0%, rgba(201,160,82,0.015) 100%);
-  border: 1px solid rgba(201,160,82,0.1);
-  border-top: 1px solid rgba(201,160,82,0.2);
-  box-shadow: inset 0 1px 0 rgba(201,160,82,0.08);
-  overflow-x: auto;
-  overflow-y: hidden;
-}
-
-.signalItem {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  white-space: nowrap;
-  gap: 4px;
-  padding: 0 0.5rem;
-  font-family: 'Outfit', sans-serif;
-}
-/* Ícone SVG Lucide — substitui emojis */
-.signalIconSvg {
-  color: rgba(201,160,82,0.55);
-  flex-shrink: 0;
-  width: 12px;
-  height: 12px;
-}
-/* Legacy emoji class — hidden */
-.signalIcon { display: none; }
-
-.signalVal {
-  font-size: 0.8rem;
-  font-weight: 800;
-  color: rgba(255,255,255,0.9);
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-}
-.signalLbl {
-  font-size: 0.55rem;
-  color: rgba(255,255,255,0.3);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-}
-
-.signalDivider {
-  width: 1px;
-  height: 16px;
-  background: rgba(201,160,82,0.15);
-  flex-shrink: 0;
-}
-/* ================================================
-   LEARNING BAR — Clean, ícone SVG
-   ================================================ */
-.learningBar {
-  display: flex;
-  align-items: center;
-  flex-wrap: nowrap;
-  gap: 6px;
-  margin-top: 0.35rem;
-  padding: 0.3rem 0.5rem;
-  background: rgba(201,160,82,0.03);
-  border: 1px solid rgba(201,160,82,0.06);
-  border-top: 1px solid rgba(201,160,82,0.1);
-  overflow-x: auto;
-  overflow-y: hidden;
-}
-/* Ícone SVG Lucide — substitui emoji */
- 
-.learningIconSvg {
-  color: rgba(201,160,82,0.35);
-  flex-shrink: 0;
-  width: 11px;
-  height: 11px;
-}
-
-/* Legacy emoji class — hidden */
-.learningIcon { display: none; }
-
-.learningText {
-  font-size: 0.52rem;
-  color: rgba(201,160,82,0.4);
-  font-weight: 600;
-  font-family: 'Outfit', sans-serif;
-  letter-spacing: 0.02em;
-  line-height: 1.4;
-  white-space: nowrap;
-}
- 
-/* ================================================
-   STRATEGY GAUGES GRID
-   ================================================ */
-.masterGridContainer {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 0.35rem;
-}
-
-.gaugeCard {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 0.3rem 0 0.4rem;
-  gap: 4px;
-  background: linear-gradient(165deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.015) 100%);
-  border: 1px solid rgba(180,120,50,0.09);
-  border-top: 1px solid rgba(201,160,82,0.16);
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  cursor: default;
-  box-shadow:
-    0 6px 20px rgba(0,0,0,0.5),
-    inset 0 1px 1px rgba(201,160,82,0.05),
-    inset 0 -1px 0 rgba(0,0,0,0.2);
-}
-
-.gaugeCard::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, transparent 5%, rgba(255,255,255,0.15) 50%, transparent 95%);
-  pointer-events: none;
-}
-
-.gaugeCard:hover {
-  background: linear-gradient(165deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.025) 100%);
-  border-top-color: rgba(255,255,255,0.18);
-  transform: translateY(-2px);
-  box-shadow:
-    0 10px 30px rgba(0,0,0,0.6),
-    inset 0 1px 1px rgba(255,255,255,0.1),
-    inset 0 -1px 0 rgba(0,0,0,0.25);
-}
-
-.gaugeChartWrap {
-  position: relative;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.gaugeChartWrap .recharts-wrapper {
-  margin: 0 auto;
-}
-
-.gaugeOverlay {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding-bottom: 0;
-  pointer-events: none;
-}
-
-.gaugePercent {
-  font-size: 0.65rem;
-  font-weight: 800;
-  font-family: 'Outfit', sans-serif;
-  line-height: 1;
-}
-
-.gaugeName {
-  font-size: 0.6rem;
-  font-weight: 700;
-  color: rgba(255,255,255,0.6);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  text-align: center;
-  line-height: 1;
-  margin-top: 1px;
-  font-family: 'Outfit', sans-serif;
-}
-
-.gaugeWeight {
-  font-size: 0.5rem;
-  font-weight: 700;
-  font-family: 'Outfit', sans-serif;
-  letter-spacing: 0.02em;
-  margin-top: -1px;
-  line-height: 1;
-  text-align: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-}
-
-/* ================================================
-   LEGACY COMPAT
-   ================================================ */
+/* === STRATEGY CARD - PAINEL PRINCIPAL === */
 .strategyCard {
-  border-radius: 0;
-  transition: all 0.3s ease;
-  background: linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
-  border: 1px solid rgba(180,120,50,0.08);
-  border-top: 1px solid rgba(201,160,82,0.13);
-  box-shadow: inset 0 1px 0 rgba(201,160,82,0.03);
+  
+  border-radius: 12px;
+  margin-top: -30px;
+    transition: all 0.3s ease;
 }
 
+
+/* === HEADER === */
 .strategy-header {
-  display: flex; align-items: center; gap: 0.75rem;
-  padding-bottom: 1rem; border-bottom: 1px solid rgba(201,160,82,0.1); margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid rgba(253, 224, 71, 0.3);
+  margin-bottom: 1rem;
+  
 }
 
 .card-title {
-  font-size: 1.0rem; font-weight: 700; color: rgba(201,160,82,0.95);
-  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; margin-top: 16px;
-  text-shadow: 0 0 24px rgba(201,160,82,0.3);
-}
-.card-title2 { margin-top: 15px; font-size: 10px; margin-left: 40px; }
-.infoIcon { color: #c9a052; filter: drop-shadow(0 2px 8px rgba(201,160,82,0.35)); }
-
-.stat-row {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 0.75rem 0; border-bottom: 1px solid rgba(255,255,255,0.035);
-}
-.stat-row:last-child { border-bottom: none; }
-
-.stat-label { font-size: 0.5rem; color: rgba(255,255,255,0.45); font-weight: 500; display: flex; align-items: center; }
-.stat-value { font-size: 0.5rem; font-weight: 700; color: rgba(201,160,82,0.95); text-shadow: 0 0 12px rgba(201,160,82,0.2); }
-.stats-grid { display: flex; justify-content: space-around; align-items: center; }
-
-.strategyMiniCard { display: none; }
-.miniCardHeader { display: none; }
-.miniCardScore { display: none; }
-.miniCardStatus { display: none; }
-.gaugeStatus { display: none; }
-.gaugeSvg { display: none; }
-
-/* Signal card */
-.entrySignalCard {
-  background: linear-gradient(165deg, rgba(201,160,82,0.08) 0%, rgba(201,160,82,0.02) 40%, rgba(201,160,82,0.005) 100%);
-  border: 1px solid rgba(201,160,82,0.15);
-  border-top: 1px solid rgba(201,160,82,0.25);
-  padding: 0.75rem;
-  box-shadow:
-    0 12px 40px rgba(0,0,0,0.6),
-    inset 0 1px 2px rgba(201,160,82,0.08),
-    inset 0 -1px 1px rgba(0,0,0,0.2);
-}
-
-/* Action buttons */
-.successButton, .dangerButton {
-  flex: 1;
-  padding: 0.6rem 0.75rem;
-  border: none;
-  border-radius: 0;
-  cursor: pointer;
+  font-size: 1.0rem;
   font-weight: 700;
-  font-size: 0.78rem;
+  color: #fde047;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+  margin-top: 16px;
+  text-shadow: 0 2px 8px rgba(253, 224, 71, 0.3);
+}
+.card-title2{
+  margin-top: 15px;
+  font-size: 10px;
+  margin-left: 40px;
+}
+.infoIcon {
+  color: #fde047;
+  filter: drop-shadow(0 2px 4px rgba(253, 224, 71, 0.4));
+}
+
+/* === STATS === */
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.stat-row:last-child {
+  border-bottom: none;
+}
+
+.stat-label {
+  font-size: 0.5rem;
+  color: #cbd5e1;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+.stat-value {
+  font-size: 0.5rem;
+  font-weight: 700;
+  color: #fde047;
+  text-shadow: 0 2px 8px rgba(253, 224, 71, 0.3);
+}
+
+
+
+/* === GRID DE ESTRATÉGIAS === */
+.masterGridContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10px, 0.5fr));
+  gap: 1rem;
+}
+
+.strategyMiniCard {
+  padding-right: 10px;
+  border-bottom: 3px solid;
+  border-radius: 10px;
+  padding-left: 10px;
+    display: flex;
+  width: 51px;
+  backdrop-filter: blur(20px);
+  margin-left: -10px;
+  flex-direction: column;
+  gap: unset;
+  transition: all 0.3s ease;
+  cursor: default;
+}
+
+.strategyMiniCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.miniCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: -3px;
+  color: #cbd5e1;
+  font-size: 0.5rem;
+  font-weight: 600;
+}
+
+.miniCardHeader svg {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.miniCardScore {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-align: center;
+  margin-left: 5px;
+  text-shadow: 0 2px 8px currentColor;
+}
+
+.miniCardStatus {
+  font-size: 1.0rem;
+  text-align: center;
+}
+
+/* === SINAL DE ENTRADA === */
+.entrySignalCard {
+  background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
+  border: 2px solid #10b981;
+  border-radius: 12px;
+  
+  box-shadow: 0 8px 32px rgba(16, 185, 129, 0.3);
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 8px 32px rgba(16, 185, 129, 0.3);
+  }
+  50% {
+    box-shadow: 0 8px 48px rgba(16, 185, 129, 0.5);
+  }
+}
+
+.card-concept {
+  color: #e2e8f0;
+  font-size: 0.7rem;
+  line-height: 1.6;
+  margin: 0.5rem 0;
+}
+
+/* === CHIPS DE NÚMEROS === */
+.history-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 5px;
+  font-weight: 700;
+  font-size: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s ease;
+}
+
+.history-number.red {
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+  color: white;
+}
+
+.history-number.black {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  color: white;
+}
+
+.history-number.green {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  color: white;
+}
+
+.history-number:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
+}
+
+/* === BOTÕES === */
+.successButton,
+.dangerButton {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem;
-  transition: all 0.25s;
-  font-family: 'Outfit', sans-serif;
-  min-height: 36px;
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .successButton {
-  background: linear-gradient(165deg, rgba(201,160,82,0.18), rgba(201,160,82,0.06));
-  color: rgba(201,160,82,0.95); border: 1px solid rgba(201,160,82,0.2); border-top: 1px solid rgba(201,160,82,0.35);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(201,160,82,0.12); text-shadow: 0 0 12px rgba(201,160,82,0.3);
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
 }
-.successButton:hover { background: linear-gradient(165deg, rgba(201,160,82,0.28), rgba(201,160,82,0.1)); transform: translateY(-2px); }
+
+.successButton:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 6px 24px rgba(16, 185, 129, 0.5);
+  transform: translateY(-2px);
+}
+
+.successButton:active {
+  transform: translateY(0);
+}
 
 .dangerButton {
-  background: linear-gradient(165deg, rgba(239,68,68,0.14), rgba(239,68,68,0.04));
-  color: rgba(255,107,107,0.9); border: 1px solid rgba(239,68,68,0.16); border-top: 1px solid rgba(239,68,68,0.28);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(239,68,68,0.08);
-}
-.dangerButton:hover { background: linear-gradient(165deg, rgba(239,68,68,0.24), rgba(239,68,68,0.08)); transform: translateY(-2px); }
-
-.emptyState {
-  color: rgba(255,255,255,0.2); font-style: italic; padding: 2rem; text-align: center;
-  background: linear-gradient(165deg, rgba(255,255,255,0.03), rgba(255,255,255,0.008));
-  border: 1px solid rgba(180,120,50,0.07); border-top: 1px solid rgba(201,160,82,0.1);
-  font-family: 'Outfit', sans-serif; font-size: 0.8rem;
-}
-.empty-state { color: rgba(255,255,255,0.2); }
-
-
-/* ════════════════════════════════════════════════════════════════
-   RESPONSIVE
-   ════════════════════════════════════════════════════════════════ */
-
-/* ── 1024px: Tablet ── */
-@media (max-width: 1024px) {
-  .heroLayout {
-    grid-template-columns: 1fr 2fr 1fr;
-    min-height: 70px;
-  }
-
-  .counterValue {
-    font-size: 1.4rem;
-  }
-
-  .masterGridContainer {
-    gap: 0.3rem;
-  }
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3);
 }
 
-/* ── 768px: Mobile ── */
+.dangerButton:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  box-shadow: 0 6px 24px rgba(239, 68, 68, 0.5);
+  transform: translateY(-2px);
+}
+
+.dangerButton:active {
+  transform: translateY(0);
+}
+
+/* === ESTADO VAZIO === */
+.empty-state {
+  color: #94a3b8;
+  font-style: italic;
+  padding: 2rem;
+  text-align: center;
+}
+
+/* === RESPONSIVIDADE === */
 @media (max-width: 768px) {
-  .heroPanel {
-    padding: 0.5rem;
+  .masterGridContainer {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   }
 
-  .heroLayout {
-    grid-template-columns: 1fr 2.2fr 1fr;
-    min-height: 65px;
-  }
-
-  .heroPercent {
-    font-size: 1.5rem;
-  }
-
-  .counterValue {
-    font-size: 1.3rem;
-  }
-
-  .counterBox {
-    padding: 0.3rem 0;
-  }
-
-  .modeBtn {
-    font-size: 0.6rem;
-    padding: 3px 10px;
-    min-height: 30px;
-  }
-
-  .modeSelector {
-    margin-bottom: 0.3rem;
-  }
-
-  .signalBar {
-    flex-wrap: wrap;
-    gap: 0.25rem;
-    padding: 0.3rem 0.4rem;
-  }
-
-  .signalItem {
-    padding: 0 0.4rem;
-  }
-
-  .signalVal {
-    font-size: 0.75rem;
-  }
-
-  .signalLbl {
+  .card-title {
     font-size: 0.5rem;
   }
 
-  .masterGridContainer {
-    gap: 0.3rem;
-  }
-
-  .gaugeName {
-    font-size: 0.52rem;
-  }
-
-  .gaugePercent {
-    font-size: 0.58rem;
+  .miniCardScore {
+    font-size: 1.5rem;
   }
 
   .successButton,
   .dangerButton {
-    min-height: 40px;
-    padding: 0.55rem 0.6rem;
-    font-size: 0.72rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
   }
 }
 
-/* ── 480px: Mobile compact ── */
-@media (max-width: 480px) {
-  .masterDashboardContainer {
-    gap: 0.5rem;
-  }
-
-  .heroPanel {
-    padding: 0.4rem;
-  }
-
-  .heroLayout {
-    grid-template-columns: 1fr 2fr 1fr;
-    min-height: 55px;
-  }
-
-  .heroPercent {
-    font-size: 1.35rem;
-  }
-
-  .heroPercentSign {
-    font-size: 0.65rem;
-  }
-
-  .counterValue {
-    font-size: 1.15rem;
-  }
-
-  .counterLabel {
-    font-size: 0.52rem;
-  }
-
-  .heroSubtext {
-    font-size: 0.5rem;
-  }
-
-  .masterGridContainer {
-    gap: 0.2rem;
-  }
-
-  .gaugeCard {
-    padding: 0.25rem 0 0.2rem;
-  }
-
-  .gaugeName {
-    font-size: 0.48rem;
-  }
-
-  .gaugePercent {
-    font-size: 0.52rem;
-  }
-
-  .gaugeWeight {
-    font-size: 0.42rem;
-  }
-
-   .signalItem {
-    padding: 0 0.35rem;
-    gap: 3px;
-  }
-  .signalVal {
-    font-size: 0.7rem;
-  }
-
-   .signalIconSvg {
-    width: 10px;
-    height: 10px;
-  }
-
-  .signalDivider {
-    height: 13px;
-  }
-  .signalLbl {
-    font-size: 0.48rem;
-  }
-  .learningText {
-    font-size: 0.45rem;
-  }
-
-  .entrySignalCard {
-    padding: 0.5rem;
-  }
-
-  .emptyState {
-    padding: 1.25rem;
-    font-size: 0.75rem;
-  }
-}
-
-/* ── 380px: Mobile small (iPhone SE, Galaxy S) ── */
-@media (max-width: 380px) {
-  .heroLayout {
-    grid-template-columns: 1fr 1.8fr 1fr;
-    min-height: 50px;
-  }
-
-  .heroPercent {
-    font-size: 1.2rem;
-  }
-
-  .counterValue {
-    font-size: 1rem;
-  }
-
-  .counterLabel {
-    font-size: 0.48rem;
-    letter-spacing: 0.08em;
-  }
-
-  .modeBtn {
-    font-size: 0.55rem;
-    padding: 2px 8px;
-    min-height: 26px;
-  }
-
-  .masterGridContainer {
-    gap: 0.15rem;
-  }
-
-  .gaugeCard {
-    padding: 0.2rem 0 0.15rem;
-  }
-
-  .gaugeName {
-    font-size: 0.42rem;
-  }
-
-  .gaugePercent {
-    font-size: 0.48rem;
-  }
-
-  .signalLbl {
-    display: none;
-  }
-
-  .signalItem {
-    padding: 0 0.25rem;
-    gap: 2px;
-  }
-
-  .signalBar {
-    padding: 0.25rem 0.3rem;
-  }
-
-  .signalIconSvg {
-    width: 10px;
-    height: 10px;
-  }
-}
-
-/* ── Landscape mobile ── */
-@media (max-width: 900px) and (orientation: landscape) {
-  .heroLayout {
-    min-height: 55px;
-  }
-
-  .counterValue {
-    font-size: 1.2rem;
-  }
-
-  .heroPercent {
-    font-size: 1.2rem;
-  }
-
+@media (max-width: 640px){
   .masterGridContainer {
     grid-template-columns: repeat(5, 1fr);
-    gap: 0.25rem;
+    align-items: center;
   }
+  .miniCardScore {
+    font-size: 1rem;
+  }
+  .strategyMiniCard {
+    width: 70px;
+    margin-left: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .masterDashboardContainer {
+    height: fit-content;
+    gap: 1rem;
+
+  }
+  .strategyMiniCard {
+    width: 62px;
+    margin-top:10px;
+  }
+  .miniCardHeader{
+    font-size: 10px;
+    margin-left: -10px;
+  }
+  .miniCardScore{
+    font-size: 15px;
+  }
+  .masterGridContainer {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+}
+@media (max-width: 420px) {
+  .masterDashboardContainer {
+    height: fit-content;
+    gap: 1rem;
+
+  }
+  .strategyMiniCard {
+    width: 62px;
+  }
+  .miniCardHeader{
+    font-size: 10px;
+    margin-left: -10px;
+  }
+  .miniCardScore{
+    font-size: 15px;
+  }
+  .masterGridContainer {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
 }

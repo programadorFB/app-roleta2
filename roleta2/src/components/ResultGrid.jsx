@@ -352,7 +352,7 @@ const ResultsGrid = memo(({
             <option value="default">Cores Padrão</option>
             <option value="cavalos">Filtro: Cavalos</option>
             
-            <option value="setores">{renderOptionLabel("Filtro: Setores da Racing", true)}</option>
+            <option value="setores">{renderOptionLabel("Filtro: Setores do Cilindro", true)}</option>
             <option value="dublicados">{renderOptionLabel("Filtro: Duplicados", true)}</option>
             <option value="terminais">{renderOptionLabel("Filtro: Terminais Iguais", true)}</option>
             <option value="quina">{renderOptionLabel("Filtro: Quina", true)}</option>

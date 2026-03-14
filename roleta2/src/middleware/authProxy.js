@@ -29,7 +29,7 @@ export function authProxyMiddleware(target = DEFAULT_AUTH_PROXY_TARGET) {
       );
       proxyReq.setHeader('Accept', 'application/json');
       proxyReq.setHeader('Accept-Language', 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7');
-      console.log(`[${timestamp}] Headers:`, req.headers);
+
       if (req.headers.authorization) {
         console.log(`[${timestamp}] 🔑 Auth: ${req.headers.authorization.substring(0, 30)}...`);
       }

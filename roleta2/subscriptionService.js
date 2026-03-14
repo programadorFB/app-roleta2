@@ -1,11 +1,10 @@
-// subscriptionService.js - VERSÃO CORRIGIDA (Race-safe + Upsert Seletivo)
+// subscriptionService.js - COM REGRAS DE PREÇO (30 dias / 90 dias / 1 ano)
 // Gerenciamento de assinaturas e controle de acesso via Hubla com PostgreSQL
 
 import { query } from './db.js';
-import { cacheAside, cacheDel, KEY, TTL } from './redisService.js';
 
 /**
- * --- FUNÇÃO DE SEGURANÇA ---
+ * --- NOVA FUNÇÃO DE SEGURANÇA ---
  * Varre o payload inteiro em busca de dados do cliente de forma recursiva e segura.
  */
 function extractCustomerData(payload) {
@@ -52,63 +51,36 @@ function extractCustomerData(payload) {
 }
 
 /**
- * --- REGRA DE NEGÓCIO ---
+ * --- NOVA REGRA DE NEGÓCIO ---
  * Calcula data de expiração baseada no valor pago (em centavos)
  */
 function calculateExpirationByAmount(totalCents) {
     if (!totalCents) return null;
     
     const cents = parseInt(totalCents, 10);
-    const date = new Date();
+    const date = new Date(); // Data de hoje (Data da compra)
 
-    // ✅ REGRAS CORRIGIDAS
+    // Regra 1: Até R$ 97,00 (9700 centavos) -> 30 dias
     if (cents <= 9700) {
-        // Até R$ 97,00 → 30 dias
         date.setDate(date.getDate() + 30);
-        console.log(`📅 [PRAZO] R$ ${(cents/100).toFixed(2)} → 30 dias`);
+        console.log(`📅 [PRAZO] Valor R$ ${(cents/100).toFixed(2)} -> 30 dias de acesso`);
     } 
-    else if (cents <= 19700) {
-        // ✅ CORRIGIDO: Até R$ 197,00 → 90 dias (era 20700)
+    // Regra 2: Até R$ 197,00 (19700 centavos) -> 90 dias
+    else if (cents <= 20700) {
         date.setDate(date.getDate() + 90);
-        console.log(`📅 [PRAZO] R$ ${(cents/100).toFixed(2)} → 90 dias`);
+        console.log(`📅 [PRAZO] Valor R$ ${(cents/100).toFixed(2)} -> 90 dias de acesso`);
     } 
+    // Regra 3: Acima de R$ 197,00 -> 12 meses
     else {
-        // Acima de R$ 197,00 → 12 meses
         date.setFullYear(date.getFullYear() + 1);
-        console.log(`📅 [PRAZO] R$ ${(cents/100).toFixed(2)} → 12 meses`);
+        console.log(`📅 [PRAZO] Valor R$ ${(cents/100).toFixed(2)} -> 12 meses de acesso`);
     }
 
     return date;
 }
 
 /**
- * ✅ VALIDAÇÃO DE TRANSIÇÕES DE ESTADO
- * Define quais mudanças de status são permitidas
- */
-const VALID_TRANSITIONS = {
-    'pending': ['active', 'canceled', 'failed'],
-    'active': ['canceled', 'expired'],
-    'trialing': ['active', 'canceled'],
-    'canceled': ['active'], // Permite reativação
-    'failed': ['pending', 'active'],
-    'expired': ['active'] // Permite renovação
-};
-
-function isValidStatusTransition(currentStatus, newStatus) {
-    if (!currentStatus) return true; // Primeira vez, permite qualquer status
-    if (currentStatus === newStatus) return true; // Não mudou
-    
-    const allowed = VALID_TRANSITIONS[currentStatus] || [];
-    if (!allowed.includes(newStatus)) {
-        console.warn(`⚠️ [TRANSITION] Transição inválida: ${currentStatus} → ${newStatus}`);
-        return false;
-    }
-    return true;
-}
-
-/**
- * ✅ UPSERT SELETIVO COM LOCK PESSIMISTA
- * Atualiza APENAS os campos explicitamente fornecidos
+ * Cria ou atualiza uma assinatura
  */
 export async function upsertSubscription(subscriptionData) {
     try {
@@ -125,138 +97,44 @@ export async function upsertSubscription(subscriptionData) {
         if (!email) {
             throw new Error('Email é obrigatório para criar/atualizar assinatura');
         }
-
-        // Lock pessimista
-        const lockSql = `SELECT * FROM subscriptions WHERE user_id = $1 FOR UPDATE NOWAIT`;
         
-        let existing;
-        try {
-            const lockResult = await query(lockSql, [userId]);
-            existing = lockResult.rows[0];
-        } catch (lockError) {
-            if (lockError.code === '55P03') {
-                console.warn(`⚠️ [UPSERT] Lock ocupado para userId: ${userId} - retry em 100ms`);
-                await new Promise(resolve => setTimeout(resolve, 100));
-                const retryResult = await query(lockSql.replace('NOWAIT', ''), [userId]);
-                existing = retryResult.rows[0];
-            } else {
-                throw lockError;
-            }
-        }
-
-        // Validação de transição
-        if (status && existing && !isValidStatusTransition(existing.status, status)) {
-            console.error(`❌ [UPSERT] Transição bloqueada: ${existing.status} → ${status}`);
-            throw new Error(`Transição de estado inválida: ${existing.status} → ${status}`);
-        }
-
-        let result;
-
-        if (existing) {
-            // UPDATE
-            const updates = [];
-            const values = [userId];
-            let paramIndex = 2;
-
-            if (email !== undefined) {
-                updates.push(`email = $${paramIndex}`);
-                values.push(email);
-                paramIndex++;
-            }
-            if (hublaCustomerId !== undefined) {
-                updates.push(`hubla_customer_id = $${paramIndex}`);
-                values.push(hublaCustomerId);
-                paramIndex++;
-            }
-            if (subscriptionId !== undefined) {
-                updates.push(`subscription_id = $${paramIndex}`);
-                values.push(subscriptionId);
-                paramIndex++;
-            }
-            if (status !== undefined) {
-                updates.push(`status = $${paramIndex}`);
-                values.push(status);
-                paramIndex++;
-            }
-            if (planName !== undefined) {
-                updates.push(`plan_name = $${paramIndex}`);
-                values.push(planName);
-                paramIndex++;
-            }
-            if (expiresAt !== undefined) {
-                updates.push(`expires_at = $${paramIndex}`);
-                values.push(expiresAt);
-                paramIndex++;
-            }
-
-            if (updates.length === 0) {
-                console.log(`⚠️ [UPSERT] Nenhum campo para atualizar: ${userId}`);
-                return existing;
-            }
-
-            updates.push('updated_at = NOW()');
-
-            const updateSql = `
-                UPDATE subscriptions 
-                SET ${updates.join(', ')}
-                WHERE user_id = $1
-                RETURNING *
-            `;
-
-            result = await query(updateSql, values);
-            console.log(`✅ [UPSERT] ATUALIZADO: ${email} | Status: ${status || existing.status}`);
-
-            // ⚡ Invalida caches de subscription
-            await cacheDel(KEY.sub(email));
-            await cacheDel(KEY.adminStats());
-            await cacheDel(KEY.activeSubs());
-
-        } else {
-            // INSERT
-            const insertSql = `
-                INSERT INTO subscriptions (
-                    user_id, 
-                    email, 
-                    hubla_customer_id, 
-                    subscription_id, 
-                    status, 
-                    plan_name, 
-                    expires_at,
-                    created_at,
-                    updated_at
-                )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
-                RETURNING *
-            `;
-
-            const insertValues = [
-                userId,
-                email,
-                hublaCustomerId || null,
-                subscriptionId || null,
-                status || 'pending',
-                planName || 'default',
-                expiresAt || null
-            ];
-
-            result = await query(insertSql, insertValues);
-            console.log(`✅ [UPSERT] CRIADO: ${email} | Status: ${status || 'pending'}`);
-
-            // ⚡ Invalida caches de subscription
-            await cacheDel(KEY.sub(email));
-            await cacheDel(KEY.adminStats());
-            await cacheDel(KEY.activeSubs());
-        }
+        const sql = `
+            INSERT INTO subscriptions (
+                user_id, email, hubla_customer_id, subscription_id, 
+                status, plan_name, expires_at, updated_at
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+            ON CONFLICT (user_id) 
+            DO UPDATE SET
+                email = COALESCE($2, subscriptions.email),
+                hubla_customer_id = COALESCE($3, subscriptions.hubla_customer_id),
+                subscription_id = COALESCE($4, subscriptions.subscription_id),
+                status = COALESCE($5, subscriptions.status),
+                plan_name = COALESCE($6, subscriptions.plan_name),
+                expires_at = COALESCE($7, subscriptions.expires_at),
+                updated_at = NOW()
+            RETURNING *;
+        `;
         
+        const values = [
+            userId,
+            email,
+            hublaCustomerId || null,
+            subscriptionId || null,
+            status || 'pending',
+            planName || 'default',
+            expiresAt || null
+        ];
+        
+        const result = await query(sql, values);
         return result.rows[0];
-
     } catch (error) {
         console.error('❌ [SUBSCRIPTIONS] Erro ao atualizar assinatura:', error);
         throw error;
     }
 }
 
-// --- Funções de busca mantidas iguais ---
+// ... [Funções de busca getSubscriptionBy... mantidas iguais] ...
 export async function getSubscriptionByUserId(userId) {
     try {
         const sql = 'SELECT * FROM subscriptions WHERE user_id = $1';
@@ -270,15 +148,9 @@ export async function getSubscriptionByUserId(userId) {
 
 export async function getSubscriptionByEmail(email) {
     try {
-        return await cacheAside(
-            KEY.sub(email),
-            TTL.SUBSCRIPTION,
-            async () => {
-                const sql = 'SELECT * FROM subscriptions WHERE email = $1';
-                const result = await query(sql, [email]);
-                return result.rows[0] || null;
-            }
-        );
+        const sql = 'SELECT * FROM subscriptions WHERE email = $1';
+        const result = await query(sql, [email]);
+        return result.rows[0] || null;
     } catch (error) {
         console.error('❌ [SUBSCRIPTIONS] Erro ao buscar por email:', error);
         throw error;
@@ -393,7 +265,6 @@ async function handleAccessGranted(payload) {
     const subscription = payload.event?.subscription || payload.subscription || payload.data?.subscription;
     const userId = hublaId || email.split('@')[0];
     
-    // ✅ Envia apenas os campos relevantes
     const result = await upsertSubscription({
         userId: userId.toString(),
         email: email,
@@ -414,7 +285,6 @@ async function handleAccessRemoved(payload) {
     
     const existing = await getSubscriptionByEmail(email);
     if (existing) {
-        // ✅ Atualiza APENAS o status (mantém outros dados intactos)
         const result = await upsertSubscription({
             userId: existing.user_id,
             email: email,
@@ -455,7 +325,6 @@ async function handlePaymentSucceeded(payload) {
     const userId = existing ? existing.user_id : (hublaId || email.split('@')[0]);
     const planName = invoice?.productName || 'Premium';
 
-    // ✅ Envia todos os campos relevantes do pagamento
     const result = await upsertSubscription({
         userId: userId.toString(),
         email: email,
@@ -463,7 +332,7 @@ async function handlePaymentSucceeded(payload) {
         subscriptionId: invoice?.subscriptionId,
         status: 'active',
         planName: planName,
-        expiresAt: expiresAt
+        expiresAt: expiresAt // Data calculada inserida aqui
     });
     
     const valorFormatado = totalCents ? `R$ ${(totalCents/100).toFixed(2)}` : 'Valor desconhecido';
@@ -480,21 +349,11 @@ async function handleInvoiceStatusUpdated(payload) {
     
     const existing = await getSubscriptionByEmail(email);
     if (existing && invoice?.status) {
-        const statusMap = { 
-            'paid': 'active', 
-            'pending': 'pending', 
-            'canceled': 'canceled', 
-            'failed': 'failed' 
-        };
+        const statusMap = { 'paid': 'active', 'pending': 'pending', 'canceled': 'canceled', 'failed': 'failed' };
         const newStatus = statusMap[invoice.status] || existing.status;
         
         if (newStatus !== existing.status) {
-            // ✅ Atualiza APENAS o status
-            await upsertSubscription({ 
-                userId: existing.user_id, 
-                email: email, 
-                status: newStatus 
-            });
+            await upsertSubscription({ userId: existing.user_id, email: email, status: newStatus });
             console.log(`📊 [HUBLA] Status atualizado para ${email}: ${newStatus}`);
         }
         return existing;
@@ -511,7 +370,6 @@ async function handleSubscriptionCreated(payload) {
     const hublaStatus = subscription?.status;
     let dbStatus = (hublaStatus === 'inactive') ? 'pending' : (hublaStatus || 'active');
     
-    // ✅ Envia todos os campos da nova assinatura
     const result = await upsertSubscription({
         userId: userId.toString(),
         email: email,
@@ -531,12 +389,7 @@ async function handleSubscriptionCanceled(payload) {
     
     const existing = await getSubscriptionByEmail(email);
     if (existing) {
-        // ✅ Atualiza APENAS o status
-        await upsertSubscription({ 
-            userId: existing.user_id, 
-            email: email, 
-            status: 'canceled' 
-        });
+        await upsertSubscription({ userId: existing.user_id, email: email, status: 'canceled' });
         console.log(`🚫 [HUBLA] Assinatura cancelada: ${email}`);
     }
 }
@@ -549,7 +402,6 @@ async function handleSubscriptionRenewed(payload) {
     
     const existing = await getSubscriptionByEmail(email);
     if (existing) {
-        // ✅ Atualiza status e data de expiração
         await upsertSubscription({
             userId: existing.user_id,
             email: email,
@@ -566,34 +418,22 @@ export function verifyHublaWebhook(hublaToken, expectedToken) {
 }
 
 export async function getActiveSubscriptions() {
-    return cacheAside(
-        KEY.activeSubs(),
-        TTL.ACTIVE_SUBS,
-        async () => {
-            const sql = `SELECT * FROM subscriptions WHERE status IN ('active', 'trialing', 'paid') AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY created_at DESC;`;
-            const result = await query(sql);
-            return result.rows;
-        }
-    );
+    const sql = `SELECT * FROM subscriptions WHERE status IN ('active', 'trialing', 'paid') AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY created_at DESC;`;
+    const result = await query(sql);
+    return result.rows;
 }
 
 export async function getSubscriptionStats() {
-    return cacheAside(
-        KEY.adminStats(),
-        TTL.ADMIN_STATS,
-        async () => {
-            const sql = `
-                SELECT COUNT(*) as total,
-                COUNT(CASE WHEN status IN ('active', 'trialing', 'paid') AND (expires_at IS NULL OR expires_at > NOW()) THEN 1 END) as active,
-                COUNT(CASE WHEN status = 'canceled' THEN 1 END) as canceled,
-                COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending,
-                COUNT(CASE WHEN expires_at IS NOT NULL AND expires_at < NOW() THEN 1 END) as expired
-                FROM subscriptions;
-            `;
-            const result = await query(sql);
-            return result.rows[0];
-        }
-    );
+    const sql = `
+        SELECT COUNT(*) as total,
+        COUNT(CASE WHEN status IN ('active', 'trialing', 'paid') AND (expires_at IS NULL OR expires_at > NOW()) THEN 1 END) as active,
+        COUNT(CASE WHEN status = 'canceled' THEN 1 END) as canceled,
+        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending,
+        COUNT(CASE WHEN expires_at IS NOT NULL AND expires_at < NOW() THEN 1 END) as expired
+        FROM subscriptions;
+    `;
+    const result = await query(sql);
+    return result.rows[0];
 }
 
 export async function getWebhookLogs(limit = 100) {

@@ -1,89 +1,126 @@
-// components/EntrySignalCard.jsx — MOGNO & OURO v2
+// components/EntrySignalCard.jsx
 import React, { useMemo } from 'react';
 import styles from './EntrySignalCard.module.css';
 
+// --- Helpers Visuais ---
 const getNumberColor = (num) => {
   if (num === 0) return 'green';
-  const reds = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
-  return reds.includes(num) ? 'red' : 'black';
+  const redNumbers = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
+  return redNumbers.includes(num) ? 'red' : 'black';
 };
 
-const NumberChip = React.memo(({ number, size = 'normal' }) => {
+// Componente do Chip (Usa o CSS do módulo)
+const NumberChip = React.memo(({ number, size = 'normal', opacity = 1 }) => {
   const colorClass = styles[getNumberColor(number)];
+  const isSmall = size === 'small';
+  
   return (
-    <span className={`${styles.chip} ${colorClass} ${size === 'small' ? styles.chipSmall : ''}`}>
+    <span
+      className={`${styles.numberChip} ${colorClass}`}
+      style={{
+        // Ajuste fino para ficar compacto e elegante
+        fontSize: isSmall ? '0.65rem' : '0.9rem',
+        padding: isSmall ? '0.1rem 0.3rem' : '0.2rem 0.5rem',
+        minWidth: isSmall ? '18px' : '28px',
+        opacity: opacity,
+      }}
+    >
       {number}
     </span>
   );
 });
 
-const TargetRow = ({ targetNumber, history }) => {
-  const gatilhos = useMemo(() => {
-    const result = [];
+// --- Linha de Análise Individual ---
+const TargetAnalysisRow = ({ targetNumber, history }) => {
+  const contextData = useMemo(() => {
+    const puxou = [];
+    // Varre o histórico (apenas puxou, pois o usuário removeu 'antes' no screenshot ou quer foco nos gatilhos)
+    // Se quiser 'antes' e 'puxou', basta descomentar a lógica original.
+    // Baseado na imagem que você mandou, parece focar nos gatilhos.
+    
+    // Vamos manter a lógica completa mas exibir de forma compacta
     for (let i = 0; i < history.length; i++) {
-      if (history[i].number === targetNumber && i < history.length - 1) {
-        result.push(history[i + 1].number);
+      if (history[i].number === targetNumber) {
+        if (i < history.length - 1) puxou.push(history[i + 1].number); // Quem veio ANTES (Gatilho)
       }
     }
-    return result.slice(0, 8);
+    // Limitando a 6 para não quebrar linha em excesso
+    return { gatilhos: puxou.slice(0, 7) };
   }, [targetNumber, history]);
 
+  const { gatilhos } = contextData;
+  const textGatilhos = gatilhos.join(', ');
+
   return (
-    <div className={styles.targetRow}>
-      <div className={styles.targetCell}>
-        <NumberChip number={targetNumber} />
+    <div className={styles.analysisRow}>
+      {/* COLUNA ESQUERDA: O ALVO */}
+      <div className={styles.targetBox}>
+        <NumberChip number={targetNumber} size="normal" />
         <span className={styles.targetLabel}>ALVO</span>
       </div>
-      <div className={styles.targetData}>
-        <span className={styles.dataLabel}>GATILHOS:</span>
-        <div className={styles.dataChips}>
-          {gatilhos.length > 0
-            ? gatilhos.map((n, i) => <NumberChip key={`${n}-${i}`} number={n} size="small" />)
-            : <span className={styles.noData}>S/ Registro</span>
-          }
+
+      {/* COLUNA DIREITA: DADOS */}
+      <div className={styles.statsColumn}>
+        <div className={styles.statRow}>
+          <span className={styles.statLabel}>GATILHOS:</span>
+          <span className={styles.statValue}>
+            {textGatilhos || <span className={styles.emptyValue}>S/ Registro</span>}
+          </span>
         </div>
       </div>
     </div>
   );
 };
 
-const EntrySignalCard = ({ entrySignal, spinHistory = [] }) => {
+const EntrySignalCard = ({ entrySignal,  spinHistory = [] }) => {
   if (!entrySignal) return null;
 
+
   return (
-    <div className={styles.card}>
-      {/* Warning */}
-      <div className={styles.warning}>
-        <span className={styles.warningIcon}>⚠</span>
-        <span className={styles.warningText}>Regiões de tendência baseadas em probabilidade. Não são garantias.</span>
+    <div className={styles.cardContainer}>
+      
+         <div className={styles.warningBox}>
+           <span className={styles.warningIcon}>⚠️</span>
+           <span className={styles.warningText}>
+             Regiões de tendência baseadas em probabilidade. Não são garantias.
+           </span>
+         </div>
+      <br/>
+      {/* AVISO NO TOPO (Menos intrusivo) ou RODAPÉ conforme preferência. Mantendo layout original: */}
+      <div className={styles.headerTitle}>
+        TENDÊNCIA CONFIRMADA
       </div>
 
-      {/* Header */}
-      <div className={styles.header}>TENDÊNCIA CONFIRMADA</div>
-
-      <p className={styles.subtitle}>
-        <strong>{entrySignal.convergence}</strong> estratégias alinharam.
-        <span className={styles.reason}>{entrySignal.reason}</span>
+      <p className={styles.conceptText}>
+         <strong>{entrySignal.convergence}</strong> estratégias alinharam.<br/>
+        <span style={{fontSize: '0.7em', opacity: 0.6}}>({entrySignal.reason})</span>
       </p>
 
-      {/* Análise Histórica */}
-      <div className={styles.sectionLabel}>Análise Histórica</div>
+      <div className={styles.sectionTitle}>
+        Análise Histórica
+      </div>
 
-      <div className={styles.targetList}>
-        {entrySignal.suggestedNumbers.map(num => (
-          <TargetRow key={num} targetNumber={num} history={spinHistory} />
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {entrySignal.suggestedNumbers.map(targetNum => (
+          <TargetAnalysisRow 
+            key={`analysis-${targetNum}`} 
+            targetNumber={targetNum} 
+            history={spinHistory} 
+          />
         ))}
       </div>
 
-      {/* Jogar nos números */}
       <div className={styles.playSection}>
-        <span className={styles.playLabel}>JOGAR NOS NÚMEROS:</span>
-        <div className={styles.playChips}>
-          {entrySignal.suggestedNumbers.map(n => (
-            <NumberChip key={n} number={n} />
-          ))}
-        </div>
+         <span className={styles.playLabel}>JOGAR NOS NÚMEROS:</span>
+         
+         <div className={styles.playGrid}>
+            {entrySignal.suggestedNumbers.map(n => (
+              <NumberChip key={n} number={n} />
+            ))}
+         </div>
+
       </div>
+
     </div>
   );
 };

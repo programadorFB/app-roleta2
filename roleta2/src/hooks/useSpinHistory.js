@@ -1,282 +1,176 @@
-/**
- * hooks/useSpinHistory.js — Hook unificado de histórico de spins
- *
- */
-
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+// src/hooks/useSpinHistory.js
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
-import { API_URL } from '../constants/roulette';
-import {
-  convertSpinItem,
-  getNumberColor,
-  computePullStats,
-  computePreviousStats
-} from '../utils/roulette';
-import { processErrorResponse } from '../errorHandler';
+import { SOCKET_URL, POLLING_INTERVAL_MS, getNumberColor } from '../constants/roulette';
+import { fetchFullHistory, fetchHistorySince } from '../services/api';
 
-const POLL_INTERVAL_MS = 5000;
+/**
+ * Normaliza qualquer item do backend em formato padronizado.
+ * Lida com diferenças de casing (signalId vs signalid) do PostgreSQL.
+ */
+function parseSpinItem(item) {
+  const num = parseInt(item.signal, 10);
+  return {
+    number:   num,
+    color:    getNumberColor(num),
+    signal:   item.signal,
+    gameId:   item.gameid   || item.gameId,
+    signalId: item.signalid || item.signalId,
+    date:     item.timestamp || item.date || item.createdAt,
+  };
+}
 
-export const useSpinHistory = ({
-  selectedRoulette,
-  userEmail,
-  jwtToken,
-  isAuthenticated,
-  historyFilter,
-  onPaywallRequired
-}) => {
+/**
+ * Hook que gerencia todo o fluxo de dados de spins:
+ *  - Fetch inicial completo
+ *  - Polling incremental (só registros novos)
+ *  - Socket.io para PlayTech
+ *  - Guard contra fetches sobrepostos
+ * 
+ * @param {string} selectedRoulette - Chave da roleta selecionada
+ * @param {string|null} userEmail - Email do usuário logado
+ * @param {string|null} jwtToken - Token JWT para socket
+ * @param {boolean} isAuthenticated - Se o usuário está logado
+ * @returns {{ spinHistory, selectedResult }}
+ */
+export function useSpinHistory(selectedRoulette, userEmail, jwtToken, isAuthenticated) {
   const [spinHistory, setSpinHistory] = useState([]);
   const [selectedResult, setSelectedResult] = useState(null);
-  const [numberPullStats, setNumberPullStats] = useState(() => new Map());
-  const [numberPreviousStats, setNumberPreviousStats] = useState(() => new Map());
 
-  // ════════════════════════════════════════════════════════════
-  // ✅ Ref para guardar o latestId sem re-criar fetchHistory
-  // Evita que spinHistory entre na dependency array do useCallback
-  // ════════════════════════════════════════════════════════════
-  const latestIdRef = useRef(null);
+  // ── Refs de controle ──
+  const latestTimestampRef = useRef(null);
+  const isFirstFetchRef    = useRef(true);
+  const isFetchingRef      = useRef(false);
 
+  // ── Reset ao trocar roleta ──
   useEffect(() => {
-    if (spinHistory.length > 0) {
-      latestIdRef.current = spinHistory[0]?.signalId || spinHistory[0]?.signalid || null;
-    } else {
-      latestIdRef.current = null;
-    }
-  }, [spinHistory]);
+    latestTimestampRef.current = null;
+    isFirstFetchRef.current = true;
+    isFetchingRef.current = false;
+    setSpinHistory([]);
+    setSelectedResult(null);
+  }, [selectedRoulette]);
 
-  // ════════════════════════════════════════════════════════════
-  // FETCH HISTORY — com delta updates
-  // ════════════════════════════════════════════════════════════
-
+  // ── Fetch principal (incremental após o 1º) ──
   const fetchHistory = useCallback(async () => {
-    if (!userEmail) return;
+    if (isFetchingRef.current || !userEmail) return;
+    isFetchingRef.current = true;
 
     try {
-      const latestId = latestIdRef.current;
+      const isFirstFetch = isFirstFetchRef.current || !latestTimestampRef.current;
 
-      // ✅ DELTA: se já tem histórico, pede só os novos
-      const endpoint = latestId
-        ? `${API_URL}/api/history-delta?source=${selectedRoulette}&userEmail=${encodeURIComponent(userEmail)}&since=${latestId}`
-        : `${API_URL}/api/full-history?source=${selectedRoulette}&userEmail=${encodeURIComponent(userEmail)}`;
+      const result = isFirstFetch
+        ? await fetchFullHistory(selectedRoulette, userEmail)
+        : await fetchHistorySince(selectedRoulette, latestTimestampRef.current, userEmail);
 
-      const response = await fetch(endpoint);
-
-      // ✅ 304 Not Modified — nada novo, retorna sem processar
-      if (response.status === 304) return;
-
-      if (!response.ok) {
-        const errorInfo = await processErrorResponse(response, 'history');
-        if (errorInfo.requiresPaywall || response.status === 403) {
-          onPaywallRequired(errorInfo.checkoutUrl || '');
-        }
-        throw new Error(errorInfo.message);
-      }
-
-      const result = await response.json();
-
-      // ── Resposta do endpoint delta (objeto com { full, data }) ──
-      if (result.data !== undefined) {
-        const items = result.data;
-        if (items.length === 0) return;
-
-        const converted = items.map(convertSpinItem);
-
-        if (result.full) {
-          // Primeira carga: substitui tudo
-          setSpinHistory(converted);
-          setSelectedResult(converted[0] || null);
-        } else {
-          // Delta: prepend apenas os novos
-          setSpinHistory(prev => {
-            if (prev.length > 0 && String(prev[0]?.signalId) === String(converted[0]?.signalId)) {
-              return prev; // Dedup
-            }
-            setSelectedResult(converted[0]);
-            return [...converted, ...prev];
-          });
+      if (result.error) {
+        // Paywall é tratado por quem consome o hook
+        if (result.requiresPaywall) {
+          // Dispara evento customizado para o App lidar
+          window.dispatchEvent(new CustomEvent('paywall-required', {
+            detail: { checkoutUrl: result.checkoutUrl },
+          }));
         }
         return;
       }
 
-      // ── Fallback: resposta do endpoint antigo (array direto) ──
-      const data = result;
+      const data = result.data;
+      if (!data || data.length === 0) return;
 
-      setSpinHistory(prev => {
-        if (data.length === 0) return prev;
-
-        if (prev.length === 0) {
-          const converted = data.map(convertSpinItem);
-          setSelectedResult(converted[0] || null);
-          return converted;
-        }
-
-        const existingLatestId = prev[0]?.signalId;
-        const newItems = [];
-        for (const item of data) {
-          const currentId = item.signalId || item.signalid || item.id;
-          if (String(currentId) === String(existingLatestId)) break;
-          newItems.push(convertSpinItem(item));
-        }
-
-        if (newItems.length === 0) return prev;
-
-        setSelectedResult(newItems[0]);
-        return [...newItems, ...prev];
-      });
-    } catch (error) {
-      console.error("Erro ao buscar histórico:", error.message);
-    }
-  }, [selectedRoulette, userEmail, onPaywallRequired]);
-
-  // ════════════════════════════════════════════════════════════
-  // Polling a 5s — PlayTech usa socket em vez de polling
-  // ════════════════════════════════════════════════════════════
-
-  useEffect(() => {
-    if (!isAuthenticated || !userEmail) return;
-
-    // Fetch inicial (roda para TODAS as sources)
-    fetchHistory();
-
-    // PlayTech usa socket — não faz polling
-    if (selectedRoulette === 'brasileira_playtech') {
-      console.log("Polling desativado para PlayTech (usando Socket)");
-      return;
-    }
-
-    console.log(`Polling ativado (${POLL_INTERVAL_MS / 1000}s) para ${selectedRoulette}`);
-    const intervalId = setInterval(fetchHistory, POLL_INTERVAL_MS);
-    return () => clearInterval(intervalId);
-  }, [fetchHistory, isAuthenticated, userEmail, selectedRoulette]);
-
-  // ════════════════════════════════════════════════════════════
-  // Socket.IO integrado para PlayTech
-  // ════════════════════════════════════════════════════════════
-
-  useEffect(() => {
-    if (selectedRoulette !== 'brasileira_playtech') return;
-    if (!jwtToken || !userEmail) return;
-
-    console.log('[useSpinHistory] Conectando Socket PlayTech...');
-
-    const socket = io(API_URL, {
-      transports: ['websocket'],
-      auth: { token: jwtToken, email: userEmail },
-      forceNew: true
-    });
-
-    socket.on('connect', () => console.log('Socket conectado!'));
-
-    socket.on('novo-giro', (payload) => {
-      if (payload.source === 'Brasileira PlayTech') {
-        const newSpin = {
-          number: parseInt(payload.data.signal, 10),
-          color: getNumberColor(parseInt(payload.data.signal, 10)),
-          signal: payload.data.signal,
-          gameId: payload.data.gameId,
-          signalId: payload.data.signalId,
-          date: payload.data.createdAt
-        };
+      if (isFirstFetch) {
+        // Primeiro load: substitui tudo
+        setSpinHistory(data.map(parseSpinItem));
+        latestTimestampRef.current = data[0].timestamp;
+        isFirstFetchRef.current = false;
+      } else {
+        // Incremental: prepend apenas novos
+        const newItems = data.map(parseSpinItem);
 
         setSpinHistory(prev => {
-          if (prev.length > 0 && String(prev[0].signalId) === String(newSpin.signalId)) return prev;
-          setSelectedResult(newSpin);
-          return [newSpin, ...prev].slice(0, 1000);
+          const existingIds = new Set(prev.slice(0, 50).map(s => s.signalId));
+          const uniqueNew = newItems.filter(item => !existingIds.has(item.signalId));
+          if (uniqueNew.length === 0) return prev;
+          return [...uniqueNew, ...prev].slice(0, 1000);
         });
+
+        latestTimestampRef.current = data[0].timestamp;
       }
+    } catch (err) {
+      console.error('[useSpinHistory] Erro:', err.message);
+    } finally {
+      isFetchingRef.current = false;
+    }
+  }, [selectedRoulette, userEmail]);
+
+  // ── Polling com setTimeout (nunca sobrepõe) ──
+  useEffect(() => {
+    if (!isAuthenticated || !userEmail) return;
+    if (selectedRoulette === 'Brasileira PlayTech') return;
+
+    let cancelled = false;
+
+    const poll = async () => {
+      if (cancelled) return;
+      await fetchHistory();
+      if (cancelled) return;
+      setTimeout(poll, POLLING_INTERVAL_MS);
+    };
+
+    poll();
+    return () => { cancelled = true; };
+  }, [fetchHistory, isAuthenticated, userEmail, selectedRoulette]);
+
+  // ── Socket.io para PlayTech ──
+  useEffect(() => {
+    if (selectedRoulette !== 'Brasileira PlayTech') return;
+
+    const socket = io(SOCKET_URL, {
+      transports: ['websocket'],
+      auth: { token: jwtToken, email: userEmail },
     });
 
-    socket.on('disconnect', () => console.log('Socket desconectado'));
-    socket.on('connect_error', (err) => console.error('Socket erro:', err.message));
+    // Carga inicial via HTTP
+    fetch(`${SOCKET_URL}/api/full-history?source=Brasileira PlayTech&userEmail=${encodeURIComponent(userEmail || '')}`)
+      .then(res => res.json())
+      .then(data => {
+        const arr = Array.isArray(data) ? data : data.data || [];
+        setSpinHistory(arr.map(parseSpinItem));
+      })
+      .catch(err => console.error('[Socket] Erro ao carregar histórico:', err));
 
-    return () => {
-      console.log('Desconectando Socket...');
-      socket.disconnect();
-    };
+    // Novos giros em tempo real
+    socket.on('novo-giro', (payload) => {
+      if (payload.source !== 'Brasileira PlayTech') return;
+
+      const newSpin = parseSpinItem({
+        signal:   payload.data.signal,
+        gameId:   payload.data.gameId,
+        signalId: payload.data.signalId,
+        timestamp: payload.data.createdAt,
+      });
+
+      setSpinHistory(prev =>
+        (prev.length > 0 && prev[0].signalId === newSpin.signalId)
+          ? prev
+          : [newSpin, ...prev].slice(0, 1000)
+      );
+    });
+
+    return () => socket.disconnect();
   }, [selectedRoulette, jwtToken, userEmail]);
 
-  // ════════════════════════════════════════════════════════════
-  // Pull stats (computados com requestIdleCallback)
-  // ════════════════════════════════════════════════════════════
-
+  // ── Atualiza selectedResult quando novo spin chega ──
   useEffect(() => {
-    if (spinHistory.length === 0) return;
-
-    const timeoutId = setTimeout(() => {
-      const compute = () => {
-        setNumberPullStats(computePullStats(spinHistory));
-        setNumberPreviousStats(computePreviousStats(spinHistory));
-      };
-
-      if ('requestIdleCallback' in window) {
-        requestIdleCallback(compute, { timeout: 2000 });
-      } else {
-        compute();
-      }
-    }, 300);
-
-    return () => clearTimeout(timeoutId);
+    if (spinHistory.length === 0) {
+      setSelectedResult(null);
+      return;
+    }
+    setSelectedResult(prev => {
+      const newest = spinHistory[0];
+      if (prev?.signalId === newest.signalId) return prev;
+      return newest;
+    });
   }, [spinHistory]);
 
-  // ════════════════════════════════════════════════════════════
-  // addSpin — para updates manuais (ex: socket externo)
-  // ════════════════════════════════════════════════════════════
-
-  const addSpin = useCallback((newSpin) => {
-    setSpinHistory(prev => {
-      if (prev.length > 0 && String(prev[0].signalId) === String(newSpin.signalId)) return prev;
-      setSelectedResult(newSpin);
-      return [newSpin, ...prev].slice(0, 1000);
-    });
-  }, []);
-
-  // ════════════════════════════════════════════════════════════
-  // clearHistory — para troca de roleta
-  // ════════════════════════════════════════════════════════════
-
-  const clearHistory = useCallback(() => {
-    setSpinHistory([]);
-    setSelectedResult(null);
-    setNumberPullStats(new Map());
-    setNumberPreviousStats(new Map());
-  }, []);
-
-  // ════════════════════════════════════════════════════════════
-  // filteredSpinHistory e stats computados aqui
-  // ════════════════════════════════════════════════════════════
-
-  const filteredSpinHistory = useMemo(() => {
-    if (historyFilter === 'all') return spinHistory;
-    return spinHistory.slice(0, Number(historyFilter));
-  }, [spinHistory, historyFilter]);
-
-  const stats = useMemo(() => {
-    const historyCount = filteredSpinHistory.length;
-    if (historyCount === 0) return { historyFilter: 0, colorFrequencies: { red: '0.0', black: '0.0', green: '0.0' }, latestNumbers: [] };
-    const counts = filteredSpinHistory.reduce((acc, curr) => { acc[curr.color] = (acc[curr.color] || 0) + 1; return acc; }, {});
-    return {
-      historyFilter: historyCount,
-      colorFrequencies: {
-        red: ((counts.red || 0) / historyCount * 100).toFixed(1),
-        black: ((counts.black || 0) / historyCount * 100).toFixed(1),
-        green: ((counts.green || 0) / historyCount * 100).toFixed(1),
-      },
-      latestNumbers: spinHistory.slice(0, 100),
-    };
-  }, [filteredSpinHistory, spinHistory]);
-
-  // ════════════════════════════════════════════════════════════
-  // RETURN
-  // ════════════════════════════════════════════════════════════
-
-  return {
-    spinHistory,
-    filteredSpinHistory,
-    selectedResult,
-    setSelectedResult,
-    numberPullStats,
-    numberPreviousStats,
-    stats,
-    addSpin,
-    clearHistory,
-  };
-};
+  return { spinHistory, selectedResult };
+}
