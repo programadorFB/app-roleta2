@@ -34,64 +34,6 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 const app = express();
 const server = http.createServer(app);
 
-<<<<<<< HEAD
-=======
-// [MONITORAMENTO - SENTRY] 2. INICIALIZAÇÃO
-Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    integrations: [
-            httpIntegration(),
-            expressIntegration({ app }),
-        ],
-    tracesSampleRate: 1.0,
-});
-
-// --- CONSTANTES ---
-const CRAWLER_SECRET = process.env.CRAWLER_SECRET || "minha_senha_secreta_python"; 
-
-const API_URLS = {
-    immersivevip: 'https://apptemporario-production.up.railway.app/api/bd9c8298-1453-4694-8d9c-b32be9f972e7',
-    immersive: 'https://apptemporario-production.up.railway.app/api/0194b479-654d-70bd-ac50-9c5a9b4d14c5',
-    brasileira: 'https://apptemporario-production.up.railway.app/api/0194b473-2ab3-778f-89ee-236e803f3c8e',
-    speed: 'https://apptemporario-production.up.railway.app/api/0194b473-c347-752f-9eaf-783721339479',
-    xxxtreme: 'https://apptemporario-production.up.railway.app/api/0194b478-5ba0-7110-8179-d287b2301e2e',
-    vipauto: 'https://apptemporario-production.up.railway.app/api/0194b473-9044-772b-a6fc-38236eb08b42',
-    auto: 'https://apptemporario-production.up.railway.app/api/0194b471-1645-749e-9214-be0342035f6f',
-    vip: 'https://apptemporario-production.up.railway.app/api/0194b472-6b93-74be-9260-7e407f5f1103',
-    lightning: 'https://apptemporario-production.up.railway.app/api/0194b472-7d68-75ea-b249-1422258f4d4c',
-    aovivo: 'https://apptemporario-production.up.railway.app/api/0194b473-1738-70dd-84a9-f1ddd4f00678',
-    speedauto: 'https://apptemporario-production.up.railway.app/api/0194b473-3139-770c-841f-d026ce7ed01f',
-    viproulette: 'https://apptemporario-production.up.railway.app/api/0194b474-bb9a-7451-b430-c451b14de1de',
-    relampago: 'https://apptemporario-production.up.railway.app/api/0194b474-d82f-76e0-9242-70f601984069',
-    malta: 'https://apptemporario-production.up.railway.app/api/0194b476-6091-730c-b971-7e66d9d8c44a',
-    // brasilPlay: 'https://pbrapi.sortehub.online/sinais/historico' 
-};
-const FETCH_INTERVAL_MS = 1000;
-const DEFAULT_AUTH_PROXY_TARGET = process.env.AUTH_PROXY_TARGET || 'https://api.appbackend.tech';
-const HUBLA_WEBHOOK_TOKEN = process.env.HUBLA_WEBHOOK_TOKEN || 'x11H8dJDrNRQBZTxicwFObMkk3LG6gSMBwAi5CxGYlRp1JuwRZZsxWm81NSZEgEJ';
-const HUBLA_CHECKOUT_URL = process.env.HUBLA_CHECKOUT_URL || 'https://pay.hub.la/N7JdmojxORlRpaafFEyl';
-const FRONT_END_URL = process.env.FRONT_END_URL;;
-
-// --- MIDDLEWARE ---
-// 1. Log geral (otimizado: reduz log verboso em produção)
-app.use((req, res, next) => {
-    req._startTime = Date.now();
-    const isPolling = req.url.startsWith('/api/history-since') || req.url.startsWith('/api/full-history');
-    if (!isPolling) {
-        console.log(`[${new Date().toISOString()}] 📥 ${req.method} ${req.url}`);
-    }
-    res.on('finish', () => {
-        const duration = Date.now() - req._startTime;
-        if (duration > 500 || res.statusCode >= 400) {
-            const emoji = res.statusCode >= 500 ? '❌' : res.statusCode >= 400 ? '⚠️' : '🐢';
-            console.log(`${emoji} ${req.method} ${req.url} - ${res.statusCode} - ${duration}ms`);
-        }
-    });
-    next();
-});
-
-// 2. CORS
->>>>>>> d25e5d7015e35a85bc4ac0c451400a6956e0010b
 const allowedOrigins = [
   'https://fuza.onrender.com',
   'https://roleta3-1.onrender.com',
@@ -381,7 +323,6 @@ app.use('/login', createProxyMiddleware({
   },
 }));
 
-<<<<<<< HEAD
 // ══════════════════════════════════════════════════════════════
 // 🔧 FIX: PROXY /start-game — COM VERIFICAÇÃO + FRESH DB FALLBACK
 // ══════════════════════════════════════════════════════════════
@@ -399,126 +340,6 @@ app.use('/start-game', async (req, res, next) => {
       email = payload.email || payload.sub || null;
     } catch {
       // JWT inválido — continua sem email
-=======
-// 5. PROXY DE START-GAME (MANTIDO IGUAL)
-app.use('/start-game', createProxyMiddleware({
-    target: DEFAULT_AUTH_PROXY_TARGET,
-    changeOrigin: true,
-    timeout: 60000,
-    pathRewrite: (path) => `/start-game${path}`,
-
-    onProxyReq: (proxyReq, req) => {
-        if (req.headers.authorization) proxyReq.setHeader('Authorization', req.headers.authorization);
-        proxyReq.setHeader('User-Agent', 'Mozilla/5.0');
-        proxyReq.setHeader('Accept', 'application/json');
-    },
-
-    onProxyRes: (proxyRes, req, res) => {
-        let body = [];
-        proxyRes.on('data', chunk => body.push(chunk));
-        proxyRes.on('end', async () => {
-            const responseBody = Buffer.concat(body).toString('utf8');
-            const backendStatusCode = proxyRes.statusCode;
-
-            // 🔧 FIX: Se o backend externo retornou erro, repassa direto
-            if (backendStatusCode < 200 || backendStatusCode >= 300) {
-                console.warn(`[start-game] ⚠️ Backend retornou ${backendStatusCode}`);
-                Object.keys(proxyRes.headers).forEach((key) => {
-                    try { res.setHeader(key, proxyRes.headers[key]); } catch (e) { /* ignore */ }
-                });
-                res.status(backendStatusCode).send(responseBody);
-                return;
-            }
-
-            // 🔧 FIX: Verifica assinatura ANTES de liberar o game
-            try {
-                // Extrai email do query param (enviado pelo frontend corrigido)
-                const url = new URL(req.url, `http://${req.headers.host}`);
-                let email = url.searchParams.get('userEmail');
-
-                // Fallback: tenta extrair do JWT (se seu JWT tiver email no payload)
-                if (!email && req.headers.authorization?.startsWith('Bearer ')) {
-                    try {
-                        const token = req.headers.authorization.split(' ')[1];
-                        const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-                        email = payload.email || payload.sub;
-                    } catch (e) {
-                        // JWT pode não ter email, segue sem
-                    }
-                }
-
-                if (email) {
-                    const cleanEmail = email.trim().toLowerCase();
-                    const subscription = await getSubscriptionByEmail(cleanEmail);
-
-                    let canPlay = false;
-                    if (subscription) {
-                        const activeStatuses = ['active', 'trialing', 'paid'];
-                        if (activeStatuses.includes(subscription.status) &&
-                            (!subscription.expires_at || new Date(subscription.expires_at) >= new Date())) {
-                            canPlay = true;
-                        }
-                    }
-
-                    if (!canPlay) {
-                        console.warn(`🚫 [start-game] Assinatura inválida para: ${cleanEmail}`);
-                        res.status(403).json({
-                            error: true,
-                            message: 'Assinatura inválida. Renove para continuar jogando.',
-                            code: 'FORBIDDEN_SUBSCRIPTION',
-                            checkoutUrl: HUBLA_CHECKOUT_URL
-                        });
-                        return;
-                    }
-
-                    console.log(`✅ [start-game] Assinatura OK para: ${cleanEmail}`);
-                } else {
-                    // Se não conseguiu extrair email, loga aviso mas permite (backward compat)
-                    console.warn('⚠️ [start-game] Email não encontrado na request. Permitindo sem verificação.');
-                }
-
-                // Tudo OK → repassa a resposta do backend
-                Object.keys(proxyRes.headers).forEach((key) => {
-                    try { res.setHeader(key, proxyRes.headers[key]); } catch (e) { /* ignore */ }
-                });
-                res.status(backendStatusCode).send(responseBody);
-
-            } catch (dbError) {
-                console.error('❌ [start-game] Erro ao verificar assinatura:', dbError.message);
-                Sentry.captureException(dbError);
-                // Em caso de erro no DB, permite o game (melhor UX que bloquear)
-                Object.keys(proxyRes.headers).forEach((key) => {
-                    try { res.setHeader(key, proxyRes.headers[key]); } catch (e) { /* ignore */ }
-                });
-                res.status(backendStatusCode).send(responseBody);
-            }
-        });
-    },
-
-    onError: (err, req, res) => {
-        const timestamp = new Date().toISOString();
-        console.error(`[${timestamp}] ❌ Game Proxy Error:`, err.message, '| Code:', err.code);
-        Sentry.captureException(err);
-
-        // 🔧 FIX: Mapa de erros mais detalhado (antes era genérico)
-        const errorMap = {
-            'ECONNREFUSED': { status: 503, message: 'Servidor de jogos indisponível. Tente novamente.' },
-            'ETIMEDOUT':     { status: 504, message: 'Timeout ao conectar com o servidor de jogos.' },
-            'ECONNRESET':    { status: 502, message: 'Conexão com servidor de jogos foi interrompida.' },
-            'ENOTFOUND':     { status: 502, message: 'Servidor de jogos não encontrado.' },
-        };
-
-        const error = errorMap[err.code] || { status: 500, message: 'Erro ao iniciar jogo' };
-
-        if (!res.headersSent) {
-            res.status(error.status).json({
-                error: true,
-                message: error.message,
-                code: err.code,
-                timestamp
-            });
-        }
->>>>>>> d25e5d7015e35a85bc4ac0c451400a6956e0010b
     }
   }
 
