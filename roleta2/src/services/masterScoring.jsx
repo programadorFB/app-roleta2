@@ -1,92 +1,172 @@
-// services/masterScoring.js
 
-// Importa lógicas de análise existentes
+
 import { analyzeCroupierPattern } from './CroupieDetection.jsx';
 import { analyzeNeighborhood } from './NeighborAnalysis.jsx';
+import { SECTORS } from './CroupieDetection.jsx';
+import { HIDDEN_LEVELS } from '../components/AdvancedPatternsAnalysis.jsx';
 
-// Importa constantes de outros módulos
-import { SECTORS } from './CroupieDetection.jsx'; // Usado para 'Setores'
-// Removed FiboNasa import
-import { HIDDEN_LEVELS } from '../components/AdvancedPatternsAnalysis.jsx'; // (Ajuste o caminho)
+// Mapeamento terminal → números da roleta
+const TERMINAL_NUMBERS = {};
+for (let i = 0; i <= 36; i++) {
+  const t = i % 10;
+  if (!TERMINAL_NUMBERS[t]) TERMINAL_NUMBERS[t] = [];
+  TERMINAL_NUMBERS[t].push(i);
+}
 
-
-// --- Funções de Análise (Lógica extraída dos componentes) ---
-
-// Lógica de 'TerminalAnalysis.jsx'
+// ───────────────────────────────────────
+// 1. CAVALOS (Terminais)
+// ───────────────────────────────────────
+// BUG 1 FIX: Retorna números reais da roleta, não strings "TM8"
+// BUG 6 FIX: Status calculado ANTES do Math.min(score, 100)
 function analyzeTerminals(spinHistory) {
   const totalSpins = spinHistory.length;
-  let terminalStats = Array.from({ length: 10 }, (_, i) => ({ terminal: i, absence: totalSpins }));
+  const terminalStats = Array.from({ length: 10 }, (_, i) => ({
+    terminal: i,
+    absence: totalSpins,
+  }));
 
   spinHistory.forEach((spin, index) => {
     const terminal = spin.number % 10;
-    const stat = terminalStats.find(s => s.terminal === terminal);
-    if (stat && stat.absence === totalSpins) {
+    const stat = terminalStats[terminal];
+    if (stat.absence === totalSpins) {
       stat.absence = index;
     }
   });
 
-  const mostDue = terminalStats.sort((a, b) => b.absence - a.absence)[0];
-  const score = (mostDue.absence / 37) * 100;
+  // Ordena por maior ausência
+  terminalStats.sort((a, b) => b.absence - a.absence);
+  const mostDue = terminalStats[0];
 
+  // Score raw (pode passar de 100)
+  const rawScore = (mostDue.absence / 37) * 100;
+
+  // BUG 6 FIX: Status calculado no score RAW, antes do clamp
   let status = '🟠';
-  if (score > 120) status = '🟢';
-  if (score > 80 && score <= 120) status = '🟡';
+  if (rawScore >= 120) status = '🟢';
+  else if (rawScore >= 80) status = '🟡';
+
+  // BUG 1 FIX: Retorna os números reais dos top 3 terminais mais devendo
+  const topNumbers = [];
+  for (let i = 0; i < Math.min(3, terminalStats.length); i++) {
+    const t = terminalStats[i].terminal;
+    topNumbers.push(...TERMINAL_NUMBERS[t]);
+  }
 
   return {
     name: 'Cavalos',
-    score: Math.min(score, 100),
+    score: Math.min(rawScore, 100),
     status,
-    signal: mostDue.absence > 25 ? `TM${mostDue.terminal} devendo` : 'OK',
-    numbers: terminalStats.slice(0, 3).map(t => `TM${t.terminal}`)
+    signal: mostDue.absence > 25
+      ? `Terminal ${mostDue.terminal} devendo (${mostDue.absence} spins)`
+      : 'OK',
+    numbers: topNumbers,
+    raw: { mostDue, terminalStats: terminalStats.slice(0, 5) },
   };
 }
 
-// Lógica de 'SectorAnalysis.jsx'
+// ───────────────────────────────────────
+// 2. SETORES
+// ───────────────────────────────────────
+// BUG 3 FIX: Guarda sector key diretamente
+// BUG 6 FIX: Status calculado antes do clamp
 function analyzeSectors(spinHistory) {
   const totalSpins = spinHistory.length;
-  let coldestSector = { name: '-', spinsSinceLastHit: 0 };
-  let minHits = totalSpins;
+  let coldestSector = { key: null, name: '-', spinsSinceLastHit: 0, numbers: [] };
 
-  Object.values(SECTORS).forEach(sector => {
-    const lastHitIndex = spinHistory.findIndex(spin => sector.numbers.includes(spin.number));
-    const spinsSinceLastHit = (lastHitIndex === -1) ? totalSpins : lastHitIndex;
+  Object.entries(SECTORS).forEach(([key, sector]) => {
+    const lastHitIndex = spinHistory.findIndex(spin =>
+      sector.numbers.includes(spin.number)
+    );
+    const spinsSinceLastHit = lastHitIndex === -1 ? totalSpins : lastHitIndex;
 
     if (spinsSinceLastHit > coldestSector.spinsSinceLastHit) {
-      coldestSector = { name: sector.name, spinsSinceLastHit };
+      coldestSector = {
+        key,
+        name: sector.name,
+        spinsSinceLastHit,
+        numbers: sector.numbers,
+      };
     }
   });
 
-  const expectedAbsence = 37 / Object.keys(SECTORS).length;
-  const score = (coldestSector.spinsSinceLastHit / expectedAbsence) * 100;
+  const expectedAbsence = 37 / Object.keys(SECTORS).length; // ~6.17
+  const rawScore = (coldestSector.spinsSinceLastHit / expectedAbsence) * 100;
 
+  // BUG 6 FIX: Status no score raw
   let status = '🟠';
-  if (score > 150) status = '🟢';
-  if (score > 100 && score <= 150) status = '🟡';
+  if (rawScore >= 150) status = '🟢';
+  else if (rawScore >= 100) status = '🟡';
 
   return {
     name: 'Setores',
-    score: Math.min(score, 100),
+    score: Math.min(rawScore, 100),
     status,
-    signal: `Setor ${coldestSector.name} devendo`,
-    numbers: SECTORS[Object.keys(SECTORS).find(key => SECTORS[key].name === coldestSector.name)]?.numbers || []
+    signal: `${coldestSector.name} devendo (${coldestSector.spinsSinceLastHit} spins)`,
+    // BUG 3 FIX: Usa numbers guardados diretamente
+    numbers: coldestSector.numbers,
+    raw: { coldestSector },
   };
 }
 
-// Removed analyzeFiboNasa function
+// ───────────────────────────────────────
+// 3. VIZINHOS
+// ───────────────────────────────────────
+// BUG 5 FIX: Score recalibrado para escala 0-100 real
+function analyzeNeighbors(spinHistory) {
+  const patterns = analyzeNeighborhood(spinHistory, 2, 50);
+  if (!patterns || patterns.length === 0) {
+    return {
+      name: 'Vizinhos',
+      score: 0,
+      status: '🟠',
+      signal: 'Aguardando dados...',
+      numbers: [],
+    };
+  }
 
-// Lógica de 'AdvancedPatternsAnalysis.jsx' (Ocultos)
+  const bestBet = patterns[0];
+
+  // BUG 5 FIX: hitRate já é percentual (ex: 40%). Normalizamos para 0-100.
+  // Esperado para vizinhança de 5 números: 5/37 ≈ 13.5%
+  // Se hitRate = 30%, está 2.2x acima do esperado → score alto
+  const expectedRate = (5 / 37) * 100; // ~13.5%
+  const lift = bestBet.hitRate / expectedRate; // >1 = acima do esperado
+  const rawScore = Math.max(0, Math.min(100, (lift - 1) * 100)); // lift 2.0 → score 100
+
+  let status = '🟠';
+  if (bestBet.status.key === 'confirmed') status = '🟢';
+  else if (bestBet.status.key === 'warning') status = '🟡';
+
+  return {
+    name: 'Vizinhos',
+    score: rawScore,
+    status,
+    signal: `${bestBet.center} (${bestBet.hitRate.toFixed(0)}%)`,
+    numbers: bestBet.neighbors,
+    raw: { bestBet },
+  };
+}
+
+// ───────────────────────────────────────
+// 4. OCULTOS
+// ───────────────────────────────────────
+// BUG 2 FIX: Retorna top 5 ocultos (era só 1)
 function analyzeHidden(spinHistory) {
   const totalSpins = spinHistory.length;
-  let topOculto = { number: -1, absence: 0, level: { level: 0 } };
+  const allOcultos = [];
 
   for (let num = 0; num <= 36; num++) {
     const lastAppearance = spinHistory.findIndex(s => s.number === num);
     const absence = lastAppearance === -1 ? totalSpins : lastAppearance;
-    if (absence > topOculto.absence) {
-      topOculto = { number: num, absence };
-    }
+    allOcultos.push({ number: num, absence });
   }
 
+  // Ordena por maior ausência
+  allOcultos.sort((a, b) => b.absence - a.absence);
+
+  const topOculto = allOcultos[0];
+
+  // Determina nível do mais oculto
   let level = { label: 'Nível 0', color: '#6b7280', level: 0 };
   for (const lvl of HIDDEN_LEVELS) {
     if (topOculto.absence >= lvl.min) {
@@ -100,70 +180,66 @@ function analyzeHidden(spinHistory) {
 
   let status = '🟠';
   if (score > 80) status = '🟢';
-  if (score > 50 && score <= 80) status = '🟡';
+  else if (score > 50) status = '🟡';
+
+  // BUG 2 FIX: Top 5 ocultos para contribuir ao sinal de convergência
+  const top5Numbers = allOcultos.slice(0, 5).map(o => o.number);
 
   return {
     name: 'Ocultos',
     score,
     status,
-    signal: `Nível ${topOculto.level.level} (${topOculto.number})`,
-    numbers: [topOculto.number]
+    signal: `Nível ${topOculto.level.level} (${topOculto.number} — ${topOculto.absence} spins)`,
+    numbers: top5Numbers,
+    raw: { topOculto, top5: allOcultos.slice(0, 5) },
   };
 }
 
-// Lógica de 'croupierDetection.js'
+// ───────────────────────────────────────
+// 5. CROUPIER
+// ───────────────────────────────────────
+// BUG 4 FIX: Score normalizado para 0-100 (era observedRate crua ~16-28%)
 function analyzeCroupier(spinHistory) {
-  const analysis = analyzeCroupierPattern(spinHistory, 30);
-  const score = analysis.accuracy;
+  const analysis = analyzeCroupierPattern(spinHistory, 50);
+
+  // BUG 4 FIX: accuracy = observedRate (ex: 22.4%).
+  // Esperado = 16.22% (6/37). Normalizamos o desvio para 0-100.
+  const expectedRate = (6 / 37) * 100; // ~16.22%
+  let rawScore = 0;
+
+  if (analysis.accuracy > 0) {
+    // precision = (observed / expected) * 100. Ex: 140 = 40% acima
+    const precision = analysis.precision || (analysis.accuracy / expectedRate) * 100;
+    // Mapeia: precision 100 → score 0, precision 150 → score 100
+    rawScore = Math.max(0, Math.min(100, (precision - 100) * 2));
+  }
 
   let status = '🟠';
-  if (analysis.status === 'MUITO ATIVO') status = '🟢';
-  if (analysis.status === 'MODERADO') status = '🟡';
+  if (analysis.status === 'MUITO_ATIVO' || analysis.status === 'ATIVO') status = '🟢';
+  else if (analysis.status === 'MODERADO') status = '🟡';
 
   return {
     name: 'Croupier',
-    score,
+    score: rawScore,
     status,
-    signal: analysis.statusLabel,
-    numbers: analysis.suggestedNumbers
-  };
-}
-
-// Lógica de 'neighborhoodAnalysis.js'
-function analyzeNeighbors(spinHistory) {
-  const patterns = analyzeNeighborhood(spinHistory, 2, 50);
-  // Handle case where patterns might be empty if not enough spins
-  if (!patterns || patterns.length === 0) {
-      return { name: 'Vizinhos', score: 0, status: '🟠', signal: 'Aguardando dados...', numbers: [] };
-  }
-  const bestBet = patterns[0];
-  const score = Math.max(0, (bestBet.accuracy - 50) / 1.5);
-
-  let status = '🟠';
-  if (bestBet.status.key === 'confirmed') status = '🟢';
-  if (bestBet.status.key === 'warning') status = '🟡';
-
-  return {
-    name: 'Vizinhos',
-    score: Math.min(score, 100),
-    status,
-    signal: `${bestBet.center} (${bestBet.hitRate.toFixed(0)}%)`,
-    numbers: bestBet.neighbors
+    signal: analysis.statusLabel || 'Aguardando...',
+    numbers: analysis.suggestedNumbers || [],
+    raw: analysis,
   };
 }
 
 
-/**
- * REQ 2: Sistema de Scoring Principal (Sem FiboNasa)
- * Roda as 5 análises restantes e as compila.
- */
+// ═══════════════════════════════════════════════════════════
+// SISTEMA DE SCORING PRINCIPAL (5 estratégias + convergência)
+// ═══════════════════════════════════════════════════════════
+
 export const calculateMasterScore = (spinHistory) => {
-  if (!spinHistory || spinHistory.length < 20) {
+  if (!spinHistory || spinHistory.length < 50) {
     return {
       globalAssertiveness: 0,
       totalSignals: 0,
       strategyScores: [],
-      entrySignal: null
+      entrySignal: null,
     };
   }
 
@@ -172,59 +248,69 @@ export const calculateMasterScore = (spinHistory) => {
     analyzeTerminals(spinHistory),
     analyzeSectors(spinHistory),
     analyzeNeighbors(spinHistory),
-    // FiboNasa removido daqui
     analyzeHidden(spinHistory),
-    analyzeCroupier(spinHistory)
+    analyzeCroupier(spinHistory),
   ];
 
   // 2. Calcula métricas globais
-  const activeStrategies = strategyScores.filter(s => s.status === '🟢' || s.status === '🟡');
+  const activeStrategies = strategyScores.filter(
+    s => s.status === '🟢' || s.status === '🟡'
+  );
   const greenStrategies = strategyScores.filter(s => s.status === '🟢');
-  const totalSignals = activeStrategies.length; // Agora de 5
+  const totalSignals = activeStrategies.length;
 
   let globalAssertiveness = 0;
   if (totalSignals > 0) {
-    globalAssertiveness = activeStrategies.reduce((acc, s) => acc + s.score, 0) / totalSignals;
+    globalAssertiveness =
+      activeStrategies.reduce((acc, s) => acc + s.score, 0) / totalSignals;
   }
 
-  // 3. Verifica Sinal de Entrada (Convergência)
+  // 3. Verifica Sinal de Entrada (Convergência de 3+ verdes)
   let entrySignal = null;
   const convergenceCount = greenStrategies.length;
 
-  // Ajustado o threshold para 3 (de 5) estratégias verdes para sinal
   if (convergenceCount >= 3) {
-
-    let suggestedNumbers = [];
+    // Coleta todos os números sugeridos pelas estratégias verdes
+    const suggestedNumbers = [];
     greenStrategies.forEach(s => {
-      suggestedNumbers.push(...s.numbers);
+      if (Array.isArray(s.numbers)) {
+        s.numbers.forEach(num => {
+          // BUG 1 FIX garantia: só aceita números (não strings)
+          if (typeof num === 'number' && num >= 0 && num <= 36) {
+            suggestedNumbers.push(num);
+          }
+        });
+      }
     });
 
-    const numberCounts = suggestedNumbers.reduce((acc, num) => {
-      // Ignora strings como 'TM5'
-      if (typeof num === 'number') {
-        acc[num] = (acc[num] || 0) + 1;
-      }
-      return acc;
-    }, {});
+    // Conta frequência e pega top 5 por convergência
+    const numberCounts = {};
+    suggestedNumbers.forEach(num => {
+      numberCounts[num] = (numberCounts[num] || 0) + 1;
+    });
 
     const top5Numbers = Object.entries(numberCounts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(entry => parseInt(entry[0]));
 
+    // BUG 7 FIX: validFor escala com convergência
+    // 3 estratégias → 2 spins, 4 → 3, 5 → 4
+    const validFor = Math.min(convergenceCount - 1, 4);
+
     entrySignal = {
       convergence: convergenceCount,
       suggestedNumbers: top5Numbers,
       confidence: globalAssertiveness,
-      validFor: 3,
-      reason: `${convergenceCount} estratégias alinhadas`
+      validFor,
+      reason: `${convergenceCount} estratégias alinhadas (${greenStrategies.map(s => s.name).join(', ')})`,
     };
   }
 
   return {
     globalAssertiveness,
-    totalSignals, // Será no máximo 5
+    totalSignals,
     strategyScores,
-    entrySignal
+    entrySignal,
   };
 };

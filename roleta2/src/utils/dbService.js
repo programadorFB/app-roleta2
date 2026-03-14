@@ -1,158 +1,176 @@
-// dbService.js — ⚡ OTIMIZADO COM REDIS: Read-through + Write-through Cache
+// dbService.js — Serviço de persistência de sinais
+// ✅ NOVO: getNewSignalsSince para delta updates (endpoint /api/history-delta)
+// 🔧 FIX: Aliases SQL unificados em todas as queries (timestamp, signalId, gameId)
+
 import { query, transaction } from '../../db.js';
 import { SOURCES } from './constants.js';
-import {
-  getCachedFullHistory,
-  setCachedFullHistory,
-  invalidateSourceCache,
-} from '../../redisCache.js';
+import { cacheAside, cacheDel, KEY, TTL } from '../../redisService.js';
 
-// ═══════════════════════════════════════════════════════════════
-// FALLBACK: Cache em memória (usado se Redis estiver offline)
-// ═══════════════════════════════════════════════════════════════
-const memoryCache = new Map();
-const MEMORY_TTL_MS = 3000;
+export const loadAllExistingSignalIds = async () => {};
 
-function getMemoryCache(sourceName) {
-  const cached = memoryCache.get(sourceName);
-  if (cached && (Date.now() - cached.lastUpdated) < MEMORY_TTL_MS) {
-    return cached.data;
-  }
-  return null;
-}
 
-function setMemoryCache(sourceName, data) {
-  memoryCache.set(sourceName, { data, lastUpdated: Date.now() });
-}
-
-export const invalidateCache = (sourceName) => {
-  memoryCache.delete(sourceName);
-  // Fire-and-forget — não bloqueia o save
-  invalidateSourceCache(sourceName).catch(() => {});
-};
-
-export const loadAllExistingSignalIds = async () => {
-  console.log('✅ [DB Service] Conectado ao Banco de Dados.');
-  return Promise.resolve();
-};
-
-// ═══════════════════════════════════════════════════════════════
-// BATCH INSERT — Write-through: PG + invalidação Redis
-// ═══════════════════════════════════════════════════════════════
 export const saveNewSignals = async (dataArray, sourceName) => {
   if (!SOURCES.includes(sourceName)) {
-    console.error(`❌ Fonte desconhecida "${sourceName}". Não é possível salvar.`);
-    return;
+    console.error(`❌ Fonte desconhecida "${sourceName}".`);
+    return 0;
   }
-  if (!dataArray || dataArray.length === 0) return;
 
-  const validItems = dataArray.filter(item => item && item.signalId);
-  if (validItems.length === 0) return;
+  if (!dataArray?.length) return 0;
+
+  // Filtra registros válidos antes de qualquer I/O
+  const validItems = dataArray.filter(item => item?.signalId);
+  if (validItems.length === 0) return 0;
 
   try {
-    const BATCH_SIZE = 500;
-    let totalSaved = 0;
+    // Monta batch INSERT com parâmetros numerados
+    const values = [];
+    const placeholders = [];
+    let paramIndex = 1;
 
-    for (let i = 0; i < validItems.length; i += BATCH_SIZE) {
-      const batch = validItems.slice(i, i + BATCH_SIZE);
-      const values = [];
-      const placeholders = [];
+    for (const item of validItems) {
+      const signalId = String(item.signalId).trim();
+      const gameId = String(item.gameId || '').trim();
+      const signal = String(item.signal || '').trim();
 
-      batch.forEach((item, idx) => {
-        const offset = idx * 4;
-        placeholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4})`);
-        values.push(
-          String(item.signalId).trim(),
-          String(item.gameId || '').trim(),
-          String(item.signal || '').trim(),
-          sourceName
-        );
-      });
-
-      const batchQuery = `
-        INSERT INTO signals (signalId, gameId, signal, source)
-        VALUES ${placeholders.join(', ')}
-        ON CONFLICT (signalId, source) DO NOTHING;
-      `;
-      const res = await query(batchQuery, values);
-      totalSaved += (res.rowCount || 0);
+      placeholders.push(`($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3})`);
+      values.push(signalId, gameId, signal, sourceName);
+      paramIndex += 4;
     }
 
-    if (totalSaved > 0) {
-      console.log(`\x1b[32m[${sourceName}] 💾 ${totalSaved} novos sinais salvos (BATCH).\x1b[0m`);
-      // ⚡ Invalida AMBOS caches (Redis + memória)
-      invalidateCache(sourceName);
-    }
+    const sql = `
+      INSERT INTO signals (signalId, gameId, signal, source)
+      VALUES ${placeholders.join(', ')}
+      ON CONFLICT (signalId, source) DO NOTHING
+    `;
+
+    const result = await query(sql, values);
+    const saved = result.rowCount || 0;
+
+    if (saved > 0) {
+        await Promise.all([
+          cacheDel(KEY.history(sourceName)),
+          cacheDel(KEY.latest(sourceName, 50)),
+          cacheDel(KEY.latest(sourceName, 100)),
+          cacheDel(KEY.latest(sourceName, 300)),
+          cacheDel(KEY.latest(sourceName, 500)),
+          cacheDel(KEY.latest(sourceName, 1000)),
+        ]);
+      }
+
+    return saved;
   } catch (err) {
-    console.error(`❌ Erro ao escrever no DB para ${sourceName}:`, err);
+    console.error(`❌ [saveNewSignals] ${sourceName}:`, err.message);
+    return 0;
   }
 };
 
-// ═══════════════════════════════════════════════════════════════
-// FULL HISTORY — Read-through: Redis → Memory → PostgreSQL
-// ═══════════════════════════════════════════════════════════════
-export const getFullHistory = async (sourceName, limit = 5000) => {
+/**
+ * ✅ Full history com cache-aside
+ * Cache: 10s TTL (polling do front é 5s, no máx 2 ciclos stale)
+ *
+ * 🔧 FIX: Aliases com aspas duplas para preservar camelCase no retorno.
+ *    PG sem aspas retorna tudo lowercase (signalid, gameid).
+ *    O frontend espera: { timestamp, signalId, gameId, signal }
+ */
+export const getFullHistory = async (sourceName) => {
   if (!SOURCES.includes(sourceName)) {
     throw new Error(`Fonte "${sourceName}" não reconhecida.`);
   }
 
-  // ⚡ Camada 1: Redis (sub-milissegundo)
-  const redisCached = await getCachedFullHistory(sourceName);
-  if (redisCached) return redisCached;
-
-  // ⚡ Camada 2: Memória local (microssegundos, fallback se Redis offline)
-  const memoryCached = getMemoryCache(sourceName);
-  if (memoryCached) return memoryCached;
-
-  // Camada 3: PostgreSQL (5-50ms)
-  const selectQuery = `
-    SELECT timestamp, signalId AS signalid, gameId AS gameid, signal
-    FROM signals
-    WHERE source = $1
-    ORDER BY timestamp DESC
-    LIMIT $2;
-  `;
-
-  try {
-    const { rows } = await query(selectQuery, [sourceName, limit]);
-    
-    // Write-through: popula AMBOS caches
-    setMemoryCache(sourceName, rows);
-    setCachedFullHistory(sourceName, rows).catch(() => {}); // fire-and-forget
-
-    return rows;
-  } catch (err) {
-    console.error(`❌ Erro ao ler histórico de ${sourceName}:`, err);
-    throw err;
-  }
+  return cacheAside(
+    KEY.history(sourceName),
+    TTL.FULL_HISTORY,
+    async () => {
+      const { rows } = await query(
+        `SELECT timestamp,
+                signalid AS "signalId",
+                gameid   AS "gameId",
+                signal
+         FROM signals
+         WHERE source = $1
+         ORDER BY timestamp DESC
+         LIMIT 1000`,
+        [sourceName]
+      );
+      return rows;
+    }
+  );
 };
 
-// ═══════════════════════════════════════════════════════════════
-// ⚡ FETCH INCREMENTAL — Só registros NOVOS (sem cache — payload é minúsculo)
-// ═══════════════════════════════════════════════════════════════
-export const getHistorySince = async (sourceName, sinceTimestamp, limit = 200) => {
+/**
+ * ✅ Latest spins com cache-aside
+ *
+ * 🔧 FIX: Mesmos aliases de getFullHistory — retorna camelCase consistente.
+ *    Antes: signalId AS signalid (lowercase redundante) → agora: signalid AS "signalId"
+ */
+export const getLatestSpins = async (sourceName, limit = 100) => {
   if (!SOURCES.includes(sourceName)) {
     throw new Error(`Fonte "${sourceName}" não reconhecida.`);
   }
 
-  if (!sinceTimestamp) {
-    return getFullHistory(sourceName, limit);
-  }
+  return cacheAside(
+    KEY.latest(sourceName, limit),
+    TTL.LATEST_SPINS,
+    async () => {
+      const { rows } = await query(
+        `SELECT timestamp,
+                signalid AS "signalId",
+                gameid   AS "gameId",
+                signal
+         FROM signals
+         WHERE source = $1
+         ORDER BY timestamp DESC
+         LIMIT $2`,
+        [sourceName, limit]
+      );
+      return rows;
+    }
+  );
+};
 
-  const selectQuery = `
-    SELECT timestamp, signalId AS signalid, gameId AS gameid, signal
-    FROM signals
-    WHERE source = $1
-      AND timestamp > $2
-    ORDER BY timestamp DESC
-    LIMIT $3;
-  `;
+// ══════════════════════════════════════════════════════════════
+// ✅ Delta updates — retorna apenas sinais mais novos
+// que o lastSignalId fornecido pelo frontend.
+//
+// Usa o campo `id` (serial auto-increment) como cursor eficiente.
+// Cache de 5s no Redis para evitar queries repetidas no mesmo ciclo.
+//
+// 🔧 FIX: Retorna mesmas colunas/aliases que getFullHistory:
+//    - timestamp já é o nome real da coluna (não existe created_at)
+//    - signalid   → AS "signalId" (antes: signalid lowercase)
+//    - gameid     → AS "gameId"   (antes: gameid lowercase)
+//    - removido 'source' do SELECT (frontend não usa, evita payload extra)
+//
+// REQUISITO: rodar no PostgreSQL uma vez:
+//   CREATE INDEX IF NOT EXISTS idx_signals_source_signalid
+//     ON signals(source, signalid);
+//   CREATE INDEX IF NOT EXISTS idx_signals_source_id
+//     ON signals(source, id DESC);
+// ══════════════════════════════════════════════════════════════
 
-  try {
-    const { rows } = await query(selectQuery, [sourceName, sinceTimestamp, limit]);
-    return rows;
-  } catch (err) {
-    console.warn(`⚠️ Fallback para full-history: ${sourceName}`);
-    return getFullHistory(sourceName, limit);
-  }
+export const getNewSignalsSince = async (sourceName, lastSignalId) => {
+  if (!SOURCES.includes(sourceName)) return [];
+  if (!lastSignalId) return [];
+
+  const cacheKey = `delta:${sourceName}:${lastSignalId}`;
+
+  return cacheAside(cacheKey, 5, async () => {
+    const sql = `
+      SELECT signalid   AS "signalId",
+             gameid     AS "gameId",
+             signal,
+             timestamp
+      FROM signals
+      WHERE source = $1
+        AND id > COALESCE(
+          (SELECT id FROM signals WHERE source = $1 AND signalid = $2 LIMIT 1),
+          0
+        )
+      ORDER BY id DESC
+      LIMIT 100
+    `;
+
+    const result = await query(sql, [sourceName, lastSignalId]);
+    return result.rows;
+  });
 };
