@@ -5,34 +5,35 @@ import React, { useState, useEffect } from 'react';
 import { X, Check, CreditCard, Shield, Zap, Info } from 'lucide-react'; // Ícone 'Info' adicionado
 import './PaywallModal.css';
 
-const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
+const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl: _checkoutUrl }) => {
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState('annual');
 
-   const plans = {
+  const plans = {
     monthly: {
       price: 97,
       period: 'mês',
-      checkoutUrl: 'https://pay.hub.la/dBlQouYA2q2Q7a4TV6oz?utm_source=ph',
+      checkoutUrl: 'https://pay.hub.la/1fA5DOZnF8bzlGTNW1XS',
       savings: null,
       installments: null
     },
     quarterly: {
       price: 197,
       period: 'trimestre',
-      checkoutUrl: 'https://pay.hub.la/MMSfqPB6rwwmraNweEUh?utm_source=ph',
+      checkoutUrl: 'https://pay.hub.la/MMSfqPB6rwwmraNweEUh',
       savings: 'Economize R$ 94',
       installments: '3x R$ 70,04'
     },
     annual: {
       price: 497,
       period: 'ano',
-      checkoutUrl: 'https://pay.hub.la/NGeiiXVSbzSGwjbLzZhT?utm_source=ph',
+      checkoutUrl: 'https://pay.hub.la/zwcPAbXDNlfSzhAcs9bg',
       savings: 'Economize R$ 667',
       installments: '12x R$ 50,80'
     }
   };
+
   useEffect(() => {
     if (isOpen && userId) {
       checkSubscriptionStatus();

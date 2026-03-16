@@ -1,0 +1,366 @@
+/* TriggerStrategiesPanel.module.css — v5 FLEX LAYOUT — MOGNO & OURO */
+
+.container { display: flex; flex-direction: column; gap: 0.5rem; }
+
+/* ═══ CHIPS — roulette ball style ═══ */
+.chip { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; font-weight:700; font-size:0.65rem; color:#fff; font-family:'Outfit',sans-serif; flex-shrink:0; }
+.chip--red { background:radial-gradient(ellipse 50% 45% at 38% 32%, rgba(255,220,180,0.35) 0%, transparent 55%), radial-gradient(#d4935a 0%, #b87340 30%, #8a5528 65%, #5c3818 100%); box-shadow:inset 0 -2px 4px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.3); }
+.chip--black { background:radial-gradient(ellipse 50% 45% at 38% 32%, rgba(255,255,255,0.08) 0%, transparent 55%), radial-gradient(#4a4a56 0%, #35353f 30%, #252530 65%, #0e0e14 100%); box-shadow:inset 0 -2px 4px rgba(0,0,0,0.45), 0 1px 3px rgba(0,0,0,0.3); }
+.chip--green { background:radial-gradient(ellipse 50% 45% at 38% 32%, rgba(150,255,220,0.25) 0%, transparent 55%), radial-gradient(#3dd4a0 0%, #1aab7a 30%, #0d8a5e 65%, #034a32 100%); box-shadow:inset 0 -2px 4px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.3); }
+.chip--large { width:30px; height:30px; font-size:0.75rem; }
+.chip--highlighted { box-shadow:0 0 8px rgba(201,160,82,0.4); }
+.chip--pulsing { animation:chipPulse 1.5s ease-in-out infinite; }
+@keyframes chipPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1);box-shadow:0 0 12px rgba(201,160,82,0.5)} }
+
+/* ═══ ACTIVE TRIGGER CARD ═══ */
+.activeTrigger { background:linear-gradient(165deg, rgba(52,211,153,0.04) 0%, rgba(52,211,153,0.01) 100%); border:1px solid rgba(52,211,153,0.15); overflow:hidden; animation:triggerSlideIn 0.3s ease-out; }
+@keyframes triggerSlideIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+.activeTriggerHeader { display:flex; align-items:center; gap:0.5rem; padding:0.5rem 0.75rem; background:rgba(52,211,153,0.04); border-bottom:1px solid rgba(52,211,153,0.08); }
+.activeTriggerIcon { animation:zapFlash 2s ease-in-out infinite; }
+@keyframes zapFlash { 0%,100%{opacity:1} 50%{opacity:0.5} }
+.activeTriggerTitle { font-size:0.72rem; font-weight:700; color:#34d399; letter-spacing:0.04em; text-transform:uppercase; font-family:'Outfit',sans-serif; }
+.activeTriggerSubtitle { font-size:0.65rem; color:rgba(255,255,255,0.4); margin-top:1px; font-family:'Outfit',sans-serif; }
+.activeTriggerBody { padding:0.5rem 0.75rem; display:flex; flex-direction:column; gap:0.5rem; }
+.activeTriggerAction { display:flex; align-items:center; gap:0.4rem; font-size:0.82rem; }
+.actionLabel { color:rgba(255,255,255,0.3); font-family:'Outfit',sans-serif; }
+.actionValue { font-weight:700; color:#eaeaee; font-size:0.92rem; font-family:'Outfit',sans-serif; }
+.activeTriggerNumbers { display:flex; flex-wrap:wrap; gap:4px; }
+.activeTriggerStats { display:flex; justify-content:space-around; padding-top:0.4rem; border-top:1px solid rgba(180,120,50,0.06); }
+.statBlock { display:flex; flex-direction:column; align-items:center; gap:1px; }
+.statBlockLabel { font-size:0.55rem; color:rgba(255,255,255,0.25); text-transform:uppercase; letter-spacing:0.03em; font-family:'Outfit',sans-serif; }
+.statBlockValue { font-size:0.85rem; font-weight:600; color:#eaeaee; font-family:'Outfit',sans-serif; }
+
+/* ═══ NO TRIGGER ═══ */
+.noTrigger { display:flex; align-items:center; gap:0.5rem; padding:0.5rem 0.75rem; background:rgba(180,120,50,0.02); border:1px solid rgba(180,120,50,0.08); color:rgba(255,255,255,0.3); font-size:0.72rem; font-family:'Outfit',sans-serif; }
+.noTrigger p { margin:2px 0 0; font-size:0.62rem; color:rgba(255,255,255,0.2); }
+
+/* ═══════════════════════════════════════════════════════════════
+   ASSERTIVIDADE TABLE — FLEX LAYOUT (sem grid)
+   Cada tipo: 3 linhas empilhadas
+     1. Nome + % + seta
+     2. Chips dos resultados
+     3. G1 G2 G3 RED stats
+   ═══════════════════════════════════════════════════════════════ */
+
+.assertTable {
+  background: linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+  border: 1px solid rgba(180,120,50,0.09);
+  border-top: 1px solid rgba(201,160,82,0.16);
+  overflow: hidden;
+  box-shadow:
+    0 6px 20px rgba(0,0,0,0.5),
+    inset 0 1px 1px rgba(201,160,82,0.05);
+}
+
+.assertHeader {
+  padding: 0.5rem 0.75rem;
+  background: rgba(201,160,82,0.04);
+  border-bottom: 1px solid rgba(180,120,50,0.1);
+}
+
+.assertTitle {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(201,160,82,0.8);
+  font-family: 'Outfit', sans-serif;
+}
+
+/* ── Type block ── */
+.typeBlock {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid rgba(180,120,50,0.06);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.typeBlock:hover {
+  background: rgba(201,160,82,0.03);
+}
+
+/* Line 1: header row */
+.typeHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.typeIcon {
+  color: rgba(201,160,82,0.5);
+  flex-shrink: 0;
+}
+
+.typeName {
+  flex: 1;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.55);
+  font-family: 'Outfit', sans-serif;
+}
+
+.typePct {
+  font-size: 1rem;
+  font-weight: 900;
+  font-family: 'Outfit', sans-serif;
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+
+.typeExpand {
+  flex-shrink: 0;
+  color: rgba(201,160,82,0.3);
+  display: flex;
+  align-items: center;
+}
+
+/* Line 2: result chips */
+.typeChipsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-bottom: 6px;
+}
+
+/* Line 3: stat counters */
+.typeStatsRow {
+  display: flex;
+  gap: 0;
+}
+
+.typeStat {
+  flex: 1;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.5);
+  font-family: 'Outfit', sans-serif;
+  padding: 3px 0;
+  background: rgba(52,211,153,0.04);
+  border: 1px solid rgba(52,211,153,0.08);
+  margin-right: -1px;
+}
+
+.typeStat--red {
+  color: rgba(239,68,68,0.7);
+  background: rgba(239,68,68,0.04);
+  border-color: rgba(239,68,68,0.08);
+}
+
+.typeStatLabel {
+  font-size: 0.5rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.5;
+  margin-right: 2px;
+}
+
+/* ── Result chips (G1/G2/G3/R) ── */
+.resultChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 21px;
+  padding: 0 4px;
+  font-size: 0.55rem;
+  font-weight: 800;
+  font-family: 'Outfit', sans-serif;
+}
+
+.resultChip--win {
+  background: rgba(52,211,153,0.15);
+  color: #34d399;
+  border: 1px solid rgba(52,211,153,0.2);
+}
+
+.resultChip--loss {
+  background: rgba(239,68,68,0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239,68,68,0.15);
+}
+
+/* ── Type detail (expanded) ── */
+.typeDetail {
+  padding: 0.5rem 0.75rem;
+  background: rgba(201,160,82,0.015);
+  border-bottom: 1px solid rgba(201,160,82,0.06);
+  animation: detailExpand 0.2s ease-out;
+}
+
+@keyframes detailExpand {
+  from { opacity: 0; max-height: 0; }
+  to   { opacity: 1; max-height: 400px; }
+}
+
+.detailGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detailItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 4px;
+}
+
+.detailAction {
+  flex: 1;
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.35);
+  font-family: 'Outfit', sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.detailConf {
+  font-size: 0.68rem;
+  font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+  flex-shrink: 0;
+}
+
+.detailPct {
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-family: 'Outfit', sans-serif;
+  flex-shrink: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.detailPctSub {
+  font-size: 0.5rem;
+  font-weight: 600;
+  opacity: 0.5;
+}
+
+.detailHeat {
+  font-size: 0.58rem;
+  font-weight: 800;
+  font-family: 'Outfit', sans-serif;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.detailMore {
+  font-size: 0.58rem;
+  color: rgba(201,160,82,0.35);
+  text-align: center;
+  margin-top: 6px;
+  font-family: 'Outfit', sans-serif;
+}
+
+/* ── Total row ── */
+.totalRow {
+  padding: 0.6rem 0.75rem;
+  background: rgba(201,160,82,0.04);
+  border-top: 1px solid rgba(201,160,82,0.15);
+}
+
+.totalRow > .totalLabel,
+.totalRow > .totalPct {
+  display: inline;
+}
+
+.totalLabel {
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(201,160,82,0.7);
+  font-family: 'Outfit', sans-serif;
+  margin-right: 8px;
+}
+
+.totalPct {
+  font-size: 1.1rem;
+  font-weight: 900;
+  font-family: 'Outfit', sans-serif;
+}
+
+.totalStats {
+  display: flex;
+  gap: 0;
+  margin-top: 6px;
+}
+
+.totalStat {
+  flex: 1;
+  text-align: center;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.4);
+  font-family: 'Outfit', sans-serif;
+  padding: 4px 0;
+  background: rgba(52,211,153,0.03);
+  border: 1px solid rgba(180,120,50,0.06);
+  margin-right: -1px;
+}
+
+.totalStat strong {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: rgba(255,255,255,0.6);
+  display: block;
+}
+
+.totalStat--red {
+  color: rgba(239,68,68,0.5);
+  background: rgba(239,68,68,0.03);
+}
+
+.totalStat--red strong {
+  color: rgba(239,68,68,0.75);
+}
+
+/* ── No data ── */
+.noData {
+  padding: 1.25rem;
+  text-align: center;
+  font-size: 0.68rem;
+  color: rgba(255,255,255,0.2);
+  font-family: 'Outfit', sans-serif;
+}
+
+/* ═══ LEGEND ═══ */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.52rem;
+  color: rgba(255,255,255,0.2);
+  font-family: 'Outfit', sans-serif;
+}
+
+/* ═══ EMPTY STATE ═══ */
+.emptyState { text-align:center; padding:1.5rem 1rem; color:rgba(255,255,255,0.3); font-size:0.78rem; font-family:'Outfit',sans-serif; }
+.emptyCount { font-size:0.62rem; color:rgba(255,255,255,0.15); margin-top:0.4rem; display:block; }
+.progressMini { width:100px; height:3px; background:rgba(180,120,50,0.06); margin:0.5rem auto 0; overflow:hidden; }
+.progressMiniFill { height:100%; background:#c9a052; transition:width 0.3s; }
+
+/* ═══ RESPONSIVE ═══ */
+
+@media (max-width: 480px) {
+  .chip { width: 22px; height: 22px; font-size: 0.6rem; }
+  .typeBlock { padding: 0.45rem 0.5rem; }
+  .typeName { font-size: 0.65rem; }
+  .typePct { font-size: 0.88rem; }
+  .typeStat { font-size: 0.72rem; }
+  .assertHeader { padding: 0.45rem 0.5rem; }
+  .totalRow { padding: 0.5rem 0.5rem; }
+}
+
+@media (max-width: 380px) {
+  .typeStat { font-size: 0.65rem; }
+  .typeStatLabel { font-size: 0.45rem; }
+  .typePct { font-size: 0.82rem; }
+  .resultChip { min-width: 20px; height: 18px; font-size: 0.5rem; }
+}

@@ -1,176 +1,204 @@
-// src/hooks/useSpinHistory.js
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { io } from 'socket.io-client';
-import { SOCKET_URL, POLLING_INTERVAL_MS, getNumberColor } from '../constants/roulette';
-import { fetchFullHistory, fetchHistorySince } from '../services/api';
+import { API_URL } from '../constants/roulette';
+import { convertSpinItem, getNumberColor, computePullStats, computePreviousStats } from '../utils/roulette';
+import { processErrorResponse } from '../errorHandler';
 
-/**
- * Normaliza qualquer item do backend em formato padronizado.
- * Lida com diferenças de casing (signalId vs signalid) do PostgreSQL.
- */
-function parseSpinItem(item) {
-  const num = parseInt(item.signal, 10);
-  return {
-    number:   num,
-    color:    getNumberColor(num),
-    signal:   item.signal,
-    gameId:   item.gameid   || item.gameId,
-    signalId: item.signalid || item.signalId,
-    date:     item.timestamp || item.date || item.createdAt,
-  };
-}
+const POLL_INTERVAL_MS = 1000;
+const MAX_HISTORY      = 1000;
 
-/**
- * Hook que gerencia todo o fluxo de dados de spins:
- *  - Fetch inicial completo
- *  - Polling incremental (só registros novos)
- *  - Socket.io para PlayTech
- *  - Guard contra fetches sobrepostos
- * 
- * @param {string} selectedRoulette - Chave da roleta selecionada
- * @param {string|null} userEmail - Email do usuário logado
- * @param {string|null} jwtToken - Token JWT para socket
- * @param {boolean} isAuthenticated - Se o usuário está logado
- * @returns {{ spinHistory, selectedResult }}
- */
-export function useSpinHistory(selectedRoulette, userEmail, jwtToken, isAuthenticated) {
-  const [spinHistory, setSpinHistory] = useState([]);
-  const [selectedResult, setSelectedResult] = useState(null);
+const getItemId = (item) => item?.signalId || item?.signalid || null;
 
-  // ── Refs de controle ──
-  const latestTimestampRef = useRef(null);
-  const isFirstFetchRef    = useRef(true);
-  const isFetchingRef      = useRef(false);
+export const useSpinHistory = ({
+  selectedRoulette,
+  userEmail,
+  jwtToken,
+  isAuthenticated,
+  historyFilter,
+  onPaywallRequired,
+}) => {
+  const [spinHistory,          setSpinHistory]          = useState([]);
+  const [selectedResult,       setSelectedResult]       = useState(null);
+  const [numberPullStats,      setNumberPullStats]      = useState(() => new Map());
+  const [numberPreviousStats,  setNumberPreviousStats]  = useState(() => new Map());
 
-  // ── Reset ao trocar roleta ──
-  useEffect(() => {
-    latestTimestampRef.current = null;
-    isFirstFetchRef.current = true;
-    isFetchingRef.current = false;
-    setSpinHistory([]);
-    setSelectedResult(null);
-  }, [selectedRoulette]);
+  const latestIdRef = useRef(null);
 
-  // ── Fetch principal (incremental após o 1º) ──
   const fetchHistory = useCallback(async () => {
-    if (isFetchingRef.current || !userEmail) return;
-    isFetchingRef.current = true;
+    if (!userEmail) return;
 
     try {
-      const isFirstFetch = isFirstFetchRef.current || !latestTimestampRef.current;
+      const latestId = latestIdRef.current;
+      const endpoint = latestId
+        ? `${API_URL}/api/history-delta?source=${selectedRoulette}&userEmail=${encodeURIComponent(userEmail)}&since=${latestId}`
+        : `${API_URL}/api/full-history?source=${selectedRoulette}&userEmail=${encodeURIComponent(userEmail)}`;
 
-      const result = isFirstFetch
-        ? await fetchFullHistory(selectedRoulette, userEmail)
-        : await fetchHistorySince(selectedRoulette, latestTimestampRef.current, userEmail);
+      const response = await fetch(endpoint);
+      if (response.status === 304) return;
 
-      if (result.error) {
-        // Paywall é tratado por quem consome o hook
-        if (result.requiresPaywall) {
-          // Dispara evento customizado para o App lidar
-          window.dispatchEvent(new CustomEvent('paywall-required', {
-            detail: { checkoutUrl: result.checkoutUrl },
-          }));
+      if (!response.ok) {
+        const errorInfo = await processErrorResponse(response, 'history');
+        if (errorInfo.requiresPaywall || response.status === 403) {
+          onPaywallRequired(errorInfo.checkoutUrl || '');
+        }
+        throw new Error(errorInfo.message);
+      }
+
+      const result = await response.json();
+
+      if (result.data !== undefined) {
+        const items = result.data;
+        if (items.length === 0) return;
+
+        const converted = items.map(convertSpinItem);
+
+        if (result.full) {
+          latestIdRef.current = getItemId(converted[0]);
+          setSpinHistory(converted);
+          setSelectedResult(converted[0] || null);
+        } else {
+          setSpinHistory(prev => {
+            if (prev.length > 0 && String(getItemId(prev[0])) === String(getItemId(converted[0]))) return prev;
+            latestIdRef.current = getItemId(converted[0]);
+            setSelectedResult(converted[0]);
+            return [...converted, ...prev].slice(0, MAX_HISTORY);
+          });
         }
         return;
       }
 
-      const data = result.data;
-      if (!data || data.length === 0) return;
+      // Fallback: array direto
+      const data = result;
+      setSpinHistory(prev => {
+        if (data.length === 0) return prev;
+        if (prev.length === 0) {
+          const converted = data.map(convertSpinItem);
+          latestIdRef.current = getItemId(converted[0]);
+          setSelectedResult(converted[0] || null);
+          return converted;
+        }
 
-      if (isFirstFetch) {
-        // Primeiro load: substitui tudo
-        setSpinHistory(data.map(parseSpinItem));
-        latestTimestampRef.current = data[0].timestamp;
-        isFirstFetchRef.current = false;
-      } else {
-        // Incremental: prepend apenas novos
-        const newItems = data.map(parseSpinItem);
-
-        setSpinHistory(prev => {
-          const existingIds = new Set(prev.slice(0, 50).map(s => s.signalId));
-          const uniqueNew = newItems.filter(item => !existingIds.has(item.signalId));
-          if (uniqueNew.length === 0) return prev;
-          return [...uniqueNew, ...prev].slice(0, 1000);
-        });
-
-        latestTimestampRef.current = data[0].timestamp;
-      }
+        const newItems = [];
+        for (const item of data) {
+          if (String(getItemId(item)) === String(getItemId(prev[0]))) break;
+          newItems.push(convertSpinItem(item));
+        }
+        if (newItems.length === 0) return prev;
+        latestIdRef.current = getItemId(newItems[0]);
+        setSelectedResult(newItems[0]);
+        return [...newItems, ...prev].slice(0, MAX_HISTORY);
+      });
     } catch (err) {
       console.error('[useSpinHistory] Erro:', err.message);
-    } finally {
-      isFetchingRef.current = false;
     }
-  }, [selectedRoulette, userEmail]);
+  }, [selectedRoulette, userEmail, onPaywallRequired]);
 
-  // ── Polling com setTimeout (nunca sobrepõe) ──
+  // Polling
   useEffect(() => {
     if (!isAuthenticated || !userEmail) return;
-    if (selectedRoulette === 'Brasileira PlayTech') return;
 
-    let cancelled = false;
+    fetchHistory();
+    if (selectedRoulette === 'brasileira_playtech') return;
 
-    const poll = async () => {
-      if (cancelled) return;
-      await fetchHistory();
-      if (cancelled) return;
-      setTimeout(poll, POLLING_INTERVAL_MS);
-    };
-
-    poll();
-    return () => { cancelled = true; };
+    const id = setInterval(fetchHistory, POLL_INTERVAL_MS);
+    return () => clearInterval(id);
   }, [fetchHistory, isAuthenticated, userEmail, selectedRoulette]);
 
-  // ── Socket.io para PlayTech ──
+  // Socket.IO para PlayTech
   useEffect(() => {
-    if (selectedRoulette !== 'Brasileira PlayTech') return;
+    if (selectedRoulette !== 'brasileira_playtech' || !jwtToken || !userEmail) return;
 
-    const socket = io(SOCKET_URL, {
+    const socket = io(API_URL, {
       transports: ['websocket'],
-      auth: { token: jwtToken, email: userEmail },
+      auth:       { token: jwtToken, email: userEmail },
+      forceNew:   true,
     });
 
-    // Carga inicial via HTTP
-    fetch(`${SOCKET_URL}/api/full-history?source=Brasileira PlayTech&userEmail=${encodeURIComponent(userEmail || '')}`)
-      .then(res => res.json())
-      .then(data => {
-        const arr = Array.isArray(data) ? data : data.data || [];
-        setSpinHistory(arr.map(parseSpinItem));
-      })
-      .catch(err => console.error('[Socket] Erro ao carregar histórico:', err));
-
-    // Novos giros em tempo real
     socket.on('novo-giro', (payload) => {
       if (payload.source !== 'Brasileira PlayTech') return;
-
-      const newSpin = parseSpinItem({
+      const newSpin = {
+        number:   parseInt(payload.data.signal, 10),
+        color:    getNumberColor(parseInt(payload.data.signal, 10)),
         signal:   payload.data.signal,
         gameId:   payload.data.gameId,
         signalId: payload.data.signalId,
-        timestamp: payload.data.createdAt,
+        date:     payload.data.createdAt,
+      };
+      setSpinHistory(prev => {
+        if (prev.length > 0 && String(getItemId(prev[0])) === String(newSpin.signalId)) return prev;
+        latestIdRef.current = newSpin.signalId;
+        setSelectedResult(newSpin);
+        return [newSpin, ...prev].slice(0, MAX_HISTORY);
       });
-
-      setSpinHistory(prev =>
-        (prev.length > 0 && prev[0].signalId === newSpin.signalId)
-          ? prev
-          : [newSpin, ...prev].slice(0, 1000)
-      );
     });
+
+    socket.on('connect_error', (err) => console.error('[Socket] erro:', err.message));
 
     return () => socket.disconnect();
   }, [selectedRoulette, jwtToken, userEmail]);
 
-  // ── Atualiza selectedResult quando novo spin chega ──
+  // Computa pull stats de forma não-bloqueante
   useEffect(() => {
-    if (spinHistory.length === 0) {
-      setSelectedResult(null);
-      return;
-    }
-    setSelectedResult(prev => {
-      const newest = spinHistory[0];
-      if (prev?.signalId === newest.signalId) return prev;
-      return newest;
-    });
+    if (spinHistory.length === 0) return;
+
+    const id = setTimeout(() => {
+      const compute = () => {
+        setNumberPullStats(computePullStats(spinHistory));
+        setNumberPreviousStats(computePreviousStats(spinHistory));
+      };
+      'requestIdleCallback' in window
+        ? requestIdleCallback(compute, { timeout: 2000 })
+        : compute();
+    }, 300);
+
+    return () => clearTimeout(id);
   }, [spinHistory]);
 
-  return { spinHistory, selectedResult };
-}
+  const addSpin = useCallback((newSpin) => {
+    setSpinHistory(prev => {
+      if (prev.length > 0 && String(getItemId(prev[0])) === String(newSpin.signalId)) return prev;
+      latestIdRef.current = newSpin.signalId;
+      setSelectedResult(newSpin);
+      return [newSpin, ...prev].slice(0, MAX_HISTORY);
+    });
+  }, []);
+
+  const clearHistory = useCallback(() => {
+    latestIdRef.current = null;
+    setSpinHistory([]);
+    setSelectedResult(null);
+    setNumberPullStats(new Map());
+    setNumberPreviousStats(new Map());
+  }, []);
+
+  const filteredSpinHistory = useMemo(() => (
+    historyFilter === 'all' ? spinHistory : spinHistory.slice(0, Number(historyFilter))
+  ), [spinHistory, historyFilter]);
+
+  const stats = useMemo(() => {
+    const total = filteredSpinHistory.length;
+    if (total === 0) return { historyFilter: 0, colorFrequencies: { red: '0.0', black: '0.0', green: '0.0' }, latestNumbers: [] };
+
+    const counts = filteredSpinHistory.reduce((acc, s) => {
+      acc[s.color] = (acc[s.color] || 0) + 1;
+      return acc;
+    }, {});
+
+    return {
+      historyFilter: total,
+      colorFrequencies: {
+        red:   ((counts.red   || 0) / total * 100).toFixed(1),
+        black: ((counts.black || 0) / total * 100).toFixed(1),
+        green: ((counts.green || 0) / total * 100).toFixed(1),
+      },
+      latestNumbers: spinHistory.slice(0, 100),
+    };
+  }, [filteredSpinHistory, spinHistory]);
+
+  return {
+    spinHistory, filteredSpinHistory,
+    selectedResult, setSelectedResult,
+    numberPullStats, numberPreviousStats,
+    stats, addSpin, clearHistory,
+  };
+};

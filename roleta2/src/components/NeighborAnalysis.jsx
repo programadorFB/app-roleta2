@@ -6,7 +6,7 @@ import { Target, TrendingUp, Zap, CheckCircle, AlertTriangle, ArrowLeftRight, Cl
 import styles from './DeepAnalysisPanel.module.css'; // Reutilizamos o mesmo CSS
 
 // Importa a lógica REAL e a constante da Roda
-import { analyzeNeighborhood, PHYSICAL_WHEEL } from '../services/NeighborAnalysis.jsx'; 
+import { analyzeNeighborhood, PHYSICAL_WHEEL } from '../services/NeighborAnalysis.js';
 
 // --- Componentes Auxiliares ---
 

@@ -17,7 +17,7 @@ export function authProxyMiddleware(target = DEFAULT_AUTH_PROXY_TARGET) {
     timeout: 60000,
     pathRewrite: { '^/login': '/login' },
 
-    onProxyReq: (proxyReq, req, res) => {
+    onProxyReq: (proxyReq, req, _res) => {
       const timestamp = new Date().toISOString();
       console.log(`[${timestamp}] 🔄 Proxy Request: ${req.method} ${req.url}`);
       console.log(`[${timestamp}] 🎯 Target: ${target}${req.url}`);
@@ -29,7 +29,7 @@ export function authProxyMiddleware(target = DEFAULT_AUTH_PROXY_TARGET) {
       );
       proxyReq.setHeader('Accept', 'application/json');
       proxyReq.setHeader('Accept-Language', 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7');
-
+      console.log(`[${timestamp}] Headers:`, req.headers);
       if (req.headers.authorization) {
         console.log(`[${timestamp}] 🔑 Auth: ${req.headers.authorization.substring(0, 30)}...`);
       }
@@ -148,7 +148,7 @@ export function gameProxyMiddleware(target = DEFAULT_AUTH_PROXY_TARGET) {
       return newPath;
     },
 
-    onProxyReq: (proxyReq, req, res) => {
+    onProxyReq: (proxyReq, req, _res) => {
       const timestamp = new Date().toISOString();
       console.log(`[${timestamp}] 🎮 Game Proxy Request: ${req.method} ${req.url}`);
       console.log(`[${timestamp}] 🎯 Target: ${target}${proxyReq.path}`);

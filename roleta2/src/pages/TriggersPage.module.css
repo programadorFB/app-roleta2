@@ -1,0 +1,614 @@
+/* TriggersPage.module.css — MOGNO & OURO — Unified with MasterDashboard */
+
+.page {
+  width: 100%;
+  padding: 0.75rem;
+  min-height: calc(100vh - 52px);
+  box-sizing: border-box;
+}
+
+/* ═══ THREE-COLUMN GRID ═══ */
+.layout {
+  display: grid;
+  grid-template-columns: 400px 1fr 300px;
+  gap: 0.75rem;
+  height: calc(100vh - 52px - 1.5rem);
+  min-height: 0;
+}
+
+/* ── LEFT COLUMN ── */
+.leftCol {
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: linear-gradient(165deg, rgba(12,10,6,0.6) 0%, rgba(8,6,4,0.45) 100%);
+  border: 1px solid rgba(180,120,50,0.1);
+  border-top: 1px solid rgba(201,160,82,0.18);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+  -webkit-overflow-scrolling: touch;
+}
+
+.leftCol::-webkit-scrollbar { width: 3px; }
+.leftCol::-webkit-scrollbar-track { background: transparent; }
+.leftCol::-webkit-scrollbar-thumb { background: rgba(180,120,50,0.12); }
+
+/* ── MIDDLE COLUMN ── */
+.middleCol {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 0;
+  position: sticky;
+  top: calc(52px + 0.75rem);
+  align-self: start;
+  max-height: calc(100vh - 52px - 1.5rem);
+}
+
+.gameWrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 65vh;
+  background: #000;
+  overflow: hidden;
+  border: 1px solid rgba(180,120,50,0.1);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+  flex-shrink: 0;
+}
+
+.gameWrapper iframe,
+.gameWrapper > div {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  border: none;
+}
+
+/* Override global .game-iframe-wrapper padding inside triggers */
+.gameWrapper :global(.game-iframe-wrapper) {
+  padding-bottom: 0 !important;
+  position: absolute !important;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+}
+
+.gameWrapper :global(.game-iframe-wrapper) iframe {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  border: none;
+}
+
+.racetrackWrapper {
+  background: linear-gradient(165deg, rgba(12,10,6,0.55) 0%, rgba(8,6,4,0.4) 100%);
+  border: 1px solid rgba(180,120,50,0.08);
+  border-top: 1px solid rgba(201,160,82,0.12);
+  padding: 0.4rem 0.3rem;
+  flex-shrink: 0;
+}
+
+/* ── RIGHT COLUMN ── */
+.rightCol {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  min-height: 0;
+}
+
+.rightCol::-webkit-scrollbar { width: 3px; }
+.rightCol::-webkit-scrollbar-track { background: transparent; }
+.rightCol::-webkit-scrollbar-thumb { background: rgba(180,120,50,0.12); }
+
+.rightContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* ═══ SCOREBOARD — matches MasterDashboard heroPanel ═══ */
+.scoreboard {
+  position: relative;
+  background: linear-gradient(165deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.018) 40%, rgba(255,255,255,0.004) 100%);
+  border: 1px solid rgba(180,120,50,0.09);
+  border-top: 1px solid rgba(201,160,82,0.18);
+  padding: 0.6rem 0.6rem 0.5rem;
+  overflow: hidden;
+  box-shadow:
+    0 20px 60px rgba(0,0,0,0.8),
+    inset 0 1px 2px rgba(201,160,82,0.05),
+    inset 0 -1px 2px rgba(0,0,0,0.3);
+}
+
+.scoreShine {
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent 5%, rgba(255,255,255,0.18) 35%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.18) 65%, transparent 95%);
+  pointer-events: none;
+}
+
+.scoreLayout {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr 1fr;
+  align-items: center;
+  gap: 0;
+  min-height: 60px;
+}
+
+.scoreCounter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 0.3rem 0;
+}
+
+.scoreValue {
+  font-size: 1.7rem;
+  font-weight: 800;
+  font-family: 'Outfit', sans-serif;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.scoreLabel {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-top: 2px;
+  font-family: 'Outfit', sans-serif;
+}
+
+.scoreCenter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.scoreRate {
+  font-size: 1.6rem;
+  font-weight: 900;
+  font-family: 'Outfit', sans-serif;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.scorePercSign {
+  font-size: 0.8rem;
+  font-weight: 700;
+  opacity: 0.7;
+  margin-left: 1px;
+}
+
+.scoreEntries {
+  font-size: 0.6rem;
+  color: rgba(255,255,255,0.3);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-family: 'Outfit', sans-serif;
+}
+
+.scoreMissNote {
+  font-size: 0.5rem;
+  color: rgba(201,160,82,0.35);
+  margin-top: 1px;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: 0.02em;
+}
+
+/* ═══ ACTIVE SIGNALS PANEL ═══ */
+.signalsPanel {
+  background: linear-gradient(165deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.015) 100%);
+  border: 1px solid rgba(180,120,50,0.09);
+  border-top: 1px solid rgba(201,160,82,0.16);
+  padding: 0.6rem 0.7rem;
+  box-shadow:
+    0 6px 20px rgba(0,0,0,0.5),
+    inset 0 1px 1px rgba(201,160,82,0.05),
+    inset 0 -1px 0 rgba(0,0,0,0.2);
+}
+
+.signalsPanelHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(201,160,82,0.7);
+  margin-bottom: 0.5rem;
+  font-family: 'Outfit', sans-serif;
+}
+
+.signalsPanelIcon {
+  color: #c9a052;
+  flex-shrink: 0;
+}
+
+.noSignals {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.2);
+  padding: 0.25rem 0;
+  font-family: 'Outfit', sans-serif;
+}
+
+.signalsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.signalRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.4rem;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(180,120,50,0.06);
+  transition: background 0.2s;
+}
+
+.signalRow--pending { border-color: rgba(251,191,36,0.2); background: rgba(251,191,36,0.04); }
+.signalRow--win     { border-color: rgba(52,211,153,0.2); background: rgba(52,211,153,0.04); }
+.signalRow--loss    { border-color: rgba(239,68,68,0.15); background: rgba(239,68,68,0.03); opacity: 0.6; }
+
+.signalChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  font-size: 0.65rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  font-family: 'Outfit', sans-serif;
+}
+
+.signalChip--red   { background: rgba(220,38,38,0.7); color: #fff; }
+.signalChip--black { background: rgba(30,30,30,0.8); color: #ccc; border: 1px solid rgba(255,255,255,0.1); }
+.signalChip--green { background: rgba(5,150,105,0.7); color: #fff; }
+
+.signalAction {
+  flex: 1;
+  font-size: 0.62rem;
+  color: rgba(255,255,255,0.5);
+  font-family: 'Outfit', sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.signalHitRate {
+  font-size: 0.6rem;
+  font-weight: 800;
+  font-family: 'Outfit', sans-serif;
+  flex-shrink: 0;
+}
+
+.signalStatus { flex-shrink: 0; }
+
+.signalPending {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #fbbf24;
+  font-family: 'Outfit', sans-serif;
+}
+
+.signalWin {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #34d399;
+  font-family: 'Outfit', sans-serif;
+}
+
+.signalLoss {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: rgba(239,68,68,0.6);
+  font-family: 'Outfit', sans-serif;
+}
+
+/* ═══ SIGNAL EXPAND ═══ */
+
+.signalItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.signalRow { cursor: pointer; }
+.signalRow--active { border-color: rgba(201,160,82,0.25); background: rgba(201,160,82,0.06); }
+
+.signalChevron {
+  flex-shrink: 0;
+  color: rgba(201,160,82,0.3);
+  transition: transform 0.25s, color 0.25s;
+  margin-left: 2px;
+}
+
+.signalChevron--open {
+  transform: rotate(180deg);
+  color: #c9a052;
+}
+
+/* ── Signal History Dropdown ── */
+.signalHistory {
+  padding: 0.5rem 0.55rem;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(180,120,50,0.08);
+  border-top: none;
+  animation: shReveal 0.25s ease-out;
+}
+
+@keyframes shReveal {
+  from { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; }
+  to   { opacity: 1; max-height: 300px; }
+}
+
+/* stats row */
+.shStatsRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid rgba(180,120,50,0.06);
+  margin-bottom: 0.4rem;
+}
+
+.shStat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.shStatVal {
+  font-size: 0.8rem;
+  font-weight: 800;
+  font-family: 'Outfit', sans-serif;
+  line-height: 1;
+}
+
+.shStatLbl {
+  font-size: 0.45rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: rgba(232,220,200,0.35);
+  text-transform: uppercase;
+  font-family: 'Outfit', sans-serif;
+}
+
+.shStatDivider {
+  width: 1px;
+  height: 20px;
+  background: rgba(180,120,50,0.1);
+  margin: 0 0.15rem;
+}
+
+/* recent results */
+.shResults {
+  margin-bottom: 0.4rem;
+}
+
+.shResultsLabel {
+  display: block;
+  font-size: 0.5rem;
+  font-weight: 600;
+  color: rgba(232,220,200,0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.25rem;
+  font-family: 'Outfit', sans-serif;
+}
+
+.shResultsChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.shChip {
+  font-size: 0.5rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.shChip--win {
+  background: rgba(52,211,153,0.12);
+  color: #34d399;
+  border: 1px solid rgba(52,211,153,0.2);
+}
+
+.shChip--red {
+  background: rgba(239,68,68,0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239,68,68,0.15);
+}
+
+/* covered numbers */
+.shCovered {
+  margin-bottom: 0.35rem;
+}
+
+.shCoveredLabel {
+  display: block;
+  font-size: 0.5rem;
+  font-weight: 600;
+  color: rgba(232,220,200,0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.25rem;
+  font-family: 'Outfit', sans-serif;
+}
+
+.shCoveredNums {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.shNumChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 0.55rem;
+  font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+}
+
+.shNumChip--red   { background: rgba(220,38,38,0.6); color: #fff; }
+.shNumChip--black { background: rgba(30,30,30,0.7); color: #ccc; border: 1px solid rgba(255,255,255,0.08); }
+.shNumChip--green { background: rgba(5,150,105,0.6); color: #fff; }
+
+/* footer */
+.shFooter {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.5rem;
+  color: rgba(232,220,200,0.35);
+  font-family: 'Outfit', sans-serif;
+  padding-top: 0.3rem;
+  border-top: 1px solid rgba(180,120,50,0.05);
+}
+
+/* ═══ RESPONSIVE ═══ */
+
+/* 1280px: colunas ajustadas */
+@media (max-width: 1280px) {
+  .layout {
+    grid-template-columns: 380px 1fr 260px;
+  }
+
+  .gameWrapper {
+    max-height: 55vh;
+  }
+}
+
+/* 1050px: colapsa left col */
+@media (max-width: 1050px) {
+  .layout {
+    grid-template-columns: 1fr 280px;
+    grid-template-rows: auto 1fr;
+  }
+
+  .leftCol {
+    display: none;
+  }
+}
+
+/* 800px: stack vertical */
+@media (max-width: 800px) {
+  .layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    height: auto;
+  }
+
+  .middleCol {
+    position: static;
+    max-height: none;
+  }
+
+  .gameWrapper {
+    aspect-ratio: 16 / 9;
+    max-height: 45vh;
+  }
+
+  .rightCol {
+    overflow-y: visible;
+  }
+
+  .leftCol {
+    display: block;
+    max-height: 200px;
+  }
+
+  .scoreValue {
+    font-size: 1.5rem;
+  }
+
+  .scoreRate {
+    font-size: 1.3rem;
+  }
+}
+
+/* 480px: mobile */
+@media (max-width: 480px) {
+  .page {
+    padding: 0.375rem;
+  }
+
+  .layout {
+    gap: 0.375rem;
+  }
+
+  .gameWrapper {
+    max-height: 40vh;
+  }
+
+  .scoreLayout {
+    min-height: 50px;
+  }
+
+  .scoreValue {
+    font-size: 1.3rem;
+  }
+
+  .scoreRate {
+    font-size: 1.1rem;
+  }
+
+  .scoreLabel {
+    font-size: 0.52rem;
+  }
+
+  .scoreEntries {
+    font-size: 0.5rem;
+  }
+
+  .scoreMissNote {
+    font-size: 0.45rem;
+  }
+}
+
+/* 380px: ultra small */
+@media (max-width: 380px) {
+  .scoreLayout {
+    grid-template-columns: 1fr 1.4fr 1fr;
+    min-height: 45px;
+  }
+
+  .scoreValue {
+    font-size: 1.1rem;
+  }
+
+  .scoreRate {
+    font-size: 1rem;
+  }
+
+  .scoreLabel {
+    font-size: 0.48rem;
+    letter-spacing: 0.08em;
+  }
+
+  .signalChip {
+    width: 20px; height: 20px;
+    font-size: 0.6rem;
+  }
+
+  .signalAction {
+    font-size: 0.58rem;
+  }
+}

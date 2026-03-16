@@ -3,18 +3,10 @@
 import React, { useMemo } from 'react';
 import { Target, TrendingUp, AlertOctagon, Cpu, Zap, Activity, Repeat } from 'lucide-react';
 import styles from './DeepAnalysisPanel.module.css'; // Reutilizamos o mesmo CSS
+import { HIDDEN_LEVELS } from '../constants/analysis.js';
 
-// --- Constantes de Análise ---
-
-// REQ 1: Níveis de Ocultos
-export const HIDDEN_LEVELS = [
-  { level: 6, min: 100, label: 'Nível 6 (CRÍTICO)', color: '#ef4444' },
-  { level: 5, min: 80, label: 'Nível 5', color: '#f59e0b' },
-  { level: 4, min: 60, label: 'Nível 4', color: '#eab308' },
-  { level: 3, min: 40, label: 'Nível 3', color: '#a3e635' },
-  { level: 2, min: 25, label: 'Nível 2', color: '#38bdf8' },
-  { level: 1, min: 15, label: 'Nível 1', color: '#818cf8' },
-];
+// Re-exporta para manter compatibilidade com imports existentes
+export { HIDDEN_LEVELS };
 
 // REQ 2: Mapeamento de "Cavalos" (Apostas Divididas)
 // Mapeia cada número para seus vizinhos no *layout da mesa*

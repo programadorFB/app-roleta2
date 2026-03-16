@@ -1,107 +1,198 @@
-import React, { useState, useEffect } from 'react';
+// components/RacingTrack.jsx — STADIUM RACETRACK v6 — GREEN TARGETS + GOLD NEIGHBORS
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import './RacingTrack.css';
+import { PHYSICAL_WHEEL } from '../constants/roulette.js';
 
-const getNumberColor = (num) => {
-  if (num === 0) return 'green';
-  const redNumbers = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
-  return redNumbers.includes(num) ? 'red' : 'black';
+const getNumColor = (n) => {
+  if (n === 0) return '#10b981';
+  const R = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
+  return R.includes(n) ? '#e53e3e' : '#ccc';
 };
 
-const NumberBox = ({ num, onClick, isActive, isEntrySignal }) => (
-  <div
-    className={`racetrack-flat-number ${getNumberColor(num)} ${isActive ? 'active' : ''} ${isEntrySignal ? 'entry-signal-glow' : ''}`}
-    onClick={() => onClick(num)}
-    title={`Número ${num}`}
-  >
-    {num}
-  </div>
-);
+const WHEEL = PHYSICAL_WHEEL;
 
-const RacingTrack = ({ selectedResult, onNumberClick, entrySignals = [] }) => {
+const HALF = Math.floor(WHEEL.length / 2) + 2;
+const WHEEL_ROTATED = [...WHEEL.slice(HALF), ...WHEEL.slice(0, HALF)];
+
+const RacingTrack = ({ selectedResult, onNumberClick, entrySignals = [], targetSignals = [] }) => {
   const [activeNumber, setActiveNumber] = useState(null);
-  // 'isFlipped' agora significa "mostrar Layout 2 (Francês)"
   const [isFlipped, setIsFlipped] = useState(false);
 
   useEffect(() => {
     if (selectedResult) {
       setActiveNumber(selectedResult.number);
-      const timer = setTimeout(() => setActiveNumber(null), 3000);
-      return () => clearTimeout(timer);
+      const t = setTimeout(() => setActiveNumber(null), 3002);
+      return () => clearTimeout(t);
     }
   }, [selectedResult]);
 
-  const handleFlip = () => {
-    setIsFlipped(prev => !prev);
-  };
+  const isActive = (n) => activeNumber === n;
+  const isTarget = (n) => targetSignals.includes(n);
+  const isNeighbor = (n) => entrySignals.includes(n) && !targetSignals.includes(n);
 
-  const isActive = (num) => activeNumber === num;
-  const isEntry = (num) => entrySignals.includes(num);
+  const wheel = isFlipped ? WHEEL_ROTATED : WHEEL;
 
-  // === DEFINIÇÃO DOS DOIS LAYOUTS ===
+  // === STADIUM GEOMETRY ===
+  const W = 700, H = 108;
+  const pad = 16;
+  const R = (H - pad * 2) / 2;
+  const straightLen = W - pad * 2 - R * 2;
+  const totalPerimeter = 2 * straightLen + 2 * Math.PI * R;
 
-  // LAYOUT 1 (Padrão, da imagem original image_d0ed00.png)
-  const layout1_leftCol = [5, 10, 23];
-  const layout1_topRow = [24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35]; // 15 números
-  const layout1_rightCol = [3, 26, 0];
-  const layout1_bottomRow = [8, 30, 11, 36, 13, 27, 6, 34, 17, 25, 2, 21, 4, 19, 15, 32]; // 16 números
+  const s1 = straightLen / totalPerimeter;
+  const s2 = s1 + (Math.PI * R) / totalPerimeter;
+  const s3 = s2 + straightLen / totalPerimeter;
 
-  // LAYOUT 2 (Layout Francês, da nova imagem image_d0ffcd.png)
-  const layout2_leftCol = [32, 0, 26];
-  const layout2_topRow = [15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30]; // 14 números
-  const layout2_rightCol = [23, 10, 5];
-  const layout2_bottomRow = [3, 35, 12, 28, 7, 29, 18, 22, 9, 31, 14, 20, 1, 33, 16, 24]; // 16 números
+  const leftCx = pad + R;
+  const rightCx = W - pad - R;
+  const cy = H / 2;
 
-  // === LÓGICA DE RENDERIZAÇÃO ===
-  // Escolhe qual layout usar com base no estado 'isFlipped'
-  const leftCol = isFlipped ? layout2_leftCol : layout1_leftCol;
-  const topRow = isFlipped ? layout2_topRow : layout1_topRow;
-  const rightCol = isFlipped ? layout2_rightCol : layout1_rightCol;
-  const bottomRow = isFlipped ? layout2_bottomRow : layout1_bottomRow;
+  const getPos = useCallback((t) => {
+    const tt = ((t % 1) + 1) % 1;
+    if (tt < s1) {
+      const frac = tt / s1;
+      return { x: leftCx + frac * straightLen, y: pad };
+    } else if (tt < s2) {
+      const frac = (tt - s1) / (s2 - s1);
+      const angle = -Math.PI / 2 + frac * Math.PI;
+      return { x: rightCx + R * Math.cos(angle), y: cy + R * Math.sin(angle) };
+    } else if (tt < s3) {
+      const frac = (tt - s2) / (s3 - s2);
+      return { x: rightCx - frac * straightLen, y: H - pad };
+    } else {
+      const frac = (tt - s3) / (1 - s3);
+      const angle = Math.PI / 2 + frac * Math.PI;
+      return { x: leftCx + R * Math.cos(angle), y: cy + R * Math.sin(angle) };
+    }
+  }, [leftCx, rightCx, cy, pad, R, H, straightLen, s1, s2, s3]);
+
+  const positions = useMemo(() => {
+    return wheel.map((num, i) => {
+      const t = i / wheel.length;
+      const pos = getPos(t);
+      return { num, ...pos };
+    });
+  }, [wheel, getPos]);
+
+  const outlinePath = `
+    M ${leftCx} ${pad}
+    L ${rightCx} ${pad}
+    A ${R} ${R} 0 0 1 ${rightCx} ${H - pad}
+    L ${leftCx} ${H - pad}
+    A ${R} ${R} 0 0 1 ${leftCx} ${pad} Z`;
+
+  const Ri = R - 18;
+  const innerPath = Ri > 4 ? `
+    M ${leftCx} ${cy - Ri}
+    L ${rightCx} ${cy - Ri}
+    A ${Ri} ${Ri} 0 0 1 ${rightCx} ${cy + Ri}
+    L ${leftCx} ${cy + Ri}
+    A ${Ri} ${Ri} 0 0 1 ${leftCx} ${cy - Ri} Z` : '';
+
+  const labels = isFlipped ? [
+    { text: 'VOISINS', x: W * 0.22 },
+    { text: 'ORPHELINS', x: W * 0.53 },
+    { text: 'TIER', x: W * 0.78 },
+  ] : [
+    { text: 'TIER', x: W * 0.22 },
+    { text: 'ORPHELINS', x: W * 0.47 },
+    { text: 'VOISINS', x: W * 0.73 },
+  ];
+
+  const zeroLabelX = isFlipped ? W - pad - 2 : pad + 2;
+  const cellR = 13;
 
   return (
-    <div className="racetrack-flat-container">
-      <div className="racetrack-flat-inner">
+    <div className="racetrack-oval-container">
+      <svg viewBox={`0 0 ${W} ${H}`} className="racetrack-oval-svg" preserveAspectRatio="xMidYMid meet">
 
-        {/* Coluna da Esquerda (Dinâmica) */}
-        <div className="racetrack-flat-col left">
-          {leftCol.map(num => (
-             <NumberBox key={num} num={num} onClick={onNumberClick} isActive={isActive(num)} isEntrySignal={isEntry(num)} />
-          ))}
-        </div>
+        {/* Stadium fill + border */}
+        <path d={outlinePath} fill="rgba(180,120,50,0.015)" stroke="rgba(139,94,52,0.2)" strokeWidth="1" />
 
-        <div className="racetrack-flat-col center">
-          <div className="racetrack-flat-row">
-            {/* Linha de Cima (Dinâmica) */}
-            {topRow.map(num => (
-              <NumberBox key={num} num={num} onClick={onNumberClick} isActive={isActive(num)} isEntrySignal={isEntry(num)} />
-            ))}
-          </div>
+        {/* Inner outline */}
+        {innerPath && (
+          <path d={innerPath} fill="none" stroke="rgba(139,94,52,0.1)" strokeWidth="0.5" />
+        )}
 
-          {/* Botão para alternar a visualização */}
-          <div className="racetrack-divider-bar">
-            <button className="racetrack-flip-button" onClick={handleFlip} title="Mudar Visualização">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-9L21 12m0 0l-4.5 4.5M21 12H7.5" />
-              </svg>
-            </button>
-          </div>
-            
-          <div className="racetrack-flat-row">
-            {/* Linha de Baixo (Dinâmica) */}
-            {bottomRow.map(num => (
-              <NumberBox key={num} num={num} onClick={onNumberClick} isActive={isActive(num)} isEntrySignal={isEntry(num)} />
-            ))}
-          </div>
-        </div>
+        {/* Section labels */}
+        {labels.map(l => (
+          <text key={l.text} x={l.x} y={cy} textAnchor="middle" dominantBaseline="central"
+            fill="rgba(201,160,82,0.22)" fontSize="8" fontWeight="700"
+            fontFamily="'Outfit',sans-serif" letterSpacing="0.15em"
+          >{l.text}</text>
+        ))}
 
-        {/* Coluna da Direita (Dinâmica) */}
-        <div className="racetrack-flat-col right">
-          {rightCol.map(num => (
-            <NumberBox key={num} num={num} onClick={onNumberClick} isActive={isActive(num)} isEntrySignal={isEntry(num)} />
-          ))}
-        </div>
+        {/* ZERO label */}
+        <text x={zeroLabelX} y={cy} textAnchor="middle" dominantBaseline="central"
+          fill="rgba(201,160,82,0.22)" fontSize="7" fontWeight="700"
+          fontFamily="'Outfit',sans-serif" letterSpacing="0.1em"
+          transform={`rotate(-90, ${zeroLabelX}, ${cy})`}
+        >ZERO</text>
 
-      </div>
+        {/* Flip button */}
+        <g onClick={() => setIsFlipped(f => !f)} style={{ cursor: 'pointer' }} className="rt-flip-btn">
+          <circle cx={W / 2} cy={cy} r="10"
+            fill="rgba(180,120,50,0.06)" stroke="rgba(201,160,82,0.2)" strokeWidth="0.5" />
+          <path
+            d={`M ${W/2 - 4} ${cy - 1} A 4 4 0 1 1 ${W/2 + 4} ${cy - 1}`}
+            fill="none" stroke="rgba(201,160,82,0.5)" strokeWidth="1" strokeLinecap="round"
+          />
+          <path
+            d={`M ${W/2 + 2} ${cy - 4} L ${W/2 + 4.5} ${cy - 1} L ${W/2 + 1.5} ${cy - 0.5}`}
+            fill="rgba(201,160,82,0.5)" stroke="none"
+          />
+        </g>
+
+        {/* Numbers */}
+        {positions.map(({ num, x, y }) => {
+          const act = isActive(num);
+          const tgt = isTarget(num);
+          const nbr = isNeighbor(num);
+          const col = getNumColor(num);
+
+          // Cores: target = verde, neighbor = ouro, nenhum = neutro
+          const ringColor = tgt ? 'rgba(52,211,153,0.7)' : nbr ? 'rgba(201,160,82,0.55)' : null;
+          const ringClass = tgt ? 'rt-target-ring' : 'rt-entry-ring';
+          const fillColor = act ? 'rgba(253,224,71,0.12)'
+            : tgt ? 'rgba(52,211,153,0.08)'
+            : nbr ? 'rgba(201,160,82,0.06)'
+            : 'rgba(255,255,255,0.015)';
+          const strokeColor = act ? 'rgba(253,224,71,0.4)'
+            : tgt ? 'rgba(52,211,153,0.4)'
+            : nbr ? 'rgba(201,160,82,0.3)'
+            : 'rgba(180,120,50,0.12)';
+
+          return (
+            <g key={num} onClick={() => onNumberClick(num)} style={{ cursor: 'pointer' }} className="rt-cell">
+              {/* Entry/Target ring */}
+              {(tgt || nbr) && !act && (
+                <circle cx={x} cy={y} r={cellR + 3} fill="none"
+                  stroke={ringColor} strokeWidth={tgt ? 2 : 1.5}
+                  className={ringClass} />
+              )}
+              {/* Active ring */}
+              {act && (
+                <circle cx={x} cy={y} r={cellR + 5} fill="none"
+                  stroke="rgba(253,224,71,0.65)" strokeWidth="2" className="rt-active-ring" />
+              )}
+              {/* Circle bg */}
+              <circle cx={x} cy={y} r={cellR}
+                fill={fillColor}
+                stroke={strokeColor}
+                strokeWidth={act ? 1.2 : tgt ? 1 : 0.5}
+              />
+              {/* Number text */}
+              <text x={x} y={y} textAnchor="middle" dominantBaseline="central"
+                fill={act ? '#fde047' : tgt ? '#34d399' : col}
+                fontSize="9.5" fontWeight="700" fontFamily="'Outfit',sans-serif"
+                style={act ? { filter: 'drop-shadow(0 0 4px rgba(253,224,71,0.6))' }
+                  : tgt ? { filter: 'drop-shadow(0 0 4px rgba(52,211,153,0.4))' }
+                  : {}}
+              >{num}</text>
+            </g>
+          );
+        })}
+      </svg>
     </div>
   );
 };

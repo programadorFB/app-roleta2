@@ -1,5 +1,5 @@
 // contexts/NotificationContext.js
-import React, { createContext, useState, useCallback, useContext, useEffect, useRef } from 'react';
+import React, { createContext, useState, useCallback, useContext, useRef } from 'react';
 
 const NotificationContext = createContext();
 
@@ -35,7 +35,7 @@ export const NotificationProvider = ({ children }) => {
   // Função para adicionar uma notificação (chamada por outros componentes)
   const addNotification = useCallback((notificationProps) => {
     const id = Date.now() + Math.random();
-    const duration = notificationProps.duration || 5000;
+    const duration = notificationProps.duration || 1000;
 
     const newNotification = {
       ...notificationProps,

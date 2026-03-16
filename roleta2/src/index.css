@@ -1,75 +1,102 @@
-/* index.css - Estilos Base (SEM CONFLITOS) */
+/* index.css — MOGNO & OURO PREMIUM — RESPONSIVE v2 */
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-html {
-  overflow-x: hidden;
-  color-scheme: dark;
-}
+/* ========================================
+   RESET & BASE
+   ======================================== */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { overflow-x: hidden; color-scheme: dark; scroll-behavior: smooth; }
 
 body {
-  font-family: 'Arial', sans-serif;
-  background-color: #4a4a4a; /* COR ÚNICA - Mesmo do container */
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: #0a0806;
+  background-image:
+    radial-gradient(ellipse at 20% 10%, rgba(180,120,50,0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 15%, rgba(139,94,52,0.04) 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 50%, rgba(201,160,82,0.01) 0%, transparent 60%),
+    radial-gradient(ellipse at 75% 85%, rgba(120,60,20,0.035) 0%, transparent 50%);
   overflow-x: hidden;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
-#root {
-  min-height: 100vh;
-  background-color: inherit;
+#root { min-height: 100vh; background-color: inherit; }
+html, body, #root { opacity: 1 !important; visibility: visible !important; }
+
+/* ========================================
+   SCROLLBARS
+   ======================================== */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: rgba(180,120,50,0.02); }
+::-webkit-scrollbar-thumb { background: rgba(180,120,50,0.1); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: rgba(201,160,82,0.18); }
+
+/* ========================================
+   BASE ELEMENTS
+   ======================================== */
+@keyframes spin { to { transform: rotate(360deg); } }
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; }
+
+/* ========================================
+   TEXT OVERFLOW PROTECTION
+   Previne textos longos de quebrarem o layout
+   ======================================== */
+h1, h2, h3, h4, h5, h6, p, span, a, button {
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
-/* Prevenir flash de tela branca durante load */
-html, body, #root {
-  opacity: 1 !important;
-  visibility: visible !important;
+/* ========================================
+   iOS — Prevent zoom on input focus
+   No iOS, inputs com font < 16px causam zoom
+   automático ao focar. Forçamos 16px mínimo.
+   ======================================== */
+@supports (-webkit-touch-callout: none) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
 }
 
-/* Scrollbar customizada */
-::-webkit-scrollbar {
-  width: 8px;
+/* ========================================
+   TOUCH DEVICES — Tap targets & feedback
+   ======================================== */
+@media (pointer: coarse) {
+  * {
+    -webkit-tap-highlight-color: rgba(201,160,82,0.08);
+  }
+
+  /* Touch targets mínimos de 36px (recomendação WCAG: 44px, 36px é aceitável com spacing) */
+  button, a, select, [role="button"] {
+    min-height: 36px;
+    min-width: 36px;
+  }
 }
 
-::-webkit-scrollbar-track {
-  background: #1a1a1a;
+/* ========================================
+   RESPONSIVE SCROLLBARS
+   Scrollbars mais finos em telas menores
+   ======================================== */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(180,120,50,0.08);
+  }
 }
 
-::-webkit-scrollbar-thumb {
-  background: #4b5563;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #6b7280;
-}
-
-/* Animação de spin (usada em vários lugares) */
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Reset de links */
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-/* Reset de botões */
-button {
-  font-family: inherit;
-}
-
-/* Acessibilidade - respeitar preferências do usuário */
+/* ========================================
+   ACESSIBILIDADE — Reduced Motion
+   ======================================== */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

@@ -1,11 +1,19 @@
-import React, { useState, useCallback, useMemo, memo } from 'react';
+import React, { useState, useCallback, useMemo, memo, useRef, useEffect } from 'react';
+import { SECTORS } from '../constants/roulette';
 import './ResultGrid.css';
+
+// --- Constants ---
+const CELL_MIN  = 32;
+const GAP       = 6;
+const PADDING   = 10;
+const OVERSCAN  = 3;
+const VIEW_H    = 400;
 
 // --- Helpers ---
 const formatPullTooltip = (number, pullStats, previousStats) => {
   const pullStatsMap = pullStats?.get(number);
   const prevStatsMap = previousStats?.get(number);
-  
+
   let pullString = "(Nenhum)";
   if (pullStatsMap && pullStatsMap.size > 0) {
     const pulledNumbers = [...pullStatsMap.keys()];
@@ -39,7 +47,7 @@ const getSpecialClass = (number, mode, color, isDuplicate, isTerminalMatch, sequ
   if (mode === 'coliseu') {
     if (terminal === 0) return 'bg-coliseu-blue';
     if (terminal === 5) return 'bg-coliseu-green';
-    
+
     const textColorClass = color === 'red' ? 'text-red' : 'text-white';
     return `bg-coliseu-dimmed ${textColorClass}`;
   }
@@ -48,7 +56,7 @@ const getSpecialClass = (number, mode, color, isDuplicate, isTerminalMatch, sequ
   if (mode === 'coliseu62') {
     if (terminal === 6) return 'bg-coliseu62-blue';
     if (terminal === 2) return 'bg-coliseu62-green';
-    
+
     const textColorClass = color === 'red' ? 'text-red' : 'text-white';
     return `bg-coliseu62-dimmed ${textColorClass}`;
   }
@@ -57,9 +65,9 @@ const getSpecialClass = (number, mode, color, isDuplicate, isTerminalMatch, sequ
   if (mode === 'gemeos') {
     const dezena = Math.floor(number / 10);
     const unidade = number % 10;
-    
+
     if (dezena === unidade && number > 0) return 'bg-gemeos';
-    
+
     const textColorClass = color === 'red' ? 'text-red' : 'text-white';
     return `bg-gemeos-dimmed ${textColorClass}`;
   }
@@ -68,7 +76,7 @@ const getSpecialClass = (number, mode, color, isDuplicate, isTerminalMatch, sequ
   if (mode === 'espelho') {
     const espelhoNumbers = [12, 21, 13, 31, 32, 23];
     if (espelhoNumbers.includes(number)) return 'bg-espelho';
-    
+
     const textColorClass = color === 'red' ? 'text-red' : 'text-white';
     return `bg-espelho-dimmed ${textColorClass}`;
   }
@@ -76,7 +84,7 @@ const getSpecialClass = (number, mode, color, isDuplicate, isTerminalMatch, sequ
   // 6. Duplicados (Repetidos)
   if (mode === 'dublicados') {
     if (isDuplicate) return 'bg-dublicados';
-    
+
     const textColorClass = color === 'red' ? 'text-red' : 'text-white';
     return `bg-dublicados-dimmed ${textColorClass}`;
   }
@@ -86,7 +94,7 @@ const getSpecialClass = (number, mode, color, isDuplicate, isTerminalMatch, sequ
     if (isTerminalMatch) {
       return `bg-terminal-${terminal}`; // Retorna bg-terminal-0 até bg-terminal-9
     }
-    
+
     const textColorClass = color === 'red' ? 'text-red' : 'text-white';
     return `bg-terminais-dimmed ${textColorClass}`;
   }
@@ -121,28 +129,23 @@ const getSpecialClass = (number, mode, color, isDuplicate, isTerminalMatch, sequ
   if (mode === 'gemeos-espelho') {
     const dezena = Math.floor(number / 10);
     const unidade = number % 10;
-    
+
     if (dezena === unidade && number > 0) return 'bg-combo-gemeos';
-    
+
     const espelhoNumbers = [12, 21, 13, 31, 32, 23];
     if (espelhoNumbers.includes(number)) return 'bg-combo-espelho';
-    
+
     const textColorClass = color === 'red' ? 'text-red' : 'text-white';
     return `bg-combo-dimmed ${textColorClass}`;
   }
 
   // 11. Filtros de Setores da Roleta Europeia
   if (mode === 'setores') {
-    const tiers = [27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33];
-    const orphelins = [1, 20, 14, 31, 9, 6, 34, 17];
-    const voisins = [19, 4, 21, 2, 25, 22, 18, 29, 7, 28];
-    const zero = [12, 35, 3, 26, 0, 32, 15];
+    if (SECTORS.tiers.includes(number)) return 'bg-tiers';
+    if (SECTORS.orphelins.includes(number)) return 'bg-orphelins';
+    if (SECTORS.voisins.includes(number)) return 'bg-voisins';
+    if (SECTORS.zero.includes(number)) return 'bg-zero';
 
-    if (tiers.includes(number)) return 'bg-tiers';
-    if (orphelins.includes(number)) return 'bg-orphelins';
-    if (voisins.includes(number)) return 'bg-voisins';
-    if (zero.includes(number)) return 'bg-zero';
-    
     const textColorClass = color === 'red' ? 'text-red' : 'text-white';
     return `bg-setores-dimmed ${textColorClass}`;
   }
@@ -152,7 +155,7 @@ const getSpecialClass = (number, mode, color, isDuplicate, isTerminalMatch, sequ
 
 // --- Componente ResultBox ---
 const ResultBox = memo(({ number, color, index, isHighlighted, customClass }) => (
-  <div 
+  <div
     data-number={number}
     data-index={index}
     className={`result-number-box ${customClass || color} ${isHighlighted ? 'highlighted' : ''}`}
@@ -164,16 +167,35 @@ const ResultBox = memo(({ number, color, index, isHighlighted, customClass }) =>
 ResultBox.displayName = 'ResultBox';
 
 // --- Componente Principal ---
-const ResultsGrid = memo(({ 
-  latestNumbers = [], 
-  numberPullStats, 
+const ResultsGrid = memo(({
+  latestNumbers = [],
+  numberPullStats,
   numberPreviousStats,
   onResultClick,
-  isPremium = false, 
-  setIsPaywallOpen
+  isPremium = false,
+  setIsPaywallOpen: _setIsPaywallOpen,
+  forceCols = 0,
 }) => {
-  const [hoveredNumber, setHoveredNumber] = useState(null);
-  const [filterMode, setFilterMode] = useState('default');
+  const [hoveredNumber,  setHoveredNumber]  = useState(null);
+  const [filterMode,     setFilterMode]     = useState('default');
+  const [scrollTop,      setScrollTop]      = useState(0);
+  const [containerWidth, setContainerWidth] = useState(300);
+
+  const scrollRef = useRef(null);
+
+  // Measure container width for column count
+  useEffect(() => {
+    if (!scrollRef.current) return;
+    const ro = new ResizeObserver(entries => {
+      setContainerWidth(entries[0].contentRect.width);
+    });
+    ro.observe(scrollRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  const handleScroll = useCallback((e) => {
+    setScrollTop(e.currentTarget.scrollTop);
+  }, []);
 
   const handleMouseEvent = useCallback((e) => {
     if (e.type === 'mouseleave') {
@@ -207,27 +229,45 @@ const ResultsGrid = memo(({
     return formatPullTooltip(hoveredNumber, numberPullStats, numberPreviousStats);
   }, [hoveredNumber, numberPullStats, numberPreviousStats]);
 
-  const gridClassName = useMemo(() => 
+  const gridClassName = useMemo(() =>
     `results-grid ${hoveredNumber !== null ? 'hover-active' : ''}`,
     [hoveredNumber]
   );
 
   // Contagem de resultados por setor do cilindro
   const sectorCounts = useMemo(() => {
-    const tiers = [27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33];
-    const orphelins = [1, 20, 14, 31, 9, 6, 34, 17];
-    const voisins = [19, 4, 21, 2, 25, 22, 18, 29, 7, 28];
-    const zero = [12, 35, 3, 26, 0, 32, 15];
-
     return latestNumbers.reduce((acc, result) => {
       const num = result.number;
-      if (tiers.includes(num)) acc.tiers++;
-      else if (orphelins.includes(num)) acc.orphelins++;
-      else if (voisins.includes(num)) acc.voisins++;
-      else if (zero.includes(num)) acc.zero++;
+      if (SECTORS.tiers.includes(num))          acc.tiers++;
+      else if (SECTORS.orphelins.includes(num)) acc.orphelins++;
+      else if (SECTORS.voisins.includes(num))   acc.voisins++;
+      else if (SECTORS.zero.includes(num))      acc.zero++;
       return acc;
     }, { tiers: 0, orphelins: 0, voisins: 0, zero: 0 });
   }, [latestNumbers]);
+
+  // Virtual scroll calculation
+  const virtual = useMemo(() => {
+    const avail   = Math.max(CELL_MIN + 1, containerWidth - 2 * PADDING);
+    const cols    = forceCols > 0 ? forceCols : Math.max(1, Math.floor((avail + GAP) / (CELL_MIN + GAP)));
+    const cellW   = (avail - (cols - 1) * GAP) / cols;
+    const rowH    = cellW; // aspect-ratio: 1
+    const rowStep = rowH + GAP;
+    const total   = latestNumbers.length;
+    const totalRows = Math.ceil(total / cols);
+
+    const firstRow  = Math.max(0, Math.floor(scrollTop / rowStep) - OVERSCAN);
+    const visRows   = Math.ceil(VIEW_H / rowStep) + 2 * OVERSCAN;
+    const lastRow   = Math.min(totalRows - 1, firstRow + visRows);
+
+    const startIdx  = firstRow * cols;
+    const endIdx    = Math.min((lastRow + 1) * cols, total);
+
+    const topH    = firstRow * rowStep;
+    const bottomH = Math.max(0, (totalRows - lastRow - 1) * rowStep);
+
+    return { cols, startIdx, endIdx, topH, bottomH };
+  }, [containerWidth, scrollTop, latestNumbers.length, forceCols]);
 
   const renderOptionLabel = (label, isLocked) => {
     return isLocked && !isPremium ? ` ${label}` : label;
@@ -236,10 +276,10 @@ const ResultsGrid = memo(({
   return (
     <div className="results-container">
       <div className="controls-header">
-        
+
         {/* --- ÁREA DAS LEGENDAS DINÂMICAS --- */}
         <div className="legend-area">
-          
+
           {filterMode === 'cavalos' && (
             <div className="legend-group">
               <div className="legend-item"><span className="legend-dot bg-cavalo-blue"></span><span>2, 5, 8</span></div>
@@ -343,16 +383,16 @@ const ResultsGrid = memo(({
 
         {/* --- DROPDOWN DE FILTROS --- */}
         <div className="filter-wrapper">
-          <select 
-            value={filterMode} 
+          <select
+            value={filterMode}
             onChange={handleFilterChange}
             className="filter-dropdown"
             style={{ borderColor: (!isPremium && filterMode === 'default') ? '#34495e' : '#3498db' }}
           >
             <option value="default">Cores Padrão</option>
             <option value="cavalos">Filtro: Cavalos</option>
-            
-            <option value="setores">{renderOptionLabel("Filtro: Setores do Cilindro", true)}</option>
+
+            <option value="setores">{renderOptionLabel("Filtro: Setores da Racing", true)}</option>
             <option value="dublicados">{renderOptionLabel("Filtro: Duplicados", true)}</option>
             <option value="terminais">{renderOptionLabel("Filtro: Terminais Iguais", true)}</option>
             <option value="quina">{renderOptionLabel("Filtro: Quina", true)}</option>
@@ -365,77 +405,89 @@ const ResultsGrid = memo(({
         </div>
       </div>
 
-      {/* --- GRID DE RESULTADOS --- */}
-      <div 
-        className={gridClassName}
-        onMouseOver={handleMouseEvent}
-        onMouseLeave={handleMouseEvent}
-        onClick={handleClick}
+      {/* --- SCROLL CONTAINER COM VIRTUAL SCROLLING --- */}
+      <div
+        ref={scrollRef}
+        className="results-scroll-container"
+        onScroll={handleScroll}
         title={activeTooltip}
       >
-        {latestNumbers.map((result, index) => {
-          
-          // --- Preparação dos Dados ---
-          const olderNeighbor = latestNumbers[index + 1];
-          const newerNeighbor = latestNumbers[index - 1];
-          const currTerm = result.number % 10;
-          
-          // 1. Cálculo de Duplicados
-          const isDuplicate = (olderNeighbor && result.number === olderNeighbor.number) || 
-                              (newerNeighbor && result.number === newerNeighbor.number);
+        {/* Top spacer */}
+        {virtual.topH > 0 && <div style={{ height: virtual.topH }} />}
 
-          // 2. Cálculo de Terminais
-          const matchTermOlder = olderNeighbor && (olderNeighbor.number % 10 === currTerm);
-          const matchTermNewer = newerNeighbor && (newerNeighbor.number % 10 === currTerm);
-          const isTerminalMatch = matchTermOlder || matchTermNewer;
+        {/* Visible grid slice */}
+        <div
+          className={gridClassName}
+          style={{ gridTemplateColumns: `repeat(${virtual.cols}, 1fr)` }}
+          onMouseOver={handleMouseEvent}
+          onMouseLeave={handleMouseEvent}
+          onClick={handleClick}
+        >
+          {latestNumbers.slice(virtual.startIdx, virtual.endIdx).map((result, localIdx) => {
+            const index = virtual.startIdx + localIdx;
 
-          // 3. Cálculo de Sequência (Crescente/Decrescente)
-          let isAscending = false;
-          let isDescending = false;
+            // --- Preparação dos Dados ---
+            const olderNeighbor = latestNumbers[index + 1];
+            const newerNeighbor = latestNumbers[index - 1];
+            const currTerm = result.number % 10;
 
-          const checkAsc = (t1, t2) => (t2 === t1 + 1) || (t1 === 9 && t2 === 0);
-          const checkDesc = (t1, t2) => (t2 === t1 - 1) || (t1 === 0 && t2 === 9);
+            // 1. Cálculo de Duplicados
+            const isDuplicate = (olderNeighbor && result.number === olderNeighbor.number) ||
+                                (newerNeighbor && result.number === newerNeighbor.number);
 
-          // Verifica relação com vizinho MAIS VELHO (Anterior)
-          if (olderNeighbor) {
-            const oldTerm = olderNeighbor.number % 10;
-            if (checkAsc(oldTerm, currTerm)) isAscending = true; // Subiu
-            if (checkDesc(oldTerm, currTerm)) isDescending = true; // Desceu
-          }
+            // 2. Cálculo de Terminais
+            const matchTermOlder = olderNeighbor && (olderNeighbor.number % 10 === currTerm);
+            const matchTermNewer = newerNeighbor && (newerNeighbor.number % 10 === currTerm);
+            const isTerminalMatch = matchTermOlder || matchTermNewer;
 
-          // Verifica relação com vizinho MAIS NOVO (Posterior)
-          if (newerNeighbor) {
-            const newTerm = newerNeighbor.number % 10;
-            if (checkAsc(currTerm, newTerm)) isAscending = true; // Parte de subida
-            if (checkDesc(currTerm, newTerm)) isDescending = true; // Parte de descida
-          }
+            // 3. Cálculo de Sequência (Crescente/Decrescente)
+            let isAscending = false;
+            let isDescending = false;
 
-          let sequenceType = null;
-          if (isAscending && isDescending) sequenceType = 'mixed';
-          else if (isAscending) sequenceType = 'asc';
-          else if (isDescending) sequenceType = 'desc';
+            const checkAsc  = (t1, t2) => (t2 === t1 + 1) || (t1 === 9 && t2 === 0);
+            const checkDesc = (t1, t2) => (t2 === t1 - 1) || (t1 === 0 && t2 === 9);
 
-          // --- Chamada da Função de Estilo ---
-          const specialClass = getSpecialClass(
-            result.number, 
-            filterMode, 
-            result.color, 
-            isDuplicate, 
-            isTerminalMatch,
-            sequenceType
-          );
+            if (olderNeighbor) {
+              const oldTerm = olderNeighbor.number % 10;
+              if (checkAsc(oldTerm, currTerm))  isAscending  = true;
+              if (checkDesc(oldTerm, currTerm)) isDescending = true;
+            }
 
-          return (
-            <ResultBox
-              key={result.signalId || `${result.number}-${index}`}
-              number={result.number}
-              color={result.color}
-              index={index}
-              isHighlighted={hoveredNumber === result.number}
-              customClass={specialClass}
-            />
-          );
-        })}
+            if (newerNeighbor) {
+              const newTerm = newerNeighbor.number % 10;
+              if (checkAsc(currTerm, newTerm))  isAscending  = true;
+              if (checkDesc(currTerm, newTerm)) isDescending = true;
+            }
+
+            let sequenceType = null;
+            if (isAscending && isDescending) sequenceType = 'mixed';
+            else if (isAscending)            sequenceType = 'asc';
+            else if (isDescending)           sequenceType = 'desc';
+
+            const specialClass = getSpecialClass(
+              result.number,
+              filterMode,
+              result.color,
+              isDuplicate,
+              isTerminalMatch,
+              sequenceType
+            );
+
+            return (
+              <ResultBox
+                key={result.signalId || `${result.number}-${index}`}
+                number={result.number}
+                color={result.color}
+                index={index}
+                isHighlighted={hoveredNumber === result.number}
+                customClass={specialClass}
+              />
+            );
+          })}
+        </div>
+
+        {/* Bottom spacer */}
+        {virtual.bottomH > 0 && <div style={{ height: virtual.bottomH }} />}
       </div>
     </div>
   );

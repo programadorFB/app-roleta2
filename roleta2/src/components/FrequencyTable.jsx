@@ -44,7 +44,7 @@ const getSpinTime = (spin) => {
 
 
 const FrequencyTable = ({ spinHistory = [] }) => {
-  const [timeFilter, setTimeFilter] = useState(0);
+  const [timeFilter, _setTimeFilter] = useState(0);
 
   // Filtrar histórico por tempo
   const filteredHistory = useMemo(() => {

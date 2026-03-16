@@ -207,17 +207,23 @@
   border-color: #3498db;
 }
 
-/* --- Grid Principal --- */
-.results-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(32px, 1fr));
-  gap: clamp(4px, 1.5vw, 6px);
-  padding: clamp(8px, 2vw, 10px);
+/* --- Scroll Container (virtual scrolling wrapper) --- */
+.results-scroll-container {
   background-color: #1a1a1a;
   border-radius: 8px;
   max-height: 400px;
   overflow-y: auto;
   overflow-x: hidden;
+  padding: clamp(8px, 2vw, 10px);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* --- Grid Principal --- */
+.results-grid {
+  display: grid;
+  /* grid-template-columns is set inline by the virtual scroller */
+  gap: clamp(4px, 1.5vw, 6px);
   box-sizing: border-box;
   width: 100%;
 }
@@ -544,9 +550,7 @@
 /* --- Media Queries --- */
 @media (max-width: 768px) {
   .results-grid {
-    grid-template-columns: repeat(auto-fit, minmax(30px, 1fr));
     gap: 5px;
-    padding: 8px;
   }
 
   .legend-group {
@@ -557,9 +561,7 @@
 
 @media (max-width: 480px) {
   .results-grid {
-    grid-template-columns: repeat(auto-fit, minmax(28px, 1fr));
     gap: 4px;
-    padding: 8px;
   }
 
   .controls-header {

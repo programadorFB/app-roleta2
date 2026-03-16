@@ -1,41 +1,32 @@
+// components/DeepAnalysisPanel.jsx
+
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { 
-    Flame, Snowflake, Layers, AlignCenter, TrendingUp, BarChart3, Target, PieChart, Activity, Cpu, Info // <-- 1. ÍCONE DE CADEADO REMOVIDO
+import {
+    Flame, Snowflake, Layers, AlignCenter, TrendingUp, BarChart3,
+    Target, PieChart, Cpu,
 } from 'lucide-react';
 import styles from './DeepAnalysisPanel.module.css';
-import { useNotifications } from '../contexts/NotificationContext'; // Importe o hook de notificações
-import { checkConvergenceAlert, checkPatternBrokenAlert } from '../services/alertLogic'; // Importe a lógica de alerta
+import { useNotifications } from '../contexts/NotificationContext';
+import { checkConvergenceAlert, checkPatternBrokenAlert } from '../services/alertLogic';
 
 // Importe todos os seus componentes de aba
 import SectorsAnalysis from './SectorAnalysis';
 import NeighborAnalysis from './NeighborAnalysis';
 import TerminalAnalysis from './TerminalAnalysis';
 import AdvancedPatternsAnalysis from './AdvancedPatternsAnalysis';
-import FrequencyTable from './FrequencyTable'; // <-- 1. IMPORTADO AQUI
+import FrequencyTable from './FrequencyTable';
 
-import { UpdateCountdown } from './VisualIndicators';
+// 🔧 FIX #4: Usa calculateMasterScore completo (era analyzeCroupierPattern avulso)
+import { calculateMasterScore } from '../services/masterScoring.js';
 
-// Importe as lógicas de análise para os alertas
-// (Você precisará centralizar isso ou importar as funções individuais)
-import { analyzeCroupierPattern } from '../services/CroupieDetection.jsx';
-// Supondo que você crie serviços de lógica centralizados:
-// import { analyzeTerminals } from '../services/terminalAnalysis';
-// import { analyzeFiboNasa } from '../services/fiboNasaAnalysis';
-// import { analyzeHidden } from '../services/advancedAnalysis';
+// 🔧 FIX #12: getNumberColor centralizado (era inline)
+import { getNumberColor } from '../utils/roulette';
+
+// 🔧 FIX #13: PHYSICAL_WHEEL centralizado (era rouletteNumbers inline)
+import { PHYSICAL_WHEEL as rouletteNumbers } from '../constants/roulette';
 
 
-// --- Constantes e Funções Utilitárias ---
-const rouletteNumbers = [
-  0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10,
-  5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26
-];
-
-const getNumberColor = (num) => {
-  if (num === 0) return 'green';
-  const redNumbers = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
-  return redNumbers.includes(num) ? 'red' : 'black';
-};
-
+// --- Funções Utilitárias ---
 const getDozen = (num) => {
     if (num >= 1 && num <= 12) return '1ª Dúzia';
     if (num >= 13 && num <= 24) return '2ª Dúzia';
@@ -54,18 +45,18 @@ const getColumn = (num) => {
 // --- Componente Principal com Abas ---
 const DeepAnalysisPanel = ({ spinHistory }) => {
     const [activeTab, setActiveTab] = useState('statistics');
-    const { addNotification } = useNotifications(); // Hook de notificações
-    const prevAnalysesRef = useRef(); // Ref para alertas
+    const { addNotification } = useNotifications();
+    const prevAnalysesRef = useRef();
 
     const analysis = useMemo(() => {
         const totalSpins = spinHistory.length;
         if (totalSpins === 0) {
             return {
-                hotNumbers: [], 
+                hotNumbers: [],
                 sleepers: [],
-                dozenCounts: {}, 
-                columnCounts: {}, 
-                highLowCounts: {}, 
+                dozenCounts: {},
+                columnCounts: {},
+                highLowCounts: {},
                 evenOddCounts: {},
                 streaks: { red: { longest: 0, current: 0 }, black: { longest: 0, current: 0 } },
                 totalSpins: 0,
@@ -77,10 +68,10 @@ const DeepAnalysisPanel = ({ spinHistory }) => {
         const columnCounts = { 'Coluna 1': 0, 'Coluna 2': 0, 'Coluna 3': 0 };
         const highLowCounts = { 'Baixo (1-18)': 0, 'Alto (19-36)': 0 };
         const evenOddCounts = { 'Par': 0, 'Ímpar': 0 };
-        
+
         let longestRedStreak = 0, currentRedStreak = 0;
         let longestBlackStreak = 0, currentBlackStreak = 0;
-        
+
         [...spinHistory].reverse().forEach(spin => {
             if (spin.color === 'red') {
                 currentRedStreak++;
@@ -95,7 +86,7 @@ const DeepAnalysisPanel = ({ spinHistory }) => {
                 currentBlackStreak = 0;
             }
         });
-        
+
         let currentRed = 0, currentBlack = 0;
         for (const spin of spinHistory) {
             if (spin.color === 'red') {
@@ -123,30 +114,28 @@ const DeepAnalysisPanel = ({ spinHistory }) => {
 
         const sortedNumbers = Object.entries(counts).sort((a, b) => b[1] - a[1]);
         const hotNumbers = sortedNumbers.slice(0, 5);
-        
+
         const lastSeenIndex = rouletteNumbers.reduce((acc, num) => {
             acc[num] = spinHistory.findIndex(s => s.number === num);
             return acc;
         }, {});
 
-const sleepers = Object.entries(lastSeenIndex)
-            .sort(([,a], [,b]) => {
-                // Trata -1 (nunca saiu) como o valor mais "antigo" (totalSpins)
+        const sleepers = Object.entries(lastSeenIndex)
+            .sort(([, a], [, b]) => {
                 const aValue = (a === -1) ? totalSpins : a;
                 const bValue = (b === -1) ? totalSpins : b;
-                
-                // Ordena de forma descendente (maior "ago" primeiro)
                 return bValue - aValue;
             })
             .map(([num, index]) => ({ num, ago: index === -1 ? totalSpins : index }))
             .slice(0, 5);
+
         return {
-            hotNumbers, 
-            sleepers, 
+            hotNumbers,
+            sleepers,
             totalSpins,
-            dozenCounts, 
-            columnCounts, 
-            highLowCounts, 
+            dozenCounts,
+            columnCounts,
+            highLowCounts,
             evenOddCounts,
             streaks: {
                 red: { longest: longestRedStreak, current: currentRed },
@@ -155,39 +144,33 @@ const sleepers = Object.entries(lastSeenIndex)
         };
     }, [spinHistory]);
 
-    // --- LÓGICA DE GATILHO DE ALERTA ---
-    // (Esta é uma versão simplificada; idealmente, você centralizaria
-    // todas as lógicas de 'useMemo' de todas as abas aqui)
+    // ═══════════════════════════════════════════════════════════
+    // 🔧 AUDIT FIX #4: Lógica de alertas usando calculateMasterScore completo
+    // ANTES: usava apenas analyzeCroupierPattern com dados incompletos
+    // AGORA: roda TODAS as 5 estratégias e checa convergência real
+    // ═══════════════════════════════════════════════════════════
     useEffect(() => {
-        if (spinHistory.length < 30) return; // Não dispare alertas sem dados suficientes
+        if (spinHistory.length < 50) return; // 🔧 FIX: mínimo 50 (era 30)
 
-        // Simulação de coleta de dados de análise
-        const allAnalyses = {
-            croupierAnalysis: analyzeCroupierPattern(spinHistory, 30),
-            // Adicione outras análises reais aqui
-            // terminalAnalysis: ..., 
-            // fiboNasaAnalysis: ...,
-            // hiddenAnalysis: ...,
-        };
+        // 🔧 FIX #4: Usa calculateMasterScore que roda TODAS as 5 análises
+        const masterResult = calculateMasterScore(spinHistory);
 
-        // 1. Verificar Sinal Verde
-        const convergenceAlert = checkConvergenceAlert(allAnalyses);
+        // 1. Verificar Sinal Verde (convergência de 3+ estratégias)
+        const convergenceAlert = checkConvergenceAlert(masterResult);
         if (convergenceAlert) {
-            // Evitar spam: idealmente, você guardaria o ID do alerta e não o enviaria novamente
             addNotification(convergenceAlert);
         }
 
         // 2. Verificar Padrão Quebrado
-        const brokenPatternAlert = checkPatternBrokenAlert(allAnalyses, prevAnalysesRef.current);
+        const brokenPatternAlert = checkPatternBrokenAlert(masterResult, prevAnalysesRef.current);
         if (brokenPatternAlert) {
             addNotification(brokenPatternAlert);
         }
 
         // 3. Salvar análise atual para a próxima comparação
-        prevAnalysesRef.current = allAnalyses;
+        prevAnalysesRef.current = masterResult;
 
     }, [spinHistory, addNotification]);
-    // ------------------------------------
 
     // --- Componentes Auxiliares ---
 
@@ -202,11 +185,11 @@ const sleepers = Object.entries(lastSeenIndex)
             </div>
         </div>
     );
-    
+
     const NumberChip = ({ number }) => {
         const color = getNumberColor(number);
         return (
-            <span 
+            <span
                 className={`${styles['history-number']} ${styles[color]}`}
                 style={{ cursor: 'default' }}
             >
@@ -219,8 +202,8 @@ const sleepers = Object.entries(lastSeenIndex)
         const percentage = max > 0 ? (value / max * 100).toFixed(1) : 0;
         return (
             <div className={styles['progress-bar-container']}>
-                <div 
-                    className={`${styles['progress-bar-fill']} ${styles[colorClass]}`} 
+                <div
+                    className={`${styles['progress-bar-fill']} ${styles[colorClass]}`}
                     style={{ width: `${percentage}%` }}
                 >
                     {percentage}%
@@ -236,8 +219,8 @@ const sleepers = Object.entries(lastSeenIndex)
             <div className={styles['strategies-info-panel']}>
                 <h3 className={styles['dashboard-title']}>Análise Estatística</h3>
                 <div className={styles['strategy-card']}>
-                    <p className={`${styles['card-concept']} ${styles['empty-state']}`} 
-                       style={{textAlign: 'center'}}>
+                    <p className={`${styles['card-concept']} ${styles['empty-state']}`}
+                       style={{ textAlign: 'center' }}>
                         Aguardando histórico de sinais para iniciar a análise...
                     </p>
                 </div>
@@ -245,176 +228,103 @@ const sleepers = Object.entries(lastSeenIndex)
         );
     }
 
-    // --- 2. ESTILO UNIFICADO PARA BOTÕES DE ABA (REMOVIDO lockedButtonStyle) ---
-    // Função para gerar o estilo da aba dinamicamente
-    const getTabStyle = (tabName) => ({
-        flex: 1,
-        minWidth: '100px', // Largura mínima para botões
-        padding: '0.75rem 0.5rem',
-        background: activeTab === tabName ? 'linear-gradient(135deg, #ca8a04, #eab308)' : 'rgba(255, 255, 255, 0.05)',
-        color: activeTab === tabName ? '#111827' : '#d1d5db',
-        border: 'none',
-        borderRadius: '0.5rem',
-        cursor: 'pointer',
-        fontWeight: 'bold',
-        fontSize: '0.9rem',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '0.5rem',
-        transition: 'all 0.2s',
-        boxShadow: activeTab === tabName ? '0 2px 8px rgba(202, 138, 4, 0.4)' : 'none'
-    });
-
+    const tabCls = (tabName) =>
+        `${styles.tab} ${activeTab === tabName ? styles.tabActive : ''}`;
 
     return (
         <div className={styles['strategies-info-panel']}>
-            {/* Sistema de Abas (Sempre Visível) */}
-            <div style={{
-                display: 'flex',
-                flexWrap: 'wrap', // Permite quebra de linha em telas menores
-                gap: '0.5rem',
-                marginBottom: '1rem',
-                borderBottom: '2px solid #374151',
-                paddingBottom: '0.5rem'
-            }}>
-                
-                {/* --- BOTÕES DE ABA FUNCIONAIS --- */}
-                <button
-                    onClick={() => setActiveTab('statistics')}
-                    style={getTabStyle('statistics')}
-                >
-                    <TrendingUp size={18} />
-                    Geral
+            {/* Sistema de Abas */}
+            <div className={styles.tabBar}>
+                <button onClick={() => setActiveTab('statistics')} className={tabCls('statistics')}>
+                    <TrendingUp size={14} />
+                    <span>Geral</span>
                 </button>
-                
-                <button
-                    onClick={() => setActiveTab('frequency')}
-                    style={getTabStyle('frequency')}
-                >
-                    <BarChart3 size={18} />
-                    Frequência
+                <button onClick={() => setActiveTab('frequency')} className={tabCls('frequency')}>
+                    <BarChart3 size={14} />
+                    <span>Frequência</span>
                 </button>
-
-                <button
-                    onClick={() => setActiveTab('neighbors')}
-                    style={getTabStyle('neighbors')}
-                >
-                    <PieChart size={18} />
-                    Vizinhança
+                <button onClick={() => setActiveTab('neighbors')} className={tabCls('neighbors')}>
+                    <PieChart size={14} />
+                    <span>Vizinhança</span>
                 </button>
-                
-                <button
-                    onClick={() => setActiveTab('terminals')}
-                    style={getTabStyle('terminals')}
-                >
-                    <Target size={18} />
-                    Cavalos
+                <button onClick={() => setActiveTab('terminals')} className={tabCls('terminals')}>
+                    <Target size={14} />
+                    <span>Cavalos</span>
                 </button>
-       
-                <button
-                    onClick={() => setActiveTab('advanced')}
-                    style={getTabStyle('advanced')}
-                >
-                    <Cpu size={18} />
-                    Avançado
+                <button onClick={() => setActiveTab('advanced')} className={tabCls('advanced')}>
+                    <Cpu size={14} />
+                    <span>Avançado</span>
                 </button>
-
-                <button
-                    onClick={() => setActiveTab('sectors')}
-                    style={getTabStyle('sectors')}
-                >
-                    <Layers size={18} />
-                    Setores
+                <button onClick={() => setActiveTab('sectors')} className={tabCls('sectors')}>
+                    <Layers size={14} />
+                    <span>Setores</span>
                 </button>
-
-                {/* Você também pode querer um botão para a aba 'visual' */}
-                {/* <button
-                    onClick={() => setActiveTab('visual')}
-                    style={getTabStyle('visual')}
-                >
-                    <Activity size={18} />
-                    Status
-                </button> */}
-                
             </div>
 
             {/* Conteúdo da Aba */}
-            
+
             {activeTab === 'statistics' && (
                 <>
                     <h3 className={styles['dashboard-title']}>
                         Análise Estatística ({analysis.totalSpins} Sinais)
                     </h3>
 
-                    <StatCard 
-                        title="Números Quentes" 
+                    <StatCard
+                        title="Números Quentes"
                         icon={<Flame size={24} className={styles['dangerIcon']} />}
                     >
                         {analysis.hotNumbers.map(([num, count]) => (
-                            <div className={styles['stat-row']} key={num}>
+                            <div key={num} className={styles['stat-row']}>
                                 <span className={styles['stat-label']}>
-                                    Número <NumberChip number={parseInt(num)} />
+                                    <NumberChip number={parseInt(num)} /> — {count}x
                                 </span>
-                                <span className={styles['stat-value']}>
-                                    {count} vezes ({(count/analysis.totalSpins * 100).toFixed(1)}%)
-                                </span>
+                                <ProgressBar value={count} max={analysis.totalSpins} colorClass="danger" />
                             </div>
                         ))}
                     </StatCard>
-                    
-                    <StatCard 
-                        title="Congelados (Mais Tempo Sem Sair)" 
-                        icon={<Snowflake size={24} style={{color: '#38bdf8'}} />}
+
+                    <StatCard
+                        title="Números Atrasados"
+                        icon={<Snowflake size={24} className={styles['infoIcon']} />}
                     >
                         {analysis.sleepers.map(({ num, ago }) => (
-                            <div className={styles['stat-row']} key={num}>
+                            <div key={num} className={styles['stat-row']}>
                                 <span className={styles['stat-label']}>
-                                    Número <NumberChip number={parseInt(num)} />
-                                </span>
-                                <span className={styles['stat-value']}>
-                                    {ago} rodadas atrás
+                                    <NumberChip number={parseInt(num)} /> — {ago} spins atrás
                                 </span>
                             </div>
                         ))}
                     </StatCard>
 
-                    <StatCard 
-                        title="Sequências de Cores" 
-                        icon={<TrendingUp size={24} className={styles['warningIcon']} />}
+                    <StatCard
+                        title="Sequências"
+                        icon={<TrendingUp size={24} style={{ color: '#f59e0b' }} />}
                     >
                         <div className={styles['stat-row']}>
-                            <span className={styles['stat-label']}>Sequência Atual:</span>
-                            <span className={`${styles['stat-value']} ${
-                                analysis.streaks.red.current > 0 ? styles['red'] : styles['black']
-                            }`}>
-                                {analysis.streaks.red.current > 0 
-                                    ? `${analysis.streaks.red.current} Vermelhos` 
-                                    : `${analysis.streaks.black.current} Pretos`
-                                }
-                            </span>
+                            <span className={styles['stat-label']}>Seq. Atual Vermelha:</span>
+                            <span className={styles['stat-value']}>{analysis.streaks.red.current}</span>
+                        </div>
+                        <div className={styles['stat-row']}>
+                            <span className={styles['stat-label']}>Seq. Atual Preta:</span>
+                            <span className={styles['stat-value']}>{analysis.streaks.black.current}</span>
                         </div>
                         <div className={styles['stat-row']}>
                             <span className={styles['stat-label']}>Maior Seq. Vermelha:</span>
-                            <span className={styles['stat-value']}>
-                                {analysis.streaks.red.longest}
-                            </span>
+                            <span className={styles['stat-value']}>{analysis.streaks.red.longest}</span>
                         </div>
                         <div className={styles['stat-row']}>
                             <span className={styles['stat-label']}>Maior Seq. Preta:</span>
-                            <span className={styles['stat-value']}>
-                                {analysis.streaks.black.longest}
-                            </span>
+                            <span className={styles['stat-value']}>{analysis.streaks.black.longest}</span>
                         </div>
                     </StatCard>
 
-                    <StatCard 
-                        title="Dúzias & Colunas" 
+                    <StatCard
+                        title="Dúzias & Colunas"
                         icon={<Layers size={24} className={styles['infoIcon']} />}
                     >
                         {Object.entries(analysis.dozenCounts).map(([name, count]) => (
                             <div key={name}>
-                                <div className={styles['stat-row']} style={{marginBottom: '0.25rem'}}>
+                                <div className={styles['stat-row']} style={{ marginBottom: '0.25rem' }}>
                                     <span className={styles['stat-label']}>{name}</span>
                                     <span className={styles['stat-value']}>{count} vezes</span>
                                 </div>
@@ -423,9 +333,9 @@ const sleepers = Object.entries(lastSeenIndex)
                         ))}
                     </StatCard>
 
-                    <StatCard 
-                        title="Distribuição Geral" 
-                        icon={<AlignCenter size={24} style={{color: '#a78bfa'}} />}
+                    <StatCard
+                        title="Distribuição Geral"
+                        icon={<AlignCenter size={24} style={{ color: '#a78bfa' }} />}
                     >
                         <div className={styles['stat-row']}>
                             <span className={styles['stat-label']}>
@@ -444,9 +354,7 @@ const sleepers = Object.entries(lastSeenIndex)
                     </StatCard>
                 </>
             )}
-            
-            {/* O conteúdo abaixo agora será renderizado com base na aba ativa */}
-                
+
             {activeTab === 'frequency' && (
                 <FrequencyTable spinHistory={spinHistory} />
             )}
@@ -458,7 +366,7 @@ const sleepers = Object.entries(lastSeenIndex)
             {activeTab === 'terminals' && (
                 <TerminalAnalysis spinHistory={spinHistory} />
             )}
-            
+
             {activeTab === 'advanced' && (
                 <AdvancedPatternsAnalysis spinHistory={spinHistory} />
             )}
@@ -466,19 +374,7 @@ const sleepers = Object.entries(lastSeenIndex)
             {activeTab === 'sectors' && (
                 <SectorsAnalysis spinHistory={spinHistory} />
             )}
-            
-            {activeTab === 'visual' && (
-                <>
-                    <h3 className={styles['dashboard-title']}>
-                        Indicadores Visuais
-                    </h3>
-                    <StatCard title="Contador de Atualização" icon={<Activity size={24} className={styles.infoIcon} />}>
-                        {/* 5000ms = 5 segundos (deve bater com seu 'fetchHistory' do App.jsx) */}
-                        <UpdateCountdown countdownKey={spinHistory.length} duration={5000} />
-                    </StatCard>
-                   
-                </>
-            )}
+
         </div>
     );
 };

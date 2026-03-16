@@ -1,10 +1,18 @@
 /**
- * Sistema de Tratamento de Erros HTTP
- * Traduz códigos de erro técnicos para mensagens que o usuário entende
- * 🆕 NOVO: Logout automático em erros 401
+ * errorHandler.js — Sistema de Tratamento de Erros HTTP
+ * 
+ * 🔧 FIX: Reescrito para política completa de falha ao abrir jogo
+ * - isRetryableError() exportável
+ * - handleAutoLogout() com callback global
+ * - processErrorResponse() detecta paywall em QUALQUER contexto
+ * - Detecção de paywall: requiresSubscription || code === 'FORBIDDEN_SUBSCRIPTION' || (403 + checkoutUrl)
+ * - Erros específicos por contexto: login, game, history, network
  */
 
-// 🆕 Callback global para logout automático
+// ══════════════════════════════════════════════════════════════
+// CALLBACK GLOBAL DE LOGOUT
+// ══════════════════════════════════════════════════════════════
+
 let logoutCallback = null;
 
 /**
@@ -21,15 +29,17 @@ export function registerLogoutCallback(callback) {
 }
 
 /**
- * Remove o callback de logout (útil para testes)
+ * Remove o callback de logout
  */
 export function clearLogoutCallback() {
   logoutCallback = null;
 }
 
-// Mapa de erros HTTP genéricos
+// ══════════════════════════════════════════════════════════════
+// MAPA DE ERROS HTTP → MENSAGENS AMIGÁVEIS (PT-BR)
+// ══════════════════════════════════════════════════════════════
+
 const ERROR_MESSAGES = {
-  // Erros 4xx - Cliente
   400: {
     title: 'Requisição Inválida',
     message: 'Os dados enviados estão incorretos. Verifique as informações e tente novamente.',
@@ -42,12 +52,12 @@ const ERROR_MESSAGES = {
   },
   403: {
     title: 'Acesso Negado',
-    message: 'Você não tem permissão para acessar este recurso. Verifique sua assinatura.',
+    message: 'Você não tem permissão para acessar este recurso.',
     icon: '🚫'
   },
   404: {
     title: 'Não Encontrado',
-    message: 'O recurso solicitado não foi encontrado. Entre em contato com o suporte se o problema persistir.',
+    message: 'O recurso solicitado não foi encontrado.',
     icon: '🔍'
   },
   408: {
@@ -57,29 +67,27 @@ const ERROR_MESSAGES = {
   },
   409: {
     title: 'Conflito',
-    message: 'Já existe um registro com essas informações. Tente com dados diferentes.',
+    message: 'Já existe um registro com essas informações.',
     icon: '⚡'
   },
   422: {
     title: 'Dados Inválidos',
-    message: 'Os dados enviados não puderam ser processados. Verifique se todos os campos estão corretos.',
+    message: 'Os dados enviados não puderam ser processados.',
     icon: '📝'
   },
   429: {
     title: 'Muitas Tentativas',
-    message: 'Você fez muitas requisições seguidas. Aguarde alguns segundos e tente novamente.',
+    message: 'Você fez muitas requisições seguidas. Aguarde alguns segundos.',
     icon: '🌊'
   },
-
-  // Erros 5xx - Servidor
   500: {
     title: 'Erro Interno do Servidor',
-    message: 'Algo deu errado no servidor. Nossa equipe já foi notificada. Tente novamente em alguns minutos.',
+    message: 'Ocorreu um erro interno. Tente novamente em instantes.',
     icon: '🔧'
   },
   502: {
     title: 'Gateway Indisponível',
-    message: 'O servidor está temporariamente indisponível. Tente novamente em alguns instantes.',
+    message: 'O servidor está temporariamente indisponível. Tente novamente.',
     icon: '🌐'
   },
   503: {
@@ -89,74 +97,128 @@ const ERROR_MESSAGES = {
   },
   504: {
     title: 'Timeout do Gateway',
-    message: 'O servidor demorou demais para responder. Verifique sua conexão e tente novamente.',
+    message: 'O servidor demorou demais para responder. Tente novamente.',
     icon: '⏳'
   }
 };
 
-// Erros específicos de contexto
+// ══════════════════════════════════════════════════════════════
+// ERROS ESPECÍFICOS POR CONTEXTO
+// ══════════════════════════════════════════════════════════════
+
 const CONTEXT_ERRORS = {
-  // Login
   login: {
-    'INVALID_CREDENTIALS': 'E-mail ou senha incorretos. Verifique suas credenciais e tente novamente.',
-    'ACCOUNT_LOCKED': 'Sua conta foi temporariamente bloqueada por segurança. Entre em contato com o suporte.',
-    'ACCOUNT_SUSPENDED': 'Sua conta está suspensa. Entre em contato com o suporte para mais informações.',
-    'EMAIL_NOT_VERIFIED': 'Você precisa verificar seu e-mail antes de fazer login.',
-    'FORBIDDEN_SUBSCRIPTION': 'Sua assinatura expirou ou está inativa. Renove para continuar usando o sistema.'
+    'INVALID_CREDENTIALS': 'E-mail ou senha incorretos.',
+    'ACCOUNT_LOCKED': 'Conta temporariamente bloqueada por muitas tentativas.',
+    'ACCOUNT_DISABLED': 'Conta desativada. Entre em contato com o suporte.',
+    'FORBIDDEN_SUBSCRIPTION': 'Você precisa de uma assinatura ativa para acessar.',
+    'SUBSCRIPTION_REQUIRED': 'Assinatura necessária. Renove para continuar.',
   },
-
-  // Game Launch
   game: {
-    'GAME_NOT_FOUND': 'Este jogo não está disponível no momento. Tente outro jogo.',
-    'GAME_UNAVAILABLE': 'O jogo está temporariamente indisponível. Tente novamente em alguns minutos.',
-    'INSUFFICIENT_BALANCE': 'Saldo insuficiente para iniciar o jogo.',
-    'GAME_SESSION_ERROR': 'Erro ao criar a sessão do jogo. Tente novamente.',
-    'INVALID_GAME_ID': 'ID do jogo inválido. Entre em contato com o suporte.'
+    'FORBIDDEN_SUBSCRIPTION': 'Sua assinatura expirou. Renove para jogar.',
+    'SUBSCRIPTION_REQUIRED': 'Assinatura necessária para iniciar o jogo.',
+    'GAME_NOT_FOUND': 'Jogo não encontrado. Selecione outro jogo.',
+    'GAME_UNAVAILABLE': 'Este jogo está indisponível no momento. Tente outro.',
+    'PROVIDER_ERROR': 'Problemas com a provedora do jogo. Tente novamente.',
+    'INVALID_TOKEN': 'Token de autenticação inválido. Faça login novamente.',
   },
-
-  // History
   history: {
-    'NO_DATA_AVAILABLE': 'Não há dados de histórico disponíveis para esta roleta no momento.',
+    'NO_DATA': 'Nenhum histórico disponível para esta roleta.',
     'INVALID_SOURCE': 'Roleta não encontrada. Verifique sua seleção.',
-    'SUBSCRIPTION_REQUIRED': 'Você precisa de uma assinatura ativa para acessar o histórico completo.'
+    'SUBSCRIPTION_REQUIRED': 'Você precisa de uma assinatura ativa para acessar o histórico.',
+    'FORBIDDEN_SUBSCRIPTION': 'Assinatura necessária para acessar o histórico completo.',
   },
-
-  // Network
   network: {
-    'FETCH_FAILED': 'Não foi possível conectar ao servidor. Verifique sua internet e tente novamente.',
-    'CORS_ERROR': 'Erro de segurança ao tentar acessar a API. Entre em contato com o suporte.',
-    'TIMEOUT': 'A conexão demorou demais. Verifique sua internet e tente novamente.',
+    'FETCH_FAILED': 'Não foi possível conectar ao servidor. Verifique sua internet.',
+    'CORS_ERROR': 'Erro de segurança ao acessar a API. Contate o suporte.',
+    'TIMEOUT': 'A conexão demorou demais. Verifique sua internet.',
     'NETWORK_ERROR': 'Erro de rede. Verifique sua conexão com a internet.'
   }
 };
 
+// ══════════════════════════════════════════════════════════════
+// 🔧 FIX: isRetryableError — EXPORTÁVEL
+// Determina se um erro HTTP é retentável
+// ══════════════════════════════════════════════════════════════
+
 /**
- * 🆕 Executa o logout automático para erros 401
- * @param {number} statusCode - Código de status HTTP
+ * Verifica se o status code indica um erro retentável
+ * 5xx, 0 (rede), 408 (timeout), 504 (gateway timeout) = retryable
+ * 401, 403, 404, 422 = NÃO retryable (erros do usuário)
+ * @param {number} statusCode
+ * @returns {boolean}
  */
-function handleAutoLogout(statusCode) {
+export function isRetryableError(statusCode) {
+  // 🔧 FIX: Status 0 = erro de rede (fetch failed)
+  if (statusCode === 0) return true;
+  // 🔧 FIX: Timeouts específicos
+  if (statusCode === 408 || statusCode === 504) return true;
+  // 🔧 FIX: Qualquer 5xx
+  if (statusCode >= 500 && statusCode < 600) return true;
+  // Tudo mais NÃO é retentável
+  return false;
+}
+
+// ══════════════════════════════════════════════════════════════
+// handleAutoLogout — Logout automático em 401
+// ══════════════════════════════════════════════════════════════
+
+/**
+ * 🔧 FIX: Executa o logout automático para erros 401
+ * Delay de 1.5s para o usuário ver a mensagem
+ * @param {number} statusCode
+ */
+export function handleAutoLogout(statusCode) {
   if (statusCode === 401 && logoutCallback) {
-    console.warn('🔒 [errorHandler] Erro 401 detectado - Executando logout automático');
-    
-    // Executa logout em um timeout para não bloquear a resposta
+    console.warn('🔒 [errorHandler] Erro 401 detectado — Executando logout automático em 1.5s');
     setTimeout(() => {
-      logoutCallback();
-    }, 1500); // 1.5s de delay para o usuário ver a mensagem
+      if (logoutCallback) logoutCallback();
+    }, 1500);
   }
 }
 
+// ══════════════════════════════════════════════════════════════
+// 🔧 FIX: detectPaywall — Unificado para QUALQUER contexto
+// ══════════════════════════════════════════════════════════════
+
 /**
- * Traduz um erro HTTP em uma mensagem amigável
- * @param {number} statusCode - Código de status HTTP
- * @param {string} context - Contexto do erro (login, game, history, network)
- * @param {Object} errorData - Dados adicionais do erro (opcional)
- * @returns {Object} - { title, message, icon, details }
+ * Verifica se o erro indica necessidade de paywall
+ * Condições (qualquer uma = paywall):
+ * 1. requiresSubscription === true
+ * 2. code === 'FORBIDDEN_SUBSCRIPTION'
+ * 3. status === 403 && checkoutUrl presente
+ * @param {number} statusCode
+ * @param {Object} errorData
+ * @returns {{ requiresPaywall: boolean, checkoutUrl: string|null }}
+ */
+function detectPaywall(statusCode, errorData = {}) {
+  const requiresPaywall =
+    errorData.requiresSubscription === true ||
+    errorData.code === 'FORBIDDEN_SUBSCRIPTION' ||
+    (statusCode === 403 && !!errorData.checkoutUrl);
+
+  return {
+    requiresPaywall,
+    checkoutUrl: errorData.checkoutUrl || null
+  };
+}
+
+// ══════════════════════════════════════════════════════════════
+// translateError — Mensagem amigável por status + contexto
+// ══════════════════════════════════════════════════════════════
+
+/**
+ * Traduz um erro HTTP em mensagem amigável
+ * @param {number} statusCode
+ * @param {string} context - login | game | history | network | generic
+ * @param {Object} errorData - Dados adicionais do erro
+ * @returns {Object} { title, message, icon, details }
  */
 export function translateError(statusCode, context = 'generic', errorData = {}) {
-  // 🆕 Executa logout automático se for 401
+  // 🔧 FIX: Executa logout automático se 401
   handleAutoLogout(statusCode);
 
-  // Primeiro, tenta encontrar um erro específico do contexto
+  // Tenta erro específico do contexto pelo code
   if (errorData.code && CONTEXT_ERRORS[context]?.[errorData.code]) {
     return {
       title: ERROR_MESSAGES[statusCode]?.title || 'Erro',
@@ -166,7 +228,28 @@ export function translateError(statusCode, context = 'generic', errorData = {}) 
     };
   }
 
-  // Se não encontrar, usa a mensagem genérica do status code
+  // 🔧 FIX: Mensagem especial para 404 em contexto de game
+  if (statusCode === 404 && context === 'game') {
+    return {
+      title: 'Jogo Indisponível',
+      message: 'Este jogo não está disponível no momento. Selecione outro jogo.',
+      icon: '🔍',
+      details: errorData.message || null
+    };
+  }
+
+  // 🔧 FIX: Mensagem especial para 403 com paywall
+  const paywallInfo = detectPaywall(statusCode, errorData);
+  if (paywallInfo.requiresPaywall) {
+    return {
+      title: 'Assinatura Necessária',
+      message: 'Sua assinatura expirou ou não foi encontrada. Renove para continuar.',
+      icon: '💳',
+      details: errorData.message || null
+    };
+  }
+
+  // Mensagem genérica do status code
   const errorInfo = ERROR_MESSAGES[statusCode] || {
     title: `Erro ${statusCode}`,
     message: 'Ocorreu um erro inesperado. Entre em contato com o suporte.',
@@ -179,10 +262,14 @@ export function translateError(statusCode, context = 'generic', errorData = {}) 
   };
 }
 
+// ══════════════════════════════════════════════════════════════
+// translateNetworkError — Erros de rede (sem resposta HTTP)
+// ══════════════════════════════════════════════════════════════
+
 /**
- * Trata erros de rede (quando nem a resposta HTTP chega)
- * @param {Error} error - Objeto de erro
- * @returns {Object} - { title, message, icon, details }
+ * Trata erros de rede quando nem a resposta HTTP chega
+ * @param {Error} error
+ * @returns {Object} { title, message, icon, details, statusCode }
  */
 export function translateNetworkError(error) {
   let errorKey = 'NETWORK_ERROR';
@@ -199,19 +286,25 @@ export function translateNetworkError(error) {
     title: 'Erro de Conexão',
     message: CONTEXT_ERRORS.network[errorKey],
     icon: '📡',
-    details: error.message
+    details: error.message,
+    // 🔧 FIX: statusCode 0 indica erro de rede (retryable)
+    statusCode: 0
   };
 }
 
+// ══════════════════════════════════════════════════════════════
+// 🔧 FIX: processErrorResponse — Detecta paywall em QUALQUER contexto
+// ══════════════════════════════════════════════════════════════
+
 /**
- * Função auxiliar para processar resposta de erro da API
+ * Processa resposta de erro da API
  * @param {Response} response - Resposta HTTP
  * @param {string} context - Contexto do erro
- * @returns {Promise<Object>} - { title, message, icon, details, requiresPaywall, checkoutUrl }
+ * @returns {Promise<Object>} { title, message, icon, details, requiresPaywall, checkoutUrl, statusCode }
  */
 export async function processErrorResponse(response, context = 'generic') {
   let errorData = {};
-  
+
   try {
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
@@ -227,54 +320,59 @@ export async function processErrorResponse(response, context = 'generic') {
 
   const translatedError = translateError(response.status, context, errorData);
 
-  // Adiciona informações especiais (ex: paywall)
+  // 🔧 FIX: Detecção de paywall unificada para QUALQUER contexto
+  const paywallInfo = detectPaywall(response.status, errorData);
+
   return {
     ...translatedError,
-    requiresPaywall: errorData.requiresSubscription || errorData.code === 'FORBIDDEN_SUBSCRIPTION',
-    checkoutUrl: errorData.checkoutUrl || null,
+    requiresPaywall: paywallInfo.requiresPaywall,
+    checkoutUrl: paywallInfo.checkoutUrl,
     statusCode: response.status,
     originalError: errorData
   };
 }
 
+// ══════════════════════════════════════════════════════════════
+// displayError — Exibe erro de forma consistente
+// ══════════════════════════════════════════════════════════════
+
 /**
- * Hook/função para exibir erros de forma consistente
  * @param {Object} error - Erro traduzido
- * @param {Function} setErrorState - Função setState para exibir erro
- * @param {Object} options - Opções adicionais { showIcon, timeout }
+ * @param {Function} setErrorState - setState
+ * @param {Object} options - { showIcon, timeout }
  */
 export function displayError(error, setErrorState, options = {}) {
   const { showIcon = true, timeout = null } = options;
-  
-  // Valida se setErrorState é uma função
+
   if (typeof setErrorState !== 'function') {
     console.error('[errorHandler] displayError: setErrorState deve ser uma função');
     return;
   }
 
-  const errorMessage = showIcon 
-    ? `${error.icon} ${error.message}` 
+  const errorMessage = showIcon
+    ? `${error.icon} ${error.message}`
     : error.message;
 
   setErrorState(errorMessage);
 
-  // Auto-limpar erro após timeout (se especificado)
   if (timeout) {
     setTimeout(() => setErrorState(''), timeout);
   }
 
-  // Log técnico para debug (somente em dev)
   if (process.env.NODE_ENV === 'development' && error.details) {
     console.error('[Error Details]:', error.details);
   }
 }
 
+// ══════════════════════════════════════════════════════════════
+// safeFetch — Wrapper completo para fetch
+// ══════════════════════════════════════════════════════════════
+
 /**
- * Wrapper completo para fetch com tratamento de erro
- * @param {string} url - URL da requisição
- * @param {Object} options - Opções do fetch
- * @param {string} context - Contexto do erro
- * @returns {Promise<Object>} - { success, data, error }
+ * @param {string} url
+ * @param {Object} options
+ * @param {string} context
+ * @returns {Promise<Object>} { success, data, error }
  */
 export async function safeFetch(url, options = {}, context = 'generic') {
   try {
@@ -285,27 +383,30 @@ export async function safeFetch(url, options = {}, context = 'generic') {
       return { success: false, data: null, error };
     }
 
-    // Tenta parsear JSON, mas aceita outros tipos
     let data;
     const contentType = response.headers.get('content-type');
-    
     if (contentType && contentType.includes('application/json')) {
       data = await response.json();
     } else {
       data = await response.text();
     }
-    
-    return { success: true, data, error: null };
 
+    return { success: true, data, error: null };
   } catch (err) {
     const error = translateNetworkError(err);
     return { success: false, data: null, error };
   }
 }
 
+// ══════════════════════════════════════════════════════════════
+// EXPORTS
+// ══════════════════════════════════════════════════════════════
+
 export default {
   registerLogoutCallback,
   clearLogoutCallback,
+  isRetryableError,
+  handleAutoLogout,
   translateError,
   translateNetworkError,
   processErrorResponse,

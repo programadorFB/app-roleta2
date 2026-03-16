@@ -1,0 +1,35 @@
+# Secrets
+.env
+.env.*
+!.env.example
+!.env.test
+
+# Dependencias
+node_modules/
+
+# Build
+dist/
+*.map
+
+# Logs
+*.log
+logs/
+
+# Cache / Temp
+.vite/
+tmp/
+*.tmp
+
+# Runtime state
+motor-score.json
+
+# Coverage
+coverage/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/

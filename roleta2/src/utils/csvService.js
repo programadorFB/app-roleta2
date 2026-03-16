@@ -11,7 +11,14 @@ const CSV_HEADER = 'timestamp,signalId,gameId,signal\n';
 
 // Nomes das fontes de dados
 // ADICIONADAS AS NOVAS FONTES: speed, xxxtreme, vipauto
-export const SOURCES = ['immersive', 'brasileira', 'default', 'speed', 'xxxtreme', 'vipauto'];
+export const SOURCES = [
+    'immersive', 'brasileira', 'default', 'speed', 'xxxtreme', 'vipauto', 'immersivevip',
+    'auto', 'macau', 'footballstudio', 'vip', 'lightning', 'rapida2', 
+    'blazemega', 'aovivo', 'speedauto', 'lucky6', 'azure', 'romena', 
+    'hippodrome', 'verde', 'ruby', 'viproulette', 'relampago', 'russa', 
+    'turca', 'espanhola', 'malta', 'mega', 'italiana', 'powerup', 
+    'roulette', 'grandcasino', 'alema', 'rapida1', 'salonprive'
+];
 
 // --- Estado em Memória ---
 // Agora armazena um Set de IDs para cada fonte
@@ -68,7 +75,7 @@ export const loadAllExistingSignalIds = async () => {
         existingSignalIds[source] = new Set(); // Inicializa o Set para a fonte
         const csvFilePath = get_csv_path(source);
 
-        // console.log(`   -> Lendo ${csvFilePath}...`);
+        // console.log(`   -> Lendo ${csvFilePath}...`);
         
         const stream = fs.createReadStream(csvFilePath, { encoding: 'utf8' }).pipe(csv());
         
@@ -146,7 +153,7 @@ export const appendToCsv = (dataArray, sourceName) => {
         });
 
         console.log(`\x1b[32m[${sourceName}] 💾 ${newRecords.length} novo(s) sinal(is) salvo(s) com sucesso!\x1b[0m`);
-        console.log(`   📍 Arquivo: ${csvFilePath}`);
+        console.log(`   📍 Arquivo: ${csvFilePath}`);
     } catch (err) {
         console.error(`❌ Erro ao escrever os novos dados no arquivo CSV para ${sourceName}:`, err);
     }
@@ -159,7 +166,7 @@ export const appendToCsv = (dataArray, sourceName) => {
 export const getFullHistory = (sourceName) => {
     return new Promise((resolve, reject) => {
         if (!SOURCES.includes(sourceName)) {
-            // console.error(`  [DIAGNÓSTICO] Fonte "${sourceName}" não reconhecida.`);
+            // console.error(`  [DIAGNÓSTICO] Fonte "${sourceName}" não reconhecida.`);
             return reject(new Error(`Fonte "${sourceName}" não reconhecida.`));
         }
         
@@ -167,7 +174,7 @@ export const getFullHistory = (sourceName) => {
         const csvFilePath = get_csv_path(sourceName);
 
         if (!fs.existsSync(csvFilePath)) {
-            // console.log(`  [DIAGNÓSTICO] O arquivo CSV ${csvFilePath} não existe. Retornando array vazio.`);
+            // console.log(`  [DIAGNÓSTICO] O arquivo CSV ${csvFilePath} não existe. Retornando array vazio.`);
             return resolve([]);
         }
 
@@ -185,7 +192,7 @@ export const getFullHistory = (sourceName) => {
                 }
             })
             .on('end', () => {
-                // console.log(`  [DIAGNÓSTICO] Leitura do CSV ${csvFilePath} concluída. ${results.length} registros encontrados.`);
+                // console.log(`  [DIAGNÓSTICO] Leitura do CSV ${csvFilePath} concluída. ${results.length} registros encontrados.`);
                 resolve(results.reverse());
             })
             .on('error', err => {

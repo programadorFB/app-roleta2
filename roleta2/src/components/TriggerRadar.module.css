@@ -1,0 +1,187 @@
+/* TriggerRadar.module.css — MOGNO & OURO */
+
+.container {
+  position: relative;
+  background: linear-gradient(165deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.012) 100%);
+  border: 1px solid rgba(180,120,50,0.09);
+  border-top: 1px solid rgba(201,160,82,0.16);
+  padding: 0.5rem 0.5rem 0.4rem;
+  box-shadow:
+    0 6px 20px rgba(0,0,0,0.5),
+    inset 0 1px 1px rgba(201,160,82,0.05),
+    inset 0 -1px 0 rgba(0,0,0,0.2);
+  overflow: hidden;
+}
+
+.shine {
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent 5%, rgba(255,255,255,0.18) 35%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.18) 65%, transparent 95%);
+  pointer-events: none;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(201,160,82,0.7);
+  margin-bottom: 0.25rem;
+  font-family: 'Outfit', sans-serif;
+}
+
+.headerIcon {
+  color: #c9a052;
+  flex-shrink: 0;
+}
+
+/* ═══ RADAR SVG ═══ */
+
+.radarWrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.radarSvg {
+  display: block;
+  width: 100%;
+  max-width: 240px;
+  height: auto;
+}
+
+@keyframes radarPulse {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(201,160,82,0.3)); }
+  50%      { filter: drop-shadow(0 0 10px rgba(201,160,82,0.5)); }
+}
+
+.dataPolygon {
+  animation: radarPulse 3s ease-in-out infinite;
+}
+
+.axisValue {
+  font-family: 'Outfit', sans-serif;
+  font-size: 9px;
+  font-weight: 800;
+  fill: rgba(201,160,82,0.85);
+}
+
+@keyframes dotGlow {
+  0%, 100% { r: 3.5; opacity: 0.8; }
+  50%      { r: 5; opacity: 1; }
+}
+
+.vertexDot {
+  animation: dotGlow 2.5s ease-in-out infinite;
+}
+
+/* ═══ TIPS LIST ═══ */
+
+.tipsList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 0.35rem;
+}
+
+.tipRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(180,120,50,0.06);
+}
+
+.tipRow:first-child {
+  border-color: rgba(201,160,82,0.2);
+  background: rgba(201,160,82,0.04);
+}
+
+.tipChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 0.62rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  font-family: 'Outfit', sans-serif;
+}
+
+.tipChip--red   { background: rgba(220,38,38,0.75); color: #fff; }
+.tipChip--black { background: rgba(30,30,30,0.85); color: #ccc; border: 1px solid rgba(255,255,255,0.12); }
+.tipChip--green { background: rgba(5,150,105,0.75); color: #fff; }
+
+.tipArrow {
+  color: rgba(201,160,82,0.5);
+  font-size: 0.7rem;
+  flex-shrink: 0;
+}
+
+.tipAction {
+  flex: 1;
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.55);
+  font-family: 'Outfit', sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tipConf {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #c9a052;
+  font-family: 'Outfit', sans-serif;
+  flex-shrink: 0;
+}
+
+/* ═══ FOOTER ═══ */
+
+.footer {
+  margin-top: 0.35rem;
+  font-size: 0.5rem;
+  color: rgba(201,160,82,0.3);
+  text-align: center;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: 0.02em;
+}
+
+/* ═══ EMPTY ═══ */
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  font-size: 0.62rem;
+  color: rgba(255,255,255,0.2);
+  padding: 1.5rem 0;
+  font-family: 'Outfit', sans-serif;
+}
+
+/* ═══ RESPONSIVE ═══ */
+
+@media (max-width: 800px) {
+  .radarSvg {
+    max-width: 200px;
+  }
+
+  .tipChip {
+    width: 20px;
+    height: 20px;
+    font-size: 0.58rem;
+  }
+
+  .tipAction {
+    font-size: 0.56rem;
+  }
+}

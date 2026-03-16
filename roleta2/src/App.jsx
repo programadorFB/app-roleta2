@@ -1,347 +1,463 @@
-// src/App.jsx
-// ════════════════════════════════════════════════
-// Orquestrador principal — conecta hooks e renderiza layout.
-// Toda lógica pesada vive nos hooks e services.
-// ════════════════════════════════════════════════
-// 🔧 CORREÇÕES:
-//   1. useGameLauncher recebe userEmail
-//   2. Paywall listener unificado (game + history)
-//   3. GameIframe com onRetry (sem reload de página)
-//   4. REMOVIDO overlay fullscreen de iframe error
-//   5. Botões de ação contextuais baseados em failureType:
-//      - PAYWALL → "Renovar Assinatura"
-//      - FORBIDDEN → "Fazer Login Novamente"
-//      - SERVER_ERROR / NETWORK → "Tentar Novamente" + "Cancelar"
-//      - NOT_FOUND → nenhum botão extra (mensagem sugere trocar)
-//      - SESSION_EXPIRED → logout automático (sem botão)
-// ════════════════════════════════════════════════
-
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { BarChart3, Clock, Layers, LogOut, PlayCircle, Filter } from 'lucide-react';
-
-// ── Constants ─────────────────────────────────
+import React, {
+  useState, useMemo, useCallback, useEffect, lazy, Suspense,
+} from 'react';
 import {
-  ROULETTE_SOURCES, ROULETTE_GAME_IDS, FILTER_OPTIONS,
-  DEFAULT_ROULETTE, getNumberColor,
-} from './constants/roulette';
+  X, BarChart3, Clock, Hash, Percent, LogOut, PlayCircle, Crosshair, BookOpen, Headset, Wrench,
+} from 'lucide-react';
 
-// ── Hooks ─────────────────────────────────────
-import { useAuth }               from './hooks/useAuth';
-import { useSpinHistory }        from './hooks/useSpinHistory';
-import { usePullStats }          from './hooks/usePullStats';
-import { useGameLauncher, LAUNCH_FAILURE } from './hooks/useGameLauncher';
-import { useInactivityTimeout }  from './hooks/useInactivityTimeout';
-
-// ── Components ────────────────────────────────
-import Login              from './components/auth/Login';
-import GameIframe         from './components/game/GameIframe';
-import NumberStatsPopup   from './components/common/NumberStatsPopup';
-import PaywallModal       from './components/PaywallModal';
-import MasterDashboard    from './pages/MasterDashboard';
-import RacingTrack        from './components/RacingTrack';
-import DeepAnalysisPanel  from './components/DeepAnalysisPanel';
-import ResultsGrid        from './components/ResultGrid';
-
-// ── Styles ────────────────────────────────────
+import Login        from './components/Login.jsx';
+import PaywallModal from './components/PaywallModal.jsx';
 import './components/PaywallModal.css';
 import './components/NotificationsCenter.css';
 import './App.modules.css';
 import './index.css';
+
 import W600 from './assets/w=600.svg';
+import { ROULETTE_SOURCES, ROULETTE_GAME_IDS, FILTER_OPTIONS } from './constants/roulette';
+import { getNumberColor, formatPullTooltip } from './utils/roulette';
+import { useAuth }               from './hooks/useAuth.js';
+import { useGameLauncher, LAUNCH_FAILURE } from './hooks/useGameLauncher.js';
+import { useSpinHistory }        from './hooks/useSpinHistory.js';
+import { useInactivityTimeout }  from './hooks/useInactivityTimeout.js';
 
-// ── Helpers ───────────────────────────────────
-const formatPullTooltip = (number, pullStats, previousStats) => {
-  const fmt = (map) => {
-    if (!map || map.size === 0) return '(Nenhum)';
-    const keys = [...map.keys()].slice(0, 5);
-    return keys.join(', ') + (map.size > 5 ? ', ...' : '');
-  };
-  return `Número: ${number}\nPuxou: ${fmt(pullStats?.get(number))}\nVeio Antes: ${fmt(previousStats?.get(number))}`;
-};
+// Heavy components — carregados só quando necessários
+const MasterDashboard   = lazy(() => import('./pages/MasterDashboard.jsx'));
+const RacingTrack       = lazy(() => import('./components/RacingTrack.jsx'));
+const DeepAnalysisPanel = lazy(() => import('./components/DeepAnalysisPanel.jsx'));
+const ResultsGrid       = lazy(() => import('./components/ResultGrid.jsx'));
+const GameIframe        = lazy(() => import('./components/GameIframe.jsx'));
+const TriggersPage      = lazy(() => import('./pages/TriggersPage.jsx'));
+const TutorialPage      = lazy(() => import('./pages/TutorialPage.jsx'));
+const ToolsPage         = lazy(() => import('./pages/ToolsPage.jsx'));
 
-// ── Estilo dos botões de ação de erro ──
-const errorActionBtnStyle = {
-  padding: '0.5rem 1rem',
-  borderRadius: '0.375rem',
-  cursor: 'pointer',
-  fontSize: '0.75rem',
-  fontWeight: 'bold',
-  marginTop: '0.5rem',
-  border: 'none',
-};
+const Spinner = () => <div className="loading-screen"><div className="loading-spinner-large" /></div>;
 
-// ════════════════════════════════════════════════
+// ── NumberStatsPopup ──────────────────────────────────────────
+
+const NumberStatsPopup = React.memo(({ isOpen, onClose, number, stats }) => {
+  if (!isOpen || !stats) return null;
+  const color = getNumberColor(number);
+  return (
+    <div className="popup-overlay" onClick={onClose}>
+      <div className="popup-content" onClick={(e) => e.stopPropagation()}>
+        <button onClick={onClose} className="popup-close-btn"><X size={24} /></button>
+        <div className="popup-header">
+          <div className={`popup-number-icon ${color}`}>{number}</div>
+          <h2 className="popup-title">Análise do Número {number} (em {stats.historyFilter} spins)</h2>
+        </div>
+        <div className="popup-stats-grid">
+          <div className="info-card"><p className="info-label"><Hash size={18} /> Ocorrências:</p><p className="info-value">{stats.count} / {stats.historyFilter}</p></div>
+          <div className="info-card"><p className="info-label"><Percent size={18} /> Frequência:</p><p className="info-value">{stats.frequency}%</p></div>
+          <div className="info-card"><p className="info-label"><Clock size={18} /> Última Vez:</p><p className="info-value">{stats.lastHitAgo !== null ? `${stats.lastHitAgo} spins atrás` : 'Nunca'}</p></div>
+          <div className="info-card"><p className="info-label">Cor:</p><p className={`info-value ${color}`}>{color.toUpperCase()}</p></div>
+        </div>
+        <h3 className="next-spins-title">Últimas 5 Ocorrências (e 5 rodadas anteriores)</h3>
+        <div className="next-spins-container">
+          {stats.nextOccurrences.length > 0
+            ? stats.nextOccurrences.map((occ, i) => (
+              <div key={i} className="next-spins-card">
+                <p className="next-spins-label">Ocorrência #{stats.count - i} ({occ.spinsAgo} spins atrás)</p>
+                <div className="next-numbers-list">
+                  {occ.prevSpins.length > 0
+                    ? occ.prevSpins.map((n, j) => <span key={j} className={`next-number ${getNumberColor(n)}`}>{n}</span>)
+                    : <span className="no-data">Início do histórico</span>
+                  }
+                </div>
+              </div>
+            ))
+            : <p className="next-spins-none">O número {number} ainda não foi sorteado.</p>
+          }
+        </div>
+        <button onClick={onClose} className="popup-footer-btn">Fechar</button>
+      </div>
+    </div>
+  );
+});
+NumberStatsPopup.displayName = 'NumberStatsPopup';
+
+// ── App ───────────────────────────────────────────────────────
+
 const App = () => {
-  // ── State via hooks ──
-  const auth = useAuth();
-  const [selectedRoulette, setSelectedRoulette] = useState(DEFAULT_ROULETTE);
-  const [isPaywallOpen, setIsPaywallOpen] = useState(false);
-  const [checkoutUrl, setCheckoutUrl] = useState('');
+  const { isAuthenticated, userInfo, checkingAuth, jwtToken, handleLoginSuccess, handleLogout } = useAuth();
 
-  const { spinHistory, selectedResult } = useSpinHistory(
-    selectedRoulette, auth.userInfo?.email, auth.jwtToken, auth.isAuthenticated
-  );
+  const [isPaywallOpen,   setIsPaywallOpen]   = useState(false);
+  const [checkoutUrl,     setCheckoutUrl]     = useState('');
+  const [selectedRoulette,     setSelectedRoulette]     = useState(Object.keys(ROULETTE_SOURCES)[0]);
+  const [popupNumber,          setPopupNumber]          = useState(null);
+  const [isPopupOpen,          setIsPopupOpen]          = useState(false);
+  const [entrySignals,         setEntrySignals]         = useState({ targets: [], expanded: [] });
+  const [historyFilter,        setHistoryFilter]        = useState(FILTER_OPTIONS[1].value);
+  const [mobileTooltip,        setMobileTooltip]        = useState({ visible: false, content: '', x: 0, y: 0, isBelow: false });
+  const [activeView,           setActiveView]           = useState('dashboard');
 
-  // 🔧 FIX 1: Passa userEmail para verificação de assinatura no backend
-  const game = useGameLauncher(selectedRoulette, auth.jwtToken, auth.isAuthenticated, auth.userInfo?.email);
-  const { numberPullStats, numberPreviousStats } = usePullStats(spinHistory);
+  // ── Paywall event bus ─────────────────────────────────────
 
-  useInactivityTimeout(
-    !!(game.gameUrl && auth.isAuthenticated),
-    auth.handleLogout
-  );
+  const handlePaywallRequired = useCallback((url) => {
+    setCheckoutUrl(url || '');
+    setIsPaywallOpen(true);
+  }, []);
 
-  // ── UI state local ──
-  const [entrySignals, setEntrySignals] = useState([]);
-  const [historyFilter, setHistoryFilter] = useState(FILTER_OPTIONS[1].value);
-  const [popupNumber, setPopupNumber] = useState(null);
-  const [isPopupOpen, setIsPopupOpen] = useState(false);
-  const [mobileTooltip, setMobileTooltip] = useState({ visible: false, content: '', x: 0, y: 0, isBelow: false });
-
-  // 🔧 FIX 2: Listener unificado de paywall (game + history)
   useEffect(() => {
-    const handler = (e) => {
-      setCheckoutUrl(e.detail?.checkoutUrl || '');
-      setIsPaywallOpen(true);
-    };
+    const handler = (e) => { setCheckoutUrl(e.detail?.checkoutUrl || ''); setIsPaywallOpen(true); };
     window.addEventListener('paywall-required', handler);
     return () => window.removeEventListener('paywall-required', handler);
   }, []);
 
-  // ── Computed ──
-  const filteredSpinHistory = useMemo(
-    () => historyFilter === 'all' ? spinHistory : spinHistory.slice(0, Number(historyFilter)),
-    [spinHistory, historyFilter]
-  );
+  // ── Hooks ─────────────────────────────────────────────────
 
-  const stats = useMemo(() => {
-    const len = filteredSpinHistory.length;
-    if (len === 0) return { historyFilter: 0, colorFrequencies: { red: '0.0', black: '0.0', green: '0.0' }, latestNumbers: [] };
-    const counts = filteredSpinHistory.reduce((acc, s) => { acc[s.color] = (acc[s.color] || 0) + 1; return acc; }, {});
-    return {
-      historyFilter: len,
-      colorFrequencies: {
-        red:   ((counts.red || 0) / len * 100).toFixed(1),
-        black: ((counts.black || 0) / len * 100).toFixed(1),
-        green: ((counts.green || 0) / len * 100).toFixed(1),
-      },
-      latestNumbers: spinHistory.slice(0, 100),
-    };
-  }, [filteredSpinHistory, spinHistory]);
+  const {
+    filteredSpinHistory, selectedResult,
+    numberPullStats, numberPreviousStats, stats, clearHistory,
+  } = useSpinHistory({
+    selectedRoulette,
+    userEmail:  userInfo?.email || '',
+    jwtToken,
+    isAuthenticated,
+    historyFilter,
+    onPaywallRequired: handlePaywallRequired,
+  });
 
-  const popupStats = useMemo(() => {
-    if (popupNumber === null || !isPopupOpen) return null;
-    const occurrences = [];
-    filteredSpinHistory.forEach((spin, i) => { if (spin.number === popupNumber) occurrences.push({ index: i }); });
-    const count = occurrences.length;
-    const len = filteredSpinHistory.length;
-    const nextOccurrences = occurrences.slice(0, 5).map(occ => ({
-      spinsAgo: occ.index + 1,
-      prevSpins: filteredSpinHistory.slice(occ.index + 1, occ.index + 6).map(s => s.number),
-    }));
-    return { count, frequency: len > 0 ? ((count / len) * 100).toFixed(2) : '0.00', nextOccurrences, historyFilter: len, lastHitAgo: occurrences.length > 0 ? occurrences[0].index + 1 : null };
-  }, [popupNumber, isPopupOpen, filteredSpinHistory]);
+  const {
+    isLaunching, launchError, gameUrl, failureType, checkoutUrl: gameCheckoutUrl,
+    retryCount, isRetrying, handleLaunchGame, handleIframeError,
+    retryFromError, cancelRetry, resetGame,
+  } = useGameLauncher({
+    selectedRoulette,
+    jwtToken,
+    isAuthenticated,
+    userEmail: userInfo?.email || '',
+  });
 
-  // ── Handlers ──
-  const handleNumberClick = useCallback((n) => { setPopupNumber(n); setIsPopupOpen(true); }, []);
-  const closePopup = useCallback(() => { setIsPopupOpen(false); setPopupNumber(null); }, []);
-  const closeMobileTooltip = useCallback(() => setMobileTooltip({ visible: false, content: '', x: 0, y: 0, isBelow: false }), []);
+  useInactivityTimeout({
+    isActive:  !!(gameUrl && isAuthenticated),
+    onTimeout: handleLogout,
+  });
+
+  // ── UI handlers ───────────────────────────────────────────
+
+  const handleNumberClick = useCallback((number) => {
+    setPopupNumber(number);
+    setIsPopupOpen(true);
+  }, []);
+
+  const closePopup = useCallback(() => {
+    setIsPopupOpen(false);
+    setPopupNumber(null);
+  }, []);
 
   const handleResultBoxClick = useCallback((e, result) => {
     if (window.innerWidth <= 1024) {
       e.preventDefault();
       const content = formatPullTooltip(result.number, numberPullStats, numberPreviousStats);
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = rect.left + rect.width / 2;
-      let y = rect.top - 10;
-      let isBelow = false;
-      if (y < 100) { y = rect.bottom + 10; isBelow = true; }
-      setMobileTooltip(prev => (prev.visible && prev.content === content) ? { visible: false, content: '', x: 0, y: 0, isBelow: false } : { visible: true, content, x, y, isBelow });
+      const rect    = e.currentTarget.getBoundingClientRect();
+      const x       = rect.left + rect.width / 2;
+      const below   = rect.top < 100;
+      const y       = below ? rect.bottom + 10 : rect.top - 10;
+      setMobileTooltip(prev =>
+        prev.visible && prev.content === content
+          ? { visible: false, content: '', x: 0, y: 0, isBelow: false }
+          : { visible: true, content, x, y, isBelow: below },
+      );
     } else {
       handleNumberClick(result.number);
     }
   }, [numberPullStats, numberPreviousStats, handleNumberClick]);
 
-  const handleRouletteChange = useCallback((e) => {
-    setSelectedRoulette(e.target.value);
-    game.resetGame();
-  }, [game]);
+  const closeMobileTooltip = useCallback(() =>
+    setMobileTooltip({ visible: false, content: '', x: 0, y: 0, isBelow: false }),
+  []);
 
-  // 🔧 FIX 3: gameIframe com onRetry (sem window.location.reload)
-  const gameIframe = useMemo(
-    () => game.gameUrl
-      ? <GameIframe
-          url={game.gameUrl}
-          onError={game.handleIframeError}
-          onRetry={() => { game.resetGame(); game.handleLaunchGame(); }}
-        />
-      : null,
-    [game.gameUrl, game.handleIframeError, game.resetGame, game.handleLaunchGame]
+  const handleRouletteChange = useCallback((e) => {
+    clearHistory();
+    setSelectedRoulette(e.target.value);
+    resetGame();
+  }, [clearHistory, resetGame]);
+
+  const handleFilterChange = useCallback((e) => {
+    setHistoryFilter(e.target.value === 'all' ? 'all' : Number(e.target.value));
+  }, []);
+
+  const setDashboard = useCallback(() => setActiveView('dashboard'), []);
+  const setTriggers  = useCallback(() => setActiveView('triggers'),  []);
+  const setTutorial  = useCallback(() => setActiveView('tutorial'),  []);
+  const setTools     = useCallback(() => setActiveView('tools'),     []);
+
+  // ── Computed ──────────────────────────────────────────────
+
+  const popupStats = useMemo(() => {
+    if (popupNumber === null || !isPopupOpen) return null;
+    const occurrences = filteredSpinHistory.reduce((acc, spin, i) => {
+      if (spin.number === popupNumber) acc.push(i);
+      return acc;
+    }, []);
+    const count = occurrences.length;
+    return {
+      count,
+      frequency:       filteredSpinHistory.length > 0 ? ((count / filteredSpinHistory.length) * 100).toFixed(2) : '0.00',
+      nextOccurrences: occurrences.slice(0, 5).map(i => ({
+        spinsAgo:  i + 1,
+        prevSpins: filteredSpinHistory.slice(i + 1, i + 6).map(s => s.number),
+      })),
+      historyFilter: filteredSpinHistory.length,
+      lastHitAgo:    occurrences.length > 0 ? occurrences[0] + 1 : null,
+    };
+  }, [popupNumber, isPopupOpen, filteredSpinHistory]);
+
+  const gameIframeComponent = useMemo(() => !gameUrl ? null : (
+    <Suspense fallback={<Spinner />}>
+      <GameIframe url={gameUrl} onError={handleIframeError} onRetry={retryFromError} />
+    </Suspense>
+  ), [gameUrl, handleIframeError, retryFromError]);
+
+  const racingTrackProps = {
+    selectedResult,
+    onNumberClick:  handleNumberClick,
+    entrySignals:   entrySignals.expanded,
+    targetSignals:  entrySignals.targets,
+  };
+
+  // ── Render ────────────────────────────────────────────────
+
+  if (checkingAuth)     return <Spinner />;
+  if (!isAuthenticated) return (
+    <Login
+      onLoginSuccess={handleLoginSuccess}
+      setIsPaywallOpen={setIsPaywallOpen}
+      setCheckoutUrl={setCheckoutUrl}
+    />
   );
 
-  // ── Guards ──
-  if (auth.checkingAuth) return <div className="loading-screen"><div className="loading-spinner-large" /><p>Carregando...</p></div>;
-  if (!auth.isAuthenticated) return <Login onLoginSuccess={auth.handleLoginSuccess} setIsPaywallOpen={setIsPaywallOpen} setCheckoutUrl={setCheckoutUrl} />;
-
-  // ── Render ──
   return (
     <div className="app-root">
-      {/* Mobile Tooltip */}
+
       {mobileTooltip.visible && (
         <>
           <div className="tooltip-backdrop" onClick={closeMobileTooltip} />
-          <div className="mobile-tooltip" style={{ position: 'fixed', top: mobileTooltip.y, left: mobileTooltip.x, transform: mobileTooltip.isBelow ? 'translate(-50%, 0)' : 'translate(-50%, -100%)', zIndex: 2000 }}>
-            {mobileTooltip.content.split('\n').map((line, i) => <span key={i} className="tooltip-line">{line}</span>)}
+          <div
+            className="mobile-tooltip"
+            style={{
+              position:  'fixed',
+              top:       mobileTooltip.y,
+              left:      mobileTooltip.x,
+              transform: mobileTooltip.isBelow ? 'translate(-50%, 0)' : 'translate(-50%, -100%)',
+              zIndex:    2000,
+            }}
+          >
+            {mobileTooltip.content.split('\n').map((line, i) => (
+              <span key={i} className="tooltip-line">{line}</span>
+            ))}
           </div>
         </>
       )}
 
-      {/* 🔧 FIX 4: REMOVIDO overlay fullscreen de iframe error
-          Agora tratado dentro do GameIframe.jsx */}
-
-      {/* Navbar */}
       <nav className="navbar">
-        <div className="navbar-left" />
+        <div className="navbar-left">
+          <button
+            className={`navbar-tab ${activeView === 'dashboard' ? 'navbar-tab--active' : ''}`}
+            onClick={setDashboard}
+          >
+            <BarChart3 size={16} /><span className="navbar-tab-text">Dashboard</span>
+          </button>
+          <button
+            className={`navbar-tab ${activeView === 'triggers' ? 'navbar-tab--active' : ''}`}
+            onClick={setTriggers}
+          >
+            <Crosshair size={16} /><span className="navbar-tab-text">Gatilhos</span>
+          </button>
+          <button
+            className={`navbar-tab ${activeView === 'tutorial' ? 'navbar-tab--active' : ''}`}
+            onClick={setTutorial}
+          >
+            <BookOpen size={16} /><span className="navbar-tab-text">Tutorial</span>
+          </button>
+          <button
+            className={`navbar-tab ${activeView === 'tools' ? 'navbar-tab--active' : ''}`}
+            onClick={setTools}
+          >
+            <Wrench size={16} /><span className="navbar-tab-text">Ferramentas</span>
+          </button>
+        </div>
+
+        <div className="navbar-center">
+          <div className="navbar-selector-group">
+            <select className="navbar-select" value={selectedRoulette} onChange={handleRouletteChange}>
+              {Object.keys(ROULETTE_SOURCES).map(key => (
+                <option key={key} value={key}>{ROULETTE_SOURCES[key]}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="navbar-selector-group">
+            <select className="navbar-select navbar-select--small" value={historyFilter} onChange={handleFilterChange}>
+              {FILTER_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            onClick={() => handleLaunchGame(0)}
+            disabled={isLaunching || !ROULETTE_GAME_IDS[selectedRoulette]}
+            className="navbar-launch-btn"
+          >
+            {isLaunching
+              ? <><div className="spinner" /><span className="navbar-launch-text">{isRetrying ? `${retryCount}/3...` : '...'}</span></>
+              : <><PlayCircle size={14} /><span className="navbar-launch-text">{gameUrl ? 'Reiniciar' : 'Iniciar'}</span></>
+            }
+          </button>
+
+          <div className="navbar-signal-badge">
+            <span className="navbar-signal-count">{filteredSpinHistory.length}</span>
+            <span className="navbar-signal-label">sinais</span>
+          </div>
+        </div>
+
         <div className="navbar-right">
           <a href="https://betou.bet.br/" target="_blank" rel="noopener noreferrer" className="nav-btn">
-            ENTRE NA PLATAFORMA<img src={W600} alt="Logo" style={{ height: '15px' }} /><span className="nav-btn-text" />
+            PLATAFORMA<img src={W600} alt="Logo" style={{ height: '13px', marginLeft: '4px' }} />
           </a>
-          <button onClick={auth.handleLogout} className="logout-btn"><LogOut size={18} /><span className="logout-btn-text">Sair</span></button>
+          <a href="https://wa.me/5551981794138?text=Fala%20Fuza!%20Vim%20pela%20ferramenta%20e%20estou%20com%20d%C3%BAvidas..." target="_blank" rel="noopener noreferrer" className="support-btn" title="Suporte">
+            <Headset size={14} />
+            <span className="support-btn-text">SUPORTE</span>
+          </a>
+          <button onClick={handleLogout} className="logout-btn">
+            <LogOut size={16} />
+          </button>
         </div>
       </nav>
 
-      <main className="app-container">
-        {/* Sidebar Esquerda */}
-        <aside className="stats-dashboard">
-          <h3 className="dashboard-title">Estatísticas e Ações</h3>
-          <div className="selectors-card">
-            <div className="selectors-grid">
-              <div className="selector-group">
-                <h4 className="selector-label"><Layers size={15} /> Roletas</h4>
-                <select className="roulette-selector" value={selectedRoulette} onChange={handleRouletteChange}>
-                  {Object.keys(ROULETTE_SOURCES).map(key => <option key={key} value={key}>{ROULETTE_SOURCES[key]}</option>)}
-                </select>
-              </div>
-              <div className="selector-group">
-                <h4 className="selector-label"><Filter size={15} /> Rodadas</h4>
-                <select className="roulette-selector" value={historyFilter} onChange={(e) => setHistoryFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}>
-                  {FILTER_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                </select>
+      {launchError && (
+        <div className="navbar-error-bar">
+          <span className="navbar-error-text">{launchError}</span>
+          {failureType === LAUNCH_FAILURE.PAYWALL && (
+            <button
+              onClick={() => { setCheckoutUrl(gameCheckoutUrl || ''); setIsPaywallOpen(true); }}
+              className="navbar-error-action"
+            >
+              💳 Renovar
+            </button>
+          )}
+          {failureType === LAUNCH_FAILURE.FORBIDDEN && (
+            <button onClick={handleLogout} className="navbar-error-action">🔄 Re-login</button>
+          )}
+          {(failureType === LAUNCH_FAILURE.SERVER_ERROR || failureType === LAUNCH_FAILURE.NETWORK_ERROR) && !isRetrying && (
+            <button onClick={retryFromError} className="navbar-error-action">🔄 Tentar</button>
+          )}
+          {isRetrying && (
+            <button onClick={cancelRetry} className="navbar-error-action navbar-error-action--cancel">✕ Cancelar</button>
+          )}
+        </div>
+      )}
+
+      {activeView === 'dashboard' && (
+        <main className="app-container">
+          <aside className="stats-dashboard">
+            <div className="master-dashboard-wrapper">
+              {stats.historyFilter >= 20
+                ? (
+                  <Suspense fallback={<div className="waiting-card">Carregando painel...</div>}>
+                    <MasterDashboard spinHistory={filteredSpinHistory} onSignalUpdate={setEntrySignals} />
+                  </Suspense>
+                )
+                : <div className="waiting-card">Aguardando {20 - stats.historyFilter} spins para o Painel Master...</div>
+              }
+            </div>
+          </aside>
+
+          <div className="racetrack-mobile-only">
+            <Suspense fallback={null}>
+              <RacingTrack {...racingTrackProps} />
+            </Suspense>
+          </div>
+
+          <section className="main-content">
+            <div className="game-area">
+              {gameIframeComponent}
+              <div className="racetrack-desktop-only">
+                <Suspense fallback={null}>
+                  <RacingTrack {...racingTrackProps} />
+                </Suspense>
               </div>
             </div>
-            <button onClick={game.handleLaunchGame} disabled={game.isLaunching || !ROULETTE_GAME_IDS[selectedRoulette]} className="launch-button">
-              {game.isLaunching ? <><div className="spinner" />Iniciando...</> : <><PlayCircle size={20} />{game.gameUrl ? `Reiniciar ${ROULETTE_SOURCES[selectedRoulette]}` : `Iniciar ${ROULETTE_SOURCES[selectedRoulette]}`}</>}
-            </button>
+          </section>
 
-            {/* ═══════════════════════════════════════════
-                🔧 FIX 5: Bloco de erro com botões de ação contextuais
-                Cada failureType gera um botão diferente
-                ═══════════════════════════════════════════ */}
-            {game.launchError && (
-              <div style={{ textAlign: 'center' }}>
-                <p className="launch-error">{game.launchError}</p>
-
-                {/* PAYWALL: Botão abre modal de checkout */}
-                {game.failureType === LAUNCH_FAILURE.PAYWALL && (
-                  <button
-                    onClick={() => setIsPaywallOpen(true)}
-                    style={{ ...errorActionBtnStyle, background: '#eab308', color: '#111827' }}
-                  >
-                    💳 Renovar Assinatura
-                  </button>
-                )}
-
-                {/* FORBIDDEN: Botão de relogin */}
-                {game.failureType === LAUNCH_FAILURE.FORBIDDEN && (
-                  <button
-                    onClick={auth.handleLogout}
-                    style={{ ...errorActionBtnStyle, background: '#ef4444', color: '#fff' }}
-                  >
-                    🔄 Fazer Login Novamente
-                  </button>
-                )}
-
-                {/* SERVER_ERROR / NETWORK: Botão de retentar + cancelar retry */}
-                {(game.failureType === LAUNCH_FAILURE.SERVER_ERROR || game.failureType === LAUNCH_FAILURE.NETWORK_ERROR) && (
-                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginTop: '0.5rem' }}>
-                    <button
-                      onClick={game.handleLaunchGame}
-                      disabled={game.isLaunching}
-                      style={{ ...errorActionBtnStyle, background: '#3b82f6', color: '#fff' }}
-                    >
-                      🔄 Tentar Novamente
-                    </button>
-                    {game.retryCount > 0 && (
-                      <button
-                        onClick={game.cancelRetry}
-                        style={{ ...errorActionBtnStyle, background: 'transparent', color: '#9ca3af', border: '1px solid #4b5563' }}
-                      >
-                        Cancelar
-                      </button>
-                    )}
+          <aside className="analysis-panel">
+            {stats.historyFilter >= 20 ? (
+              <>
+                <div className="results-section">
+                  <h4 className="section-title"><Clock size={20} /> Resultados ({stats.historyFilter})</h4>
+                  <div className="color-frequencies">
+                    <span className="freq-item">Vermelho: <strong className="red">{stats.colorFrequencies.red}%</strong></span>
+                    <span className="freq-item">Zero: <strong className="green">{stats.colorFrequencies.green}%</strong></span>
+                    <span className="freq-item">Preto: <strong className="black">{stats.colorFrequencies.black}%</strong></span>
                   </div>
-                )}
-
-                {/* NOT_FOUND: Nenhum botão extra, a mensagem já sugere trocar de roleta */}
-
-                {/* SESSION_EXPIRED: Nenhum botão, logout automático já foi disparado */}
+                  <div className="latest-results">
+                    <Suspense fallback={null}>
+                      <ResultsGrid
+                        latestNumbers={filteredSpinHistory}
+                        numberPullStats={numberPullStats}
+                        numberPreviousStats={numberPreviousStats}
+                        onResultClick={handleResultBoxClick}
+                        forceCols={10}
+                      />
+                    </Suspense>
+                  </div>
+                </div>
+                <Suspense fallback={null}>
+                  <DeepAnalysisPanel
+                    spinHistory={filteredSpinHistory}
+                    setIsPaywallOpen={setIsPaywallOpen}
+                    cercoOptions={{
+                      enablePreFormation:      true,
+                      enableFrequencyAnalysis: true,
+                      enableCandidateTracking: true,
+                      lookbackWindow:          50,
+                      maxVisibleAlerts:        3,
+                    }}
+                  />
+                </Suspense>
+              </>
+            ) : (
+              <div className="waiting-panel">
+                <div className="waiting-card">Aguardando {50 - stats.historyFilter} spins para o Painel de Análise...</div>
               </div>
             )}
-          </div>
+          </aside>
+        </main>
+      )}
 
-          <div className="stats-card">
-            <h4 className="stats-card-title"><BarChart3 size={18} /> Total de Sinais</h4>
-            <p className="stats-card-value">{filteredSpinHistory.length}</p>
-          </div>
+      {activeView === 'triggers' && (
+        <Suspense fallback={<Spinner />}>
+          <TriggersPage
+            filteredSpinHistory={filteredSpinHistory}
+            gameIframeComponent={gameIframeComponent}
+            selectedResult={selectedResult}
+            numberPullStats={numberPullStats}
+            numberPreviousStats={numberPreviousStats}
+            onResultClick={handleResultBoxClick}
+            onNumberClick={handleNumberClick}
+          />
+        </Suspense>
+      )}
 
-          <div className="master-dashboard-wrapper">
-            {stats.historyFilter >= 20
-              ? <MasterDashboard spinHistory={filteredSpinHistory} onSignalUpdate={setEntrySignals} />
-              : <div className="waiting-card">Aguardando {20 - stats.historyFilter} spins para o Painel Master...</div>
-            }
-          </div>
-        </aside>
+      {activeView === 'tutorial' && (
+        <Suspense fallback={<Spinner />}>
+          <TutorialPage />
+        </Suspense>
+      )}
 
-        {/* Racetrack Mobile */}
-        <div className="racetrack-mobile-only">
-          <RacingTrack selectedResult={selectedResult} onNumberClick={handleNumberClick} entrySignals={entrySignals} />
-        </div>
+      {activeView === 'tools' && (
+        <Suspense fallback={<Spinner />}>
+          <ToolsPage />
+        </Suspense>
+      )}
 
-        {/* Central */}
-        <section className="main-content">
-          <div className="game-area">
-            {gameIframe}
-            <div className="racetrack-desktop-only">
-              <RacingTrack selectedResult={selectedResult} onNumberClick={handleNumberClick} entrySignals={entrySignals} />
-            </div>
-          </div>
-        </section>
-
-        {/* Sidebar Direita */}
-        <aside className="analysis-panel">
-          {stats.historyFilter >= 20 ? (
-            <>
-              <div className="results-section">
-                <h4 className="section-title"><Clock size={20} /> Últimos Resultados (100)</h4>
-                <div className="color-frequencies">
-                  <span className="freq-item">Vermelho: <strong className="red">{stats.colorFrequencies.red}%</strong></span>
-                  <span className="freq-item">Zero: <strong className="green">{stats.colorFrequencies.green}%</strong></span>
-                  <span className="freq-item">Preto: <strong className="black">{stats.colorFrequencies.black}%</strong></span>
-                </div>
-                <div className="latest-results">
-                  <ResultsGrid latestNumbers={stats.latestNumbers} numberPullStats={numberPullStats} numberPreviousStats={numberPreviousStats} onResultClick={handleResultBoxClick} />
-                </div>
-              </div>
-              <DeepAnalysisPanel spinHistory={filteredSpinHistory} setIsPaywallOpen={setIsPaywallOpen} cercoOptions={{ enablePreFormation: true, enableFrequencyAnalysis: true, enableCandidateTracking: true, lookbackWindow: 50, maxVisibleAlerts: 3 }} />
-            </>
-          ) : (
-            <div className="waiting-panel"><div className="waiting-card">Aguardando {50 - stats.historyFilter} spins para o Painel de Análise...</div></div>
-          )}
-        </aside>
-      </main>
-
-      {/* Modals */}
-      <PaywallModal isOpen={isPaywallOpen} onClose={() => { setIsPaywallOpen(false); auth.handleLogout(); }} userId={auth.userInfo?.email} checkoutUrl={checkoutUrl} />
+      <PaywallModal
+        isOpen={isPaywallOpen}
+        onClose={() => { setIsPaywallOpen(false); handleLogout(); }}
+        userId={userInfo?.email}
+        checkoutUrl={checkoutUrl}
+      />
       <NumberStatsPopup isOpen={isPopupOpen} onClose={closePopup} number={popupNumber} stats={popupStats} />
     </div>
   );

@@ -1,0 +1,607 @@
+/* ToolsPage.module.css — Cinematic MOGNO & OURO */
+
+.page {
+  min-height: 100vh;
+  background: #0a0806;
+  font-family: 'Outfit', sans-serif;
+  color: #e8dcc8;
+  overflow-x: hidden;
+}
+
+/* ══════════════════════════════════════════
+   CINEMATIC HERO
+   ══════════════════════════════════════════ */
+.hero {
+  position: relative;
+  text-align: center;
+  padding: 4rem 1.5rem 3rem;
+  overflow: hidden;
+}
+
+.heroVignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% 30%, transparent 0%, #0a0806 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.heroGlow {
+  position: absolute;
+  top: -60%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(201,160,82,0.10) 0%, transparent 65%);
+  pointer-events: none;
+  animation: heroBreath 6s ease-in-out infinite;
+}
+
+.heroGlow2 {
+  position: absolute;
+  top: -30%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(201,160,82,0.06) 0%, transparent 70%);
+  pointer-events: none;
+  animation: heroBreath 6s ease-in-out infinite 3s;
+}
+
+/* vertical accent lines */
+.heroLines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.heroLine {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(to bottom, transparent, rgba(201,160,82,0.06) 50%, transparent);
+  animation: lineFade 8s ease-in-out infinite;
+}
+
+/* floating particles */
+.heroParticles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.particle {
+  position: absolute;
+  bottom: -8px;
+  width: 2px;
+  height: 2px;
+  background: #c9a052;
+  box-shadow: 0 0 4px rgba(201,160,82,0.6);
+  animation: particleRise 7s ease-in infinite;
+}
+
+/* badge */
+.heroBadge {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  border: 1px solid rgba(201,160,82,0.25);
+  color: #c9a052;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 1.25rem;
+  background: rgba(201,160,82,0.03);
+}
+
+/* split title */
+.heroTitle {
+  position: relative;
+  z-index: 2;
+  margin: 0 0 0.6rem;
+  line-height: 1.1;
+}
+
+.heroTitleThin {
+  display: block;
+  font-size: 1rem;
+  font-weight: 300;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: rgba(232,220,200,0.4);
+  margin-bottom: 0.2rem;
+}
+
+.heroTitleBold {
+  display: block;
+  font-size: 2.8rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #fff 30%, #c9a052 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.heroSub {
+  position: relative;
+  z-index: 2;
+  font-size: 0.82rem;
+  color: rgba(232,220,200,0.45);
+  margin: 0 0 2rem;
+  letter-spacing: 0.02em;
+}
+
+/* stats row */
+.heroStats {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.8rem 1.8rem;
+  border: 1px solid rgba(201,160,82,0.1);
+  background: rgba(255,255,255,0.015);
+}
+
+.heroStat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.heroStatNum {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #c9a052;
+  letter-spacing: -0.02em;
+}
+
+.heroStatLabel {
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(232,220,200,0.35);
+}
+
+.heroStatDivider {
+  width: 1px;
+  height: 28px;
+  background: rgba(201,160,82,0.12);
+}
+
+/* ══════════════════════════════════════════
+   CARD GRID
+   ══════════════════════════════════════════ */
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 0 1rem 2rem;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+/* ══════════════════════════════════════════
+   CARD
+   ══════════════════════════════════════════ */
+.card {
+  position: relative;
+  padding: 1.6rem;
+  background: linear-gradient(165deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0.005) 100%);
+  overflow: hidden;
+  animation: cardReveal 0.6s ease-out both;
+  transition: transform 0.35s cubic-bezier(0.22,1,0.36,1);
+}
+
+.card:hover {
+  transform: translateY(-3px);
+}
+
+/* ambient glow behind card */
+.cardGlow {
+  position: absolute;
+  top: -40%;
+  right: -20%;
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(var(--card-rgb), 0.06) 0%, transparent 65%);
+  pointer-events: none;
+  transition: opacity 0.4s;
+}
+
+.card:hover .cardGlow {
+  opacity: 1.5;
+}
+
+/* diagonal shine sweep on hover */
+.cardShine {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(105deg, transparent 40%, rgba(var(--card-rgb), 0.04) 50%, transparent 60%);
+  pointer-events: none;
+  transition: left 0.7s cubic-bezier(0.22,1,0.36,1);
+}
+
+.card:hover .cardShine {
+  left: 140%;
+}
+
+/* animated border (left + bottom accent) */
+.cardBorder {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(to bottom, var(--card-color), transparent 80%);
+  opacity: 0.5;
+  transition: opacity 0.3s;
+}
+
+.card:hover .cardBorder {
+  opacity: 1;
+}
+
+/* large watermark number */
+.cardNumber {
+  position: absolute;
+  top: -8px;
+  right: 12px;
+  font-size: 5.5rem;
+  font-weight: 900;
+  color: rgba(var(--card-rgb), 0.04);
+  line-height: 1;
+  pointer-events: none;
+  letter-spacing: -0.04em;
+  user-select: none;
+}
+
+/* ── card top (icon + meta) ── */
+.cardTop {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* icon with double ring */
+.cardIconRing {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(var(--card-rgb), 0.15);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.cardIconRing::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border: 1px solid rgba(var(--card-rgb), 0.06);
+}
+
+.cardIconInner {
+  color: var(--card-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* meta */
+.cardMeta {
+  min-width: 0;
+}
+
+.cardBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid rgba(var(--card-rgb), 0.2);
+  color: var(--card-color);
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 0.35rem;
+  background: rgba(var(--card-rgb), 0.05);
+}
+
+.cardName {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 0.15rem;
+  letter-spacing: -0.01em;
+}
+
+.cardTagline {
+  font-size: 0.72rem;
+  color: rgba(232,220,200,0.4);
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+/* ── divider with diamond ── */
+.cardDivider {
+  position: relative;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(var(--card-rgb), 0.12), transparent);
+  margin: 1rem 0;
+  z-index: 1;
+}
+
+.cardDividerDiamond {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(45deg);
+  width: 5px;
+  height: 5px;
+  background: var(--card-color);
+  opacity: 0.35;
+}
+
+/* ── description ── */
+.cardDesc {
+  font-size: 0.8rem;
+  line-height: 1.7;
+  color: rgba(232,220,200,0.55);
+  margin: 0 0 1.2rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── features list ── */
+.cardFeatures {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.cardFeature {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.75rem;
+  color: rgba(232,220,200,0.65);
+  padding: 0.45rem 0.65rem;
+  background: rgba(255,255,255,0.012);
+  border: 1px solid rgba(255,255,255,0.025);
+  transition: border-color 0.3s, transform 0.25s, background 0.3s;
+}
+
+.cardFeature:hover {
+  border-color: rgba(var(--card-rgb), 0.15);
+  background: rgba(var(--card-rgb), 0.03);
+  transform: translateX(4px);
+}
+
+.featureIcon {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--feat-color);
+  flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.015);
+}
+
+/* ── status bar ── */
+.cardStatus {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(var(--card-rgb), 0.06);
+  position: relative;
+  z-index: 1;
+}
+
+.statusPulse {
+  width: 7px;
+  height: 7px;
+  background: var(--card-color);
+  box-shadow: 0 0 10px rgba(var(--card-rgb), 0.5);
+  flex-shrink: 0;
+  animation: statusBlink 2.5s ease-in-out infinite;
+  position: relative;
+}
+
+.statusPulse::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border: 1px solid rgba(var(--card-rgb), 0.2);
+  animation: statusRing 2.5s ease-in-out infinite;
+}
+
+.statusText {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--card-color);
+  letter-spacing: 0.04em;
+  flex: 1;
+}
+
+.statusArrow {
+  color: var(--card-color);
+  opacity: 0.4;
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+/* access button */
+.accessBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 14px;
+  border: 1px solid rgba(var(--card-rgb), 0.25);
+  background: rgba(var(--card-rgb), 0.06);
+  color: var(--card-color);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background 0.3s, border-color 0.3s, transform 0.2s, box-shadow 0.3s;
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+}
+
+.accessBtn:hover {
+  background: rgba(var(--card-rgb), 0.12);
+  border-color: rgba(var(--card-rgb), 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(var(--card-rgb), 0.15);
+}
+
+.accessBtn svg {
+  transition: transform 0.25s;
+}
+
+.accessBtn:hover svg {
+  transform: translate(2px, -2px);
+}
+
+/* current app tag */
+.currentTag {
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: #c9a052;
+  padding: 3px 10px;
+  border: 1px solid rgba(201,160,82,0.2);
+  background: rgba(201,160,82,0.05);
+}
+
+/* ══════════════════════════════════════════
+   FOOTER
+   ══════════════════════════════════════════ */
+.footer {
+  position: relative;
+  text-align: center;
+  padding: 3rem 1rem 2rem;
+  margin: 1rem 1rem 0;
+  border-top: 1px solid rgba(201,160,82,0.06);
+  overflow: hidden;
+}
+
+.footerGlow {
+  position: absolute;
+  bottom: -50%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(201,160,82,0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.footerLogo {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  opacity: 0.3;
+  margin-bottom: 0.75rem;
+  animation: logoFloat 6s ease-in-out infinite;
+}
+
+.footerBrand {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #c9a052;
+  margin: 0 0 0.2rem;
+  letter-spacing: 0.06em;
+}
+
+.footerSub {
+  font-size: 0.6rem;
+  color: rgba(232,220,200,0.25);
+  margin: 0;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+/* ══════════════════════════════════════════
+   ANIMATIONS
+   ══════════════════════════════════════════ */
+@keyframes heroBreath {
+  0%, 100% { opacity: 0.5; transform: translateX(-50%) scale(1); }
+  50%      { opacity: 1;   transform: translateX(-50%) scale(1.1); }
+}
+
+@keyframes lineFade {
+  0%, 100% { opacity: 0; }
+  50%      { opacity: 1; }
+}
+
+@keyframes particleRise {
+  0%   { transform: translateY(0) scale(1); opacity: 0; }
+  8%   { opacity: 0.8; }
+  100% { transform: translateY(-400px) scale(0.2); opacity: 0; }
+}
+
+@keyframes cardReveal {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes statusBlink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+
+@keyframes statusRing {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50%      { opacity: 0; transform: scale(1.8); }
+}
+
+@keyframes logoFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+/* ══════════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .hero { padding: 2.5rem 1rem 2rem; }
+  .heroTitleBold { font-size: 2rem; }
+  .heroStats { gap: 1rem; padding: 0.6rem 1.2rem; }
+  .heroStatNum { font-size: 1.1rem; }
+  .grid { padding: 0 0.5rem 1.5rem; gap: 1.2rem; }
+  .card { padding: 1.2rem; }
+  .cardName { font-size: 1.15rem; }
+  .cardNumber { font-size: 4rem; }
+  .cardIconRing { width: 46px; height: 46px; }
+}

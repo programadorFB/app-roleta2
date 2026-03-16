@@ -22,7 +22,7 @@ const getNumberColor = (num) => {
 const SectorsAnalysis = ({ spinHistory }) => {
   const analysis = useMemo(() => {
     const totalSpins = spinHistory.length;
-    const history = spinHistory.filter;
+    const _history = spinHistory.filter;
     
     if (totalSpins === 0) {
       return { sectors: [], totalSpins: 0, hottestSector: null, coldestSector: null };
