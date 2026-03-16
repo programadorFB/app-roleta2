@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd roleta2:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run:*)",
+      "Bash(node:*)",
+      "Bash(timeout:*)",
+      "Bash(cd:*)",
+      "Bash(git push:*)"
+    ]
+  }
+}

@@ -270,12 +270,12 @@ const App = () => {
           >
             <BookOpen size={16} /><span className="navbar-tab-text">Tutorial</span>
           </button>
-          <button
+          {/* <button
             className={`navbar-tab ${activeView === 'tools' ? 'navbar-tab--active' : ''}`}
             onClick={setTools}
           >
             <Wrench size={16} /><span className="navbar-tab-text">Ferramentas</span>
-          </button>
+          </button> */}
         </div>
 
         <div className="navbar-center">

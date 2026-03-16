@@ -8,7 +8,26 @@ services:
       - "3001:3001"
     environment:
       - NODE_ENV=production
+      - PORT=3001
       - REDIS_URL=redis://redis:6379
+      - DB_HOST=postgres_principal
+      - DB_PORT=5432
+      - DB_NAME=phantom-roleta
+      - DB_USER=postgres
+      - DB_PASSWORD=1234
+      - CRAWLER_SECRET=cr4wl3r-s3cr3t-local-dev
+      - ADMIN_SECRET=JrI9EK_ja8ZrJae7diAV3fawPzSYtWuy-lbbuYZ2H0_orgO1ko0_aLe_8t04pkaGAJjtPeVZCCCLGQCbv0pwOg
+      - HUBLA_WEBHOOK_TOKEN=x11H8dJDrNRQBZTxicwFObMkk3LG6gSMBwAi5CxGYlRp1JuwRZZsxWm81NSZEgEJ
+      - HUBLA_CHECKOUT_URL=https://pay.hub.la/N7JdmojxORlRpaafFEyl
+      - FRONTEND_URL=https://tool.smartanalise.com.br
+      - AUTH_PROXY_TARGET=https://api.appbackend.tech
+      - SENTRY_DSN=https://1524b8f488f4292a3be4380d2a608b18@o4510381163675648.ingest.us.sentry.io/4510381187334144
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_USER=devfuzabalta@gmail.com
+      - SMTP_PASS=ipnhawzakasewcxu
+      - SMTP_SENDER_NAME=Smart Analise
+      - PM2_INSTANCES=2
     restart: unless-stopped
     networks:
       - rede_externa
@@ -18,6 +37,8 @@ services:
     build:
       context: ./roleta2/
       dockerfile: ./src/Dockerfile
+      args:
+        VITE_API_URL: https://tool-api.smartanalise.com.br
     ports:
       - "81:81"
     depends_on:

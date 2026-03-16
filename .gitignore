@@ -1,86 +1,39 @@
-# ENV
+# ENV / SECRETS
 # =========================================================
 .env
 .env.*
 !.env.example
 !.env.template
-
-# Secrets
 *.pem
 *.key
 *.crt
 *.p12
 
-# NODE / FRONTEND
+# NODE
 # =========================================================
 node_modules/
 dist/
 dist-ssr/
-build/
 coverage/
-
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
 pnpm-debug.log*
-lerna-debug.log*
 
 # Vite
 .vite/
 *.local
-
-# PYTHON
-# =========================================================
-__pycache__/
-*.py[cod]
-*$py.class
-
-# Virtual environments
-venv/
-.venv/
-env/
-ENV/
-
-# Packaging
-build/
-develop-eggs/
-dist/
-downloads/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Pytest / Coverage
-.coverage
-.coverage.*
-.pytest_cache/
-htmlcov/
-
-# Mypy
-.mypy_cache/
-
-# Celery
-celerybeat-schedule
 
 # DOCKER
 # =========================================================
 docker-compose.override.yml
 *.pid
 
-
 # BANCO DE DADOS
 # =========================================================
 *.sqlite3
 *.db
 
-# TESTES / LOGS
+# LOGS
 # =========================================================
 logs/
 *.log
@@ -89,7 +42,6 @@ logs/
 # =========================================================
 .DS_Store
 Thumbs.db
-
 
 # IDE / EDITOR
 # =========================================================
@@ -109,24 +61,13 @@ Thumbs.db
 temp/
 tmp/
 
-# BUILD PRODUÇÃO
+# BUILD
 # =========================================================
 *.tgz
 *.tar.gz
+*.map
 
-#  NOTEBOOKS
+# TESTE LOCAL
 # =========================================================
-.ipynb_checkpoints/
-
-# SESSÕES / TOKENS
-# =========================================================
-sessions/
-*.session
-
-# TESTE LOCAL REDIS
 docker-compose.local.yml
 init-local-db.sql
-test-redis-integration.mjs
-test-load.mjs
-.env.local
-.env.prod.backup
