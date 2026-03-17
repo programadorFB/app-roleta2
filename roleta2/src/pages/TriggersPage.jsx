@@ -1,6 +1,6 @@
 // pages/TriggersPage.jsx — v4 PURE COUNT SIGNALS
 
-import React, { useMemo, useState, useCallback, Suspense, lazy } from 'react';
+import React, { useMemo, useRef, useState, useCallback, Suspense, lazy } from 'react';
 import { Zap, Clock, TrendingUp, ChevronDown, Crosshair } from 'lucide-react';
 import TriggerStrategiesPanel from '../components/TriggerStrategiesPanel';
 import { buildTriggerMap, computeTriggerScoreboard } from '../services/triggerAnalysis';
@@ -15,81 +15,15 @@ const ResultsGrid = lazy(() => import('../components/ResultGrid.jsx'));
 const MAX_VISIBLE_SIGNALS = 10;
 
 // ══════════════════════════════════════════════════════════════
-// SIGNAL ENGINE — Contagem pura, sem learning
+// SIGNAL ENGINE — Cache-based para evitar sinais desaparecendo
+//
+// Problema anterior: a lista era reconstruída do zero a cada render.
+// Se o triggerMap mudava (número perdia significância estatística),
+// sinais pendentes sumiam instantaneamente.
+//
+// Fix: useRef guarda os dados do padrão no momento da detecção.
+// Sinais persistem até serem resolvidos (win/loss) e saírem da janela.
 // ══════════════════════════════════════════════════════════════
-
-/**
- * Gera a lista dos sinais mais recentes com status (pending/win/loss).
- *
- * spinHistory[0] = spin mais recente.
- * Quando o trigger dispara no index `i`, os spins "seguintes" são i-1, i-2, i-3.
- *
- * @returns {Array<{ triggerNumber, action, coveredNumbers, status, remaining, spinsAgo }>}
- */
-function getActiveSignals(spinHistory, triggerMap) {
-  if (!spinHistory || spinHistory.length < 2) return [];
-
-  const signals = [];
-  const seen = new Set(); // Evita sinais sobrepostos (mesmo trigger em sequência)
-
-  // Percorre do mais recente ao mais antigo, limitado
-  const scanLimit = Math.min(spinHistory.length - 1, 50);
-
-  for (let i = 0; i < scanLimit; i++) {
-    const num = spinHistory[i].number;
-    const profile = triggerMap.get(num);
-    if (!profile?.bestPattern) continue;
-
-    // Deduplica: se o mesmo número disparou em sequência, mostra só o mais recente
-    const signalKey = `${num}-${profile.bestPattern.label}`;
-    if (seen.has(signalKey)) continue;
-    seen.add(signalKey);
-
-    const covered = profile.bestPattern.coveredNumbers;
-    let status = 'pending';
-    let remaining = LOSS_THRESHOLD;
-    let winAttempt = 0;
-
-    // Checa os próximos spins (indices menores = mais recentes)
-    let checksAvailable = 0;
-    for (let j = 1; j <= LOSS_THRESHOLD; j++) {
-      const checkIdx = i - j;
-      if (checkIdx < 0) break; // Não temos dados suficientes ainda
-      checksAvailable++;
-
-      if (covered.includes(spinHistory[checkIdx].number)) {
-        status = 'win';
-        remaining = 0;
-        winAttempt = j; // G1, G2 ou G3
-        break;
-      }
-    }
-
-    if (status !== 'win') {
-      if (checksAvailable >= LOSS_THRESHOLD) {
-        status = 'loss';
-        remaining = 0;
-      } else {
-        remaining = LOSS_THRESHOLD - checksAvailable;
-      }
-    }
-
-    signals.push({
-      triggerNumber: num,
-      action: profile.bestPattern.label,
-      coveredNumbers: covered,
-      status,
-      remaining,
-      winAttempt,
-      spinsAgo: i,
-      confidence: profile.bestPattern.confidence,
-    });
-
-    if (signals.length >= MAX_VISIBLE_SIGNALS) break;
-  }
-
-  return signals;
-}
 
 // ── Scoreboard ─────────────────────────────────────────────────
 const TriggerScoreboard = ({ wins, losses }) => {
@@ -321,10 +255,105 @@ const TriggersPage = ({
     [filteredSpinHistory, triggerMap]
   );
 
-  const activeSignals = useMemo(
-    () => getActiveSignals(filteredSpinHistory, triggerMap),
-    [filteredSpinHistory, triggerMap]
-  );
+  // Cache de sinais: congela dados do padrão no momento da detecção
+  // para que mudanças no triggerMap não façam sinais pendentes sumirem
+  const signalCacheRef = useRef(new Map());
+
+  const activeSignals = useMemo(() => {
+    if (!filteredSpinHistory || filteredSpinHistory.length < 2) return [];
+
+    const cache = signalCacheRef.current;
+
+    // Index signalId → posição no array para lookup O(1)
+    const scanLimit = Math.min(filteredSpinHistory.length - 1, 50);
+    const idxById = new Map();
+    for (let i = 0; i <= scanLimit; i++) {
+      idxById.set(filteredSpinHistory[i].signalId, i);
+    }
+
+    // 1. Detecta novos triggers e congela os dados do padrão no cache
+    for (let i = 0; i <= scanLimit; i++) {
+      const spin = filteredSpinHistory[i];
+      if (cache.has(spin.signalId)) continue;
+
+      const profile = triggerMap.get(spin.number);
+      if (!profile?.bestPattern) continue;
+
+      cache.set(spin.signalId, {
+        triggerNumber: spin.number,
+        action: profile.bestPattern.label,
+        coveredNumbers: [...profile.bestPattern.coveredNumbers],
+        confidence: profile.bestPattern.confidence,
+      });
+    }
+
+    // 2. Monta lista de sinais a partir do cache, atualiza status
+    const entries = [];
+    const toDelete = [];
+    for (const [signalId, data] of cache) {
+      const idx = idxById.get(signalId);
+      if (idx === undefined || idx >= 50) {
+        toDelete.push(signalId);
+        continue;
+      }
+      entries.push({ signalId, data, idx });
+    }
+    toDelete.forEach(k => cache.delete(k));
+
+    // Ordena por recência (menor idx = mais recente)
+    entries.sort((a, b) => a.idx - b.idx);
+
+    const signals = [];
+    const seen = new Set();
+
+    for (const { data, idx } of entries) {
+      // Deduplica: mesmo trigger em sequência, mostra só o mais recente
+      const signalKey = `${data.triggerNumber}-${data.action}`;
+      if (seen.has(signalKey)) continue;
+      seen.add(signalKey);
+
+      let status = 'pending';
+      let remaining = LOSS_THRESHOLD;
+      let winAttempt = 0;
+      let checksAvailable = 0;
+
+      for (let j = 1; j <= LOSS_THRESHOLD; j++) {
+        const checkIdx = idx - j;
+        if (checkIdx < 0) break;
+        checksAvailable++;
+        if (data.coveredNumbers.includes(filteredSpinHistory[checkIdx].number)) {
+          status = 'win';
+          remaining = 0;
+          winAttempt = j;
+          break;
+        }
+      }
+
+      if (status !== 'win') {
+        if (checksAvailable >= LOSS_THRESHOLD) {
+          status = 'loss';
+          remaining = 0;
+        } else {
+          remaining = LOSS_THRESHOLD - checksAvailable;
+        }
+      }
+
+      signals.push({
+        triggerNumber: data.triggerNumber,
+        action: data.action,
+        coveredNumbers: data.coveredNumbers,
+        confidence: data.confidence,
+        status,
+        remaining,
+        winAttempt,
+        spinsAgo: idx,
+      });
+
+      if (signals.length >= MAX_VISIBLE_SIGNALS) break;
+    }
+
+    return signals;
+  }, [filteredSpinHistory, triggerMap]);
 
   // Per-trigger hit rate (individual assertivity)
   const perTriggerStats = useMemo(() => {
