@@ -368,39 +368,27 @@ function backtestSimple(spinHistory, testWindow, validFor = DEFAULT_VALID_FOR) {
 }
 
 /**
- * Scoreboard com regra de 3 erros consecutivos = 1 loss.
- * Deduplica sinais: pula validFor após cada trigger.
+ * Scoreboard: cada gatilho disparado conta individualmente como WIN ou LOSS.
+ * Alinhado com computeAssertivity (G1/G2/G3 = win, RED = loss).
  */
-export function computeTriggerScoreboard(spinHistory, triggerMap, validFor = DEFAULT_VALID_FOR, missThreshold = 3) {
+export function computeTriggerScoreboard(spinHistory, triggerMap, validFor = DEFAULT_VALID_FOR) {
   if (!spinHistory || spinHistory.length < 50) return { wins: 0, losses: 0, analyzed: 0 };
 
-  let wins = 0, losses = 0, consecutiveMisses = 0;
-  let i = validFor;
+  let wins = 0, losses = 0;
 
-  while (i < spinHistory.length) {
+  for (let i = validFor; i < spinHistory.length; i++) {
     const profile = triggerMap.get(spinHistory[i].number);
+    if (!profile?.bestPattern) continue;
 
-    if (profile?.bestPattern) {
-      const covered = profile.bestPattern.coveredNumbers;
-      let hit = false;
-      for (let j = 1; j <= validFor; j++) {
-        if (covered.includes(spinHistory[i - j].number)) { hit = true; break; }
-      }
-
-      if (hit) {
-        wins++;
-        consecutiveMisses = 0;
-      } else {
-        consecutiveMisses++;
-        if (consecutiveMisses >= missThreshold) {
-          losses++;
-          consecutiveMisses = 0;
-        }
-      }
-      i += validFor; // pula para não contar o mesmo sinal múltiplas vezes
-    } else {
-      i++;
+    const covered = profile.bestPattern.coveredNumbers;
+    let hit = false;
+    for (let j = 1; j <= validFor; j++) {
+      if (i - j < 0) break;
+      if (covered.includes(spinHistory[i - j].number)) { hit = true; break; }
     }
+
+    if (hit) wins++;
+    else losses++;
   }
 
   return { wins, losses, analyzed: wins + losses };

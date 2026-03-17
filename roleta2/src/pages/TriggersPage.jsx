@@ -44,7 +44,7 @@ const TriggerScoreboard = ({ wins, losses }) => {
             {rate.toFixed(1)}<span className={styles.scorePercSign}>%</span>
           </div>
           <div className={styles.scoreEntries}>{total} entradas</div>
-          <div className={styles.scoreMissNote}>loss após {LOSS_THRESHOLD} erros</div>
+          <div className={styles.scoreMissNote}>cada gatilho = 1 entrada</div>
         </div>
         <div className={styles.scoreCounter}>
           <div className={styles.scoreValue} style={{ color: '#ef4444', textShadow: '0 0 16px rgba(239,68,68,0.35)' }}>{losses}</div>
@@ -251,7 +251,7 @@ const TriggersPage = ({
 
   // Scoreboard calculado localmente a partir dos dados filtrados
   const scoreboard = useMemo(
-    () => computeTriggerScoreboard(filteredSpinHistory, triggerMap, LOSS_THRESHOLD, LOSS_THRESHOLD),
+    () => computeTriggerScoreboard(filteredSpinHistory, triggerMap, LOSS_THRESHOLD),
     [filteredSpinHistory, triggerMap]
   );
 
