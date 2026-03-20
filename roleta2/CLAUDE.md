@@ -47,8 +47,9 @@ Vite proxies `/api`, `/login`, `/start-game` to `localhost:3002`.
 6. Motor score: `motorScoreEngine.js` runs passively on backend after each fetch cycle — registers signals and checks spins automatically for ALL tables. Frontend only reads via `GET /api/motor-score?source=X` (polled every 10s)
 
 ### Key Tables
-- `signals` (signalId UNIQUE, gameId, signal, source, timestamp)
-- `subscriptions` (email, status, expiresAt)
+- `signals` (signalId, gameId, signal, source, timestamp, id SERIAL) — UNIQUE(signalId, source)
+- `subscriptions` (user_id PK, email, hubla_customer_id, subscription_id, status, plan_name, expires_at)
+- `webhook_logs` (event_type, payload JSONB, status, error_message)
 - `subscription_audit` (audit log for status changes)
 - `motor_scores` (source, neighbor_mode UNIQUE, wins, losses)
 - `motor_pending_signals` (source, suggested_numbers INT[], spins_after, resolved_modes JSONB)
