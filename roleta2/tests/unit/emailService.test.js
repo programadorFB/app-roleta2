@@ -29,7 +29,7 @@ describe('sendWelcomeEmail', () => {
   let sendWelcomeEmail;
 
   beforeEach(async () => {
-    const mod = await import('../../emailService.js');
+    const mod = await import('../../server/emailService.js');
     sendWelcomeEmail = mod.sendWelcomeEmail;
   });
 

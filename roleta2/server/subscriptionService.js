@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { query, transaction } from './db.js';
+import { query } from './db.js';
 import { cacheAside, cacheDel, KEY, TTL } from './redisService.js';
 import { sendWelcomeEmail } from './emailService.js';
 
@@ -92,75 +92,69 @@ export async function upsertSubscription(subscriptionData) {
 
   if (!email) throw new Error('Email obrigatório para criar/atualizar assinatura');
 
-  return transaction(async (client) => {
-    let existing;
+  const lockSql = `SELECT * FROM subscriptions WHERE user_id = $1 FOR UPDATE NOWAIT`;
+  let existing;
 
-    try {
-      const { rows } = await client.query(
-        'SELECT * FROM subscriptions WHERE user_id = $1 FOR UPDATE NOWAIT',
-        [userId],
-      );
+  try {
+    const { rows } = await query(lockSql, [userId]);
+    existing = rows[0];
+  } catch (lockErr) {
+    if (lockErr.code === '55P03') {
+      console.warn(`⚠️ [UPSERT] Lock ocupado para ${userId} — aguardando`);
+      await new Promise(r => setTimeout(r, 100));
+      const { rows } = await query(lockSql.replace('NOWAIT', ''), [userId]);
       existing = rows[0];
-    } catch (lockErr) {
-      if (lockErr.code === '55P03') {
-        console.warn(`⚠️ [UPSERT] Lock ocupado para ${userId} — aguardando`);
-        const { rows } = await client.query(
-          'SELECT * FROM subscriptions WHERE user_id = $1 FOR UPDATE',
-          [userId],
-        );
-        existing = rows[0];
-      } else {
-        throw lockErr;
-      }
-    }
-
-    if (status && existing && !isValidStatusTransition(existing.status, status)) {
-      throw new Error(`Transição inválida: ${existing.status} → ${status}`);
-    }
-
-    let result;
-
-    if (existing) {
-      const updates = [];
-      const values  = [userId];
-      let   i       = 2;
-
-      if (email           !== undefined) { updates.push(`email = $${i++}`);              values.push(email); }
-      if (hublaCustomerId !== undefined) { updates.push(`hubla_customer_id = $${i++}`);  values.push(hublaCustomerId); }
-      if (subscriptionId  !== undefined) { updates.push(`subscription_id = $${i++}`);   values.push(subscriptionId); }
-      if (status          !== undefined) { updates.push(`status = $${i++}`);             values.push(status); }
-      if (planName        !== undefined) { updates.push(`plan_name = $${i++}`);          values.push(planName); }
-      if (expiresAt       !== undefined) { updates.push(`expires_at = $${i++}`);         values.push(expiresAt); }
-
-      if (updates.length === 0) return existing;
-
-      updates.push('updated_at = NOW()');
-      result = await client.query(
-        `UPDATE subscriptions SET ${updates.join(', ')} WHERE user_id = $1 RETURNING *`,
-        values,
-      );
-      console.log(`✅ [UPSERT] Atualizado: ${email} | ${status || existing.status}`);
     } else {
-      result = await client.query(
-        `INSERT INTO subscriptions
-           (user_id, email, hubla_customer_id, subscription_id, status, plan_name, expires_at, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
-         RETURNING *`,
-        [userId, email, hublaCustomerId || null, subscriptionId || null, status || 'pending', planName || 'default', expiresAt || null],
-      );
-      console.log(`✅ [UPSERT] Criado: ${email} | ${status || 'pending'}`);
+      throw lockErr;
     }
+  }
 
-    const updated = result.rows[0];
+  if (status && existing && !isValidStatusTransition(existing.status, status)) {
+    throw new Error(`Transição inválida: ${existing.status} → ${status}`);
+  }
 
-    if (status && status !== existing?.status) {
-      await logSubscriptionAudit(userId, email, existing?.status || null, status);
-    }
+  let result;
 
-    await invalidateSubscriptionCaches(email);
+  if (existing) {
+    const updates = [];
+    const values  = [userId];
+    let   i       = 2;
 
-    return updated;
-  });
+    if (email           !== undefined) { updates.push(`email = $${i++}`);              values.push(email); }
+    if (hublaCustomerId !== undefined) { updates.push(`hubla_customer_id = $${i++}`);  values.push(hublaCustomerId); }
+    if (subscriptionId  !== undefined) { updates.push(`subscription_id = $${i++}`);   values.push(subscriptionId); }
+    if (status          !== undefined) { updates.push(`status = $${i++}`);             values.push(status); }
+    if (planName        !== undefined) { updates.push(`plan_name = $${i++}`);          values.push(planName); }
+    if (expiresAt       !== undefined) { updates.push(`expires_at = $${i++}`);         values.push(expiresAt); }
+
+    if (updates.length === 0) return existing;
+
+    updates.push('updated_at = NOW()');
+    result = await query(
+      `UPDATE subscriptions SET ${updates.join(', ')} WHERE user_id = $1 RETURNING *`,
+      values,
+    );
+    console.log(`✅ [UPSERT] Atualizado: ${email} | ${status || existing.status}`);
+  } else {
+    result = await query(
+      `INSERT INTO subscriptions
+         (user_id, email, hubla_customer_id, subscription_id, status, plan_name, expires_at, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+       RETURNING *`,
+      [userId, email, hublaCustomerId || null, subscriptionId || null, status || 'pending', planName || 'default', expiresAt || null],
+    );
+    console.log(`✅ [UPSERT] Criado: ${email} | ${status || 'pending'}`);
+  }
+
+  const updated = result.rows[0];
+
+  if (status && status !== existing?.status) {
+    await logSubscriptionAudit(userId, email, existing?.status || null, status);
+  }
+
+  await invalidateSubscriptionCaches(email);
+
+  return updated;
 }
 
 export async function getSubscriptionByUserId(userId) {

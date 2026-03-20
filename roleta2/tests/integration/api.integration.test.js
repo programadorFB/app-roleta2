@@ -2,7 +2,7 @@
 // Testes de integração das rotas HTTP — usa supertest com app Express mockado
 // Roda com: INTEGRATION=true npm run test:integration
 
-import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 
 // ══════════════════════════════════════════════════════════════
 // Mocks pesados — DB, Redis, Sentry, fetch, socket.io
@@ -17,7 +17,7 @@ vi.mock('@sentry/node', () => ({
   captureMessage: vi.fn(),
   setupExpressErrorHandler: vi.fn((app) => {
     // Sentry error handler (noop para testes)
-    app.use((err, req, res, _next) => {
+    app.use((err, req, res, next) => {
       if (!res.headersSent) res.status(500).json({ error: err.message });
     });
   }),
@@ -61,11 +61,11 @@ vi.mock('../../src/utils/dbService.js', () => ({
 }));
 
 // Mock motorScoreEngine e triggerScoreEngine
-vi.mock('../../motorScoreEngine.js', () => ({ processSource: vi.fn().mockResolvedValue() }));
+vi.mock('../../server/motorScoreEngine.js', () => ({ processSource: vi.fn().mockResolvedValue() }));
 vi.mock('../../triggerScoreEngine.js', () => ({ processTriggerSource: vi.fn().mockResolvedValue() }));
 
 // Mock emailService
-vi.mock('../../emailService.js', () => ({
+vi.mock('../../server/emailService.js', () => ({
   sendWelcomeEmail: vi.fn().mockResolvedValue(true),
 }));
 

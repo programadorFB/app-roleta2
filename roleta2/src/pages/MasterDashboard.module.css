@@ -36,7 +36,23 @@
 .modeSelector {
   display: flex;
   justify-content: center;
+  align-items: center;
+  gap: 0;
   margin-bottom: 0.4rem;
+}
+
+.roundBadge {
+  margin-left: 8px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+  color: #c9a052;
+  background: rgba(201,160,82,0.1);
+  border: 1px solid rgba(201,160,82,0.2);
+  padding: 3px 8px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .modeBtn {
@@ -183,9 +199,6 @@
   width: 12px;
   height: 12px;
 }
-/* Legacy emoji class — hidden */
-.signalIcon { display: none; }
-
 .signalVal {
   font-size: 0.8rem;
   font-weight: 800;
@@ -208,44 +221,6 @@
   background: rgba(201,160,82,0.15);
   flex-shrink: 0;
 }
-/* ================================================
-   LEARNING BAR — Clean, ícone SVG
-   ================================================ */
-.learningBar {
-  display: flex;
-  align-items: center;
-  flex-wrap: nowrap;
-  gap: 6px;
-  margin-top: 0.35rem;
-  padding: 0.3rem 0.5rem;
-  background: rgba(201,160,82,0.03);
-  border: 1px solid rgba(201,160,82,0.06);
-  border-top: 1px solid rgba(201,160,82,0.1);
-  overflow-x: auto;
-  overflow-y: hidden;
-}
-/* Ícone SVG Lucide — substitui emoji */
- 
-.learningIconSvg {
-  color: rgba(201,160,82,0.35);
-  flex-shrink: 0;
-  width: 11px;
-  height: 11px;
-}
-
-/* Legacy emoji class — hidden */
-.learningIcon { display: none; }
-
-.learningText {
-  font-size: 0.52rem;
-  color: rgba(201,160,82,0.4);
-  font-weight: 600;
-  font-family: 'Outfit', sans-serif;
-  letter-spacing: 0.02em;
-  line-height: 1.4;
-  white-space: nowrap;
-}
- 
 /* ================================================
    STRATEGY GAUGES GRID
    ================================================ */
@@ -382,13 +357,6 @@
 .stat-value { font-size: 0.5rem; font-weight: 700; color: rgba(201,160,82,0.95); text-shadow: 0 0 12px rgba(201,160,82,0.2); }
 .stats-grid { display: flex; justify-content: space-around; align-items: center; }
 
-.strategyMiniCard { display: none; }
-.miniCardHeader { display: none; }
-.miniCardScore { display: none; }
-.miniCardStatus { display: none; }
-.gaugeStatus { display: none; }
-.gaugeSvg { display: none; }
-
 /* Signal card */
 .entrySignalCard {
   background: linear-gradient(165deg, rgba(201,160,82,0.08) 0%, rgba(201,160,82,0.02) 40%, rgba(201,160,82,0.005) 100%);
@@ -459,11 +427,6 @@
 
   .masterGridContainer {
     gap: 0.3rem;
-  }
-
-  .learningText {
-    white-space: normal;
-    line-height: 1.5;
   }
 }
 
@@ -543,16 +506,6 @@
 
   .gaugePercent {
     font-size: 0.6rem;
-  }
-
-  .learningBar {
-    flex-wrap: wrap;
-  }
-
-  .learningText {
-    white-space: normal;
-    line-height: 1.5;
-    font-size: 0.5rem;
   }
 
   .successButton,
@@ -653,22 +606,6 @@
     font-size: 0.42rem;
   }
 
-  .learningBar {
-    padding: 0.25rem 0.4rem;
-    gap: 4px;
-  }
-
-  .learningText {
-    font-size: 0.45rem;
-    white-space: normal;
-    line-height: 1.4;
-  }
-
-  .learningIconSvg {
-    width: 10px;
-    height: 10px;
-  }
-
   .entrySignalCard {
     padding: 0.5rem;
   }
@@ -761,10 +698,6 @@
     font-size: 0.38rem;
   }
 
-  .learningText {
-    font-size: 0.42rem;
-  }
-
   .emptyState {
     padding: 1rem;
     font-size: 0.7rem;
@@ -835,9 +768,5 @@
   .masterGridContainer {
     grid-template-columns: repeat(5, 1fr);
     gap: 0.25rem;
-  }
-
-  .learningText {
-    white-space: normal;
   }
 }

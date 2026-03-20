@@ -14,7 +14,7 @@ import './index.css';
 
 import W600 from './assets/w=600.svg';
 import { ROULETTE_SOURCES, ROULETTE_GAME_IDS, FILTER_OPTIONS } from './constants/roulette';
-import { getNumberColor, formatPullTooltip } from './utils/roulette';
+import { getNumberColor, formatPullTooltip } from './lib/roulette';
 import { useAuth }               from './hooks/useAuth.js';
 import { useGameLauncher, LAUNCH_FAILURE } from './hooks/useGameLauncher.js';
 import { useSpinHistory }        from './hooks/useSpinHistory.js';
@@ -106,7 +106,7 @@ const App = () => {
   // ── Hooks ─────────────────────────────────────────────────
 
   const {
-    filteredSpinHistory, selectedResult,
+    spinHistory, filteredSpinHistory, selectedResult,
     numberPullStats, numberPreviousStats, stats, clearHistory,
   } = useSpinHistory({
     selectedRoulette,
@@ -116,6 +116,7 @@ const App = () => {
     historyFilter,
     onPaywallRequired: handlePaywallRequired,
   });
+
 
   const {
     isLaunching, launchError, gameUrl, failureType, checkoutUrl: gameCheckoutUrl,
@@ -356,7 +357,7 @@ const App = () => {
               {stats.historyFilter >= 20
                 ? (
                   <Suspense fallback={<div className="waiting-card">Carregando painel...</div>}>
-                    <MasterDashboard spinHistory={filteredSpinHistory} onSignalUpdate={setEntrySignals} />
+                    <MasterDashboard spinHistory={filteredSpinHistory} fullHistory={spinHistory} onSignalUpdate={setEntrySignals} />
                   </Suspense>
                 )
                 : <div className="waiting-card">Aguardando {20 - stats.historyFilter} spins para o Painel Master...</div>

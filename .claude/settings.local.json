@@ -7,7 +7,11 @@
       "Bash(node:*)",
       "Bash(timeout:*)",
       "Bash(cd:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(find /c/Users/programador-fb/Desktop/Projetos/app-roleta2 -type f \\\\\\(-name *.ts -o -name *.tsx -o -name *.js -o -name *.jsx \\\\\\))",
+      "Bash(npx vite:*)",
+      "Bash(grep:*)",
+      "Bash(npx vitest:*)"
     ]
   }
 }

@@ -22,6 +22,6 @@ RUN rm -f /usr/share/nginx/html/*.map 2>/dev/null; \
     rm -f /usr/share/nginx/html/**/*.map 2>/dev/null; \
     true
 
-EXPOSE 81
+EXPOSE 82
 
 CMD ["nginx", "-g", "daemon off;"]

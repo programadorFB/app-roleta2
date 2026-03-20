@@ -3,8 +3,8 @@
 // Thresholds calibrados para CI (máquinas modestas)
 
 import { describe, it, expect } from 'vitest';
-import { buildTriggerMap, computeTriggerScoreboard, backtestTriggers } from '../../src/services/triggerAnalysis.js';
-import { calculateMasterScore } from '../../src/services/masterScoring.js';
+import { buildTriggerMap, computeTriggerScoreboard, backtestTriggers } from '../../src/analysis/triggerAnalysis.js';
+import { calculateMasterScore } from '../../src/analysis/masterScoring.js';
 import { generateSpinHistory } from '../helpers/spinFactory.js';
 
 // Helper: mede tempo de execução em ms

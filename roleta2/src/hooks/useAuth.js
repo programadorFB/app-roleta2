@@ -1,7 +1,7 @@
 // hooks/useAuth.js
 
 import { useState, useEffect, useCallback } from 'react';
-import { registerLogoutCallback, clearLogoutCallback } from '../errorHandler';
+import { registerLogoutCallback, clearLogoutCallback } from '../lib/errorHandler';
 
 export const useAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -25,8 +25,6 @@ export const useAuth = () => {
 
   // Login handler
   const handleLoginSuccess = useCallback((data) => {
-    // Garante que o token é persistido (Login.jsx já salva, mas reforçamos aqui)
-    if (data.jwt) localStorage.setItem('authToken', data.jwt);
     setIsAuthenticated(true);
     setJwtToken(data.jwt);
     setUserInfo({

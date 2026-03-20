@@ -29,9 +29,9 @@ export default defineConfig(({ mode }) => ({
 
   server: {
     proxy: {
-      '/login':      { target: 'http://localhost:3001', changeOrigin: true },
-      '/start-game': { target: 'http://localhost:3001', changeOrigin: true },
-      '/api':        { target: 'http://localhost:3001', changeOrigin: true },
+      '/login':      { target: 'http://localhost:3002', changeOrigin: true },
+      '/start-game': { target: 'http://localhost:3002', changeOrigin: true },
+      '/api':        { target: 'http://localhost:3002', changeOrigin: true },
     },
   },
 }));

@@ -2,7 +2,7 @@
 // Cobertura: calculateMasterScore — 5 estratégias, convergência, entrySignal
 
 import { describe, it, expect } from 'vitest';
-import { calculateMasterScore } from '../../src/services/masterScoring.js';
+import { calculateMasterScore } from '../../src/analysis/masterScoring.js';
 import { generateSpinHistory } from '../helpers/spinFactory.js';
 
 // ══════════════════════════════════════════════════════════════

@@ -1,8 +1,7 @@
-import { query } from '../../db.js';
+import { query } from './db.js';
 import { SOURCES } from './constants.js';
-import { cacheAside, cacheDel, KEY, TTL } from '../../redisService.js';
+import { cacheAside, cacheDel, KEY, TTL } from './redisService.js';
 
-/** @deprecated No-op — signal dedup handled by ON CONFLICT in saveNewSignals */
 export const loadAllExistingSignalIds = async () => {};
 
 export const saveNewSignals = async (dataArray, sourceName) => {
@@ -99,7 +98,7 @@ export const getNewSignalsSince = async (sourceName, lastSignalId) => {
 
   const cacheKey = `delta:${sourceName}:${lastSignalId}`;
 
-  return cacheAside(cacheKey, 5, async () => {
+  return cacheAside(cacheKey, TTL.DELTA, async () => {
     const { rows } = await query(
       `SELECT signalid AS "signalId",
               gameid   AS "gameId",

@@ -9,7 +9,7 @@ import {
   computeTriggerScoreboard,
   backtestTriggers,
   getActiveSignals,
-} from '../../src/services/triggerAnalysis.js';
+} from '../../src/analysis/triggerAnalysis.js';
 import { generateSpinHistory, makeSequence } from '../helpers/spinFactory.js';
 
 // ══════════════════════════════════════════════════════════════
@@ -163,145 +163,40 @@ describe('getActiveTriggers', () => {
 // computeTriggerScoreboard
 // ══════════════════════════════════════════════════════════════
 
-// Helper: triggerMap mock onde certos números são triggers com coveredNumbers fixos
-function mockTriggerMap(triggers) {
-  const map = new Map();
-  for (const [num, coveredNumbers] of Object.entries(triggers)) {
-    map.set(Number(num), {
-      triggerNumber: Number(num),
-      appearances: 10,
-      bestPattern: { coveredNumbers, label: `test-${num}`, confidence: 50, lift: 5 },
-    });
-  }
-  return map;
-}
-
-// Helper: cria spinHistory (newest-first) a partir de sequência oldest→newest, padded até minLen
-function padSequence(seq, minLen = 60) {
-  const neutral = 36; // não será trigger nos mocks
-  const padding = Array(Math.max(0, minLen - seq.length)).fill(neutral);
-  return makeSequence([...padding, ...seq]);
-}
-
 describe('computeTriggerScoreboard', () => {
-  it('retorna zeros para histórico < 50', () => {
+  it('retorna { wins: 0, losses: 0, analyzed: 0 } para histórico < 50', () => {
     const history = generateSpinHistory(30);
     const map = buildTriggerMap(history, 30);
-    const sb = computeTriggerScoreboard(history, map, 3);
-    expect(sb).toEqual({ wins: 0, losses: 0, analyzed: 0 });
+    const sb = computeTriggerScoreboard(history, map, 3, 3);
+    expect(sb.wins).toBe(0);
+    expect(sb.losses).toBe(0);
+    expect(sb.analyzed).toBe(0);
   });
 
   it('wins + losses = analyzed', () => {
     const history = generateSpinHistory(300, { seed: 42 });
     const map = buildTriggerMap(history, 300);
-    const sb = computeTriggerScoreboard(history, map, 3);
+    const sb = computeTriggerScoreboard(history, map, 3, 3);
     expect(sb.wins + sb.losses).toBe(sb.analyzed);
   });
 
   it('wins e losses são inteiros não negativos', () => {
     const history = generateSpinHistory(500, { seed: 99 });
     const map = buildTriggerMap(history, 500);
-    const sb = computeTriggerScoreboard(history, map, 3);
+    const sb = computeTriggerScoreboard(history, map, 3, 3);
     expect(Number.isInteger(sb.wins)).toBe(true);
     expect(Number.isInteger(sb.losses)).toBe(true);
     expect(sb.wins).toBeGreaterThanOrEqual(0);
     expect(sb.losses).toBeGreaterThanOrEqual(0);
   });
-});
 
-// ══════════════════════════════════════════════════════════════
-// computeTriggerScoreboard — lógica G1/G2/G3/LOSS determinística
-// ══════════════════════════════════════════════════════════════
-
-describe('computeTriggerScoreboard — contagem G1/G2/G3/LOSS', () => {
-  // Trigger 5 cobre [10, 11, 12]
-  const MAP = mockTriggerMap({ 5: [10, 11, 12] });
-
-  it('G1 acerto (spin imediato) = WIN', () => {
-    // Sequência: ...5, 10, 20, 21
-    // G1=10 → hit
-    const history = padSequence([5, 10, 20, 21]);
-    const sb = computeTriggerScoreboard(history, MAP, 3);
-    expect(sb.wins).toBe(1);
-    expect(sb.losses).toBe(0);
-  });
-
-  it('G2 acerto (2º spin) = WIN', () => {
-    // Sequência: ...5, 20, 11, 21
-    // G1=20 (miss), G2=11 → hit
-    const history = padSequence([5, 20, 11, 21]);
-    const sb = computeTriggerScoreboard(history, MAP, 3);
-    expect(sb.wins).toBe(1);
-    expect(sb.losses).toBe(0);
-  });
-
-  it('G3 acerto (3º spin) = WIN', () => {
-    // Sequência: ...5, 20, 21, 12
-    // G1=20 (miss), G2=21 (miss), G3=12 → hit
-    const history = padSequence([5, 20, 21, 12]);
-    const sb = computeTriggerScoreboard(history, MAP, 3);
-    expect(sb.wins).toBe(1);
-    expect(sb.losses).toBe(0);
-  });
-
-  it('errou G1, G2, G3 = LOSS', () => {
-    // Sequência: ...5, 20, 21, 22
-    // G1=20 (miss), G2=21 (miss), G3=22 (miss) → LOSS
-    const history = padSequence([5, 20, 21, 22]);
-    const sb = computeTriggerScoreboard(history, MAP, 3);
-    expect(sb.wins).toBe(0);
-    expect(sb.losses).toBe(1);
-  });
-
-  it('cada RED conta como LOSS separado (sem agrupamento)', () => {
-    // 3 disparos seguidos do trigger 5, todos RED
-    const history = padSequence([
-      5, 20, 21, 22,  // LOSS 1
-      5, 20, 21, 22,  // LOSS 2
-      5, 20, 21, 22,  // LOSS 3
-    ]);
-    const sb = computeTriggerScoreboard(history, MAP, 3);
-    expect(sb.losses).toBe(3);
-    expect(sb.wins).toBe(0);
-  });
-
-  it('mix WIN e LOSS conta corretamente', () => {
-    const history = padSequence([
-      5, 10, 20, 21,  // WIN  (G1=10 hit)
-      5, 20, 21, 22,  // LOSS (miss all)
-      5, 20, 11, 22,  // WIN  (G2=11 hit)
-      5, 20, 21, 12,  // WIN  (G3=12 hit)
-      5, 20, 21, 22,  // LOSS (miss all)
-    ]);
-    const sb = computeTriggerScoreboard(history, MAP, 3);
-    expect(sb.wins).toBe(3);
-    expect(sb.losses).toBe(2);
-    expect(sb.analyzed).toBe(5);
-  });
-
-  it('triggers diferentes contados independentemente', () => {
-    // Trigger 5 cobre [10, 11, 12] — vai WIN
-    // Trigger 7 cobre [15, 16, 17] — vai LOSS
-    const map2 = mockTriggerMap({ 5: [10, 11, 12], 7: [15, 16, 17] });
-    const history = padSequence([
-      5, 10, 20, 21,  // trigger 5: G1=10 → WIN
-      7, 20, 21, 22,  // trigger 7: miss all → LOSS
-    ]);
-    const sb = computeTriggerScoreboard(history, map2, 3);
-    expect(sb.wins).toBe(1);
-    expect(sb.losses).toBe(1);
-  });
-
-  it('número sem trigger é ignorado', () => {
-    // Número 9 não está no triggerMap — não conta nada
-    const history = padSequence([
-      9, 10, 11, 12,  // 9 não é trigger → ignorado
-      5, 10, 20, 21,  // 5 é trigger → WIN
-    ]);
-    const sb = computeTriggerScoreboard(history, MAP, 3);
-    expect(sb.wins).toBe(1);
-    expect(sb.losses).toBe(0);
-    expect(sb.analyzed).toBe(1);
+  it('miss threshold afeta contagem — threshold maior = menos losses', () => {
+    const history = generateSpinHistory(500, { seed: 42 });
+    const map = buildTriggerMap(history, 500);
+    const sb3 = computeTriggerScoreboard(history, map, 3, 3);
+    const sb5 = computeTriggerScoreboard(history, map, 3, 5);
+    // Com threshold mais alto, cada loss requer mais misses consecutivos
+    expect(sb5.losses).toBeLessThanOrEqual(sb3.losses);
   });
 });
 

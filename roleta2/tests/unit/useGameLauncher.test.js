@@ -3,7 +3,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { LAUNCH_FAILURE } from '../../src/hooks/useGameLauncher.js';
-import { isRetryableError } from '../../src/errorHandler.js';
+import { isRetryableError } from '../../src/lib/errorHandler.js';
 
 // ══════════════════════════════════════════════════════════════
 // LAUNCH_FAILURE enum

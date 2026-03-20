@@ -2,7 +2,7 @@
 module.exports = {
   apps: [{
     name: 'roleta3',
-    script: 'server.js',
+    script: 'server/server.js',
     instances: process.env.PM2_INSTANCES || 'max',
     exec_mode: 'cluster',
     node_args: '--max-old-space-size=512',
@@ -10,7 +10,7 @@ module.exports = {
     // Variáveis de ambiente padrão
     env: {
       NODE_ENV: 'production',
-      PORT: 3001,
+      PORT: 3002,
     },
 
     // Graceful restart

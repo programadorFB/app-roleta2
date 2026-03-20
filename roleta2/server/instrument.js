@@ -3,10 +3,11 @@
 // Este arquivo deve ser importado com --import antes do server.js
 
 import * as Sentry from "@sentry/node";
+import path from 'path';
+import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
-// Carrega variáveis de ambiente
-dotenv.config();
+dotenv.config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.env') });
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN,

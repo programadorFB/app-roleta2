@@ -10,7 +10,7 @@
 export const checkConvergenceAlert = (masterResult) => {
   if (!masterResult?.strategyScores?.length) return null;
 
-  const { strategyScores, entrySignal } = masterResult;
+  const { strategyScores, entrySignal, globalAssertiveness } = masterResult;
 
   // Conta estratégias verdes (ativas)
   const greenStrategies = strategyScores.filter(s => s.status === '🟢');

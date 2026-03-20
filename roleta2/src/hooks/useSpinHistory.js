@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { API_URL } from '../constants/roulette';
-import { convertSpinItem, getNumberColor, computePullStats, computePreviousStats } from '../utils/roulette';
-import { processErrorResponse } from '../errorHandler';
+import { convertSpinItem, getNumberColor, computePullStats, computePreviousStats } from '../lib/roulette';
+import { processErrorResponse } from '../lib/errorHandler';
 
 const POLL_INTERVAL_MS = 1000;
 const MAX_HISTORY      = 1000;

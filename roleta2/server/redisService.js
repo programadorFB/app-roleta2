@@ -4,6 +4,7 @@ export const TTL = {
   SUBSCRIPTION: 60,
   FULL_HISTORY: 10,
   LATEST_SPINS: 15,
+  DELTA:        1,
   ADMIN_STATS:  60,
   ACTIVE_SUBS:  60,
 };

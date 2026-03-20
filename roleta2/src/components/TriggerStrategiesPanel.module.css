@@ -118,10 +118,17 @@
 /* Line 2: result chips */
 .typeChipsRow {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 3px;
   margin-bottom: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
 }
+
+.typeChipsRow::-webkit-scrollbar { height: 2px; }
+.typeChipsRow::-webkit-scrollbar-track { background: transparent; }
+.typeChipsRow::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); }
 
 /* Line 3: stat counters */
 .typeStatsRow {

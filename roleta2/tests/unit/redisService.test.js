@@ -2,7 +2,7 @@
 // Testa: TTL values corretos, KEY generators, cacheAside logic
 
 import { describe, it, expect } from 'vitest';
-import { TTL, KEY } from '../../redisService.js';
+import { TTL, KEY } from '../../server/redisService.js';
 
 // ══════════════════════════════════════════════════════════════
 // TTL — Valores corretos pós-fix

@@ -1,9 +1,8 @@
 // components/TriggerRadar.jsx — Radar dos 5 Gatilhos Mais Fortes
 // Mostra visualmente os top triggers com instruções claras de aposta
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Radar } from 'lucide-react';
-import { getActiveTriggers } from '../services/triggerAnalysis';
 import { RED_NUMBERS } from '../constants/roulette';
 import styles from './TriggerRadar.module.css';
 
@@ -48,12 +47,13 @@ function polygonPts(values, total) {
     .join(' ');
 }
 
-const TriggerRadar = ({ triggerMap, spinHistory }) => {
-  const topTriggers = useMemo(() => {
-    if (!triggerMap || triggerMap.size === 0 || spinHistory.length < 10) return [];
-    const all = getActiveTriggers(triggerMap);
-    return all.slice(0, TOP_N);
-  }, [triggerMap, spinHistory]);
+function formatCovered(coveredNumbers) {
+  if (coveredNumbers.length <= 6) return coveredNumbers.join(', ');
+  return coveredNumbers.slice(0, 5).join(', ') + ` +${coveredNumbers.length - 5}`;
+}
+
+const TriggerRadar = ({ topTriggers: topTriggersProp = [], spinHistory }) => {
+  const topTriggers = topTriggersProp.slice(0, TOP_N);
 
   if (topTriggers.length === 0) {
     return (
@@ -129,7 +129,7 @@ const TriggerRadar = ({ triggerMap, spinHistory }) => {
           {topTriggers.map((t, i) => {
             const p = polarPoint(i, count, 1.28);
             const col = getColor(t.triggerNumber);
-            const _anchor = Math.abs(p.x - CX) < 5 ? 'middle'
+            const anchor = Math.abs(p.x - CX) < 5 ? 'middle'
               : p.x > CX ? 'start' : 'end';
             const yOff = p.y < CY - 20 ? -2 : p.y > CY + 20 ? 10 : 4;
             return (
@@ -158,7 +158,7 @@ const TriggerRadar = ({ triggerMap, spinHistory }) => {
 
       {/* Lista clara: Saiu X → Aposte em Y */}
       <div className={styles.tipsList}>
-        {topTriggers.map((t, _i) => {
+        {topTriggers.map((t, i) => {
           const col = getColor(t.triggerNumber);
           return (
             <div key={t.triggerNumber} className={styles.tipRow}>

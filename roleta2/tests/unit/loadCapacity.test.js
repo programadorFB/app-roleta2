@@ -3,8 +3,8 @@
 // por camada (análise, scoring, scoreboard)
 
 import { describe, it, expect } from 'vitest';
-import { buildTriggerMap, computeTriggerScoreboard } from '../../src/services/triggerAnalysis.js';
-import { calculateMasterScore } from '../../src/services/masterScoring.js';
+import { buildTriggerMap, computeTriggerScoreboard } from '../../src/analysis/triggerAnalysis.js';
+import { calculateMasterScore } from '../../src/analysis/masterScoring.js';
 import { generateSpinHistory } from '../helpers/spinFactory.js';
 
 function benchmark(label, fn, iterations = 50) {

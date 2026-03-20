@@ -199,7 +199,7 @@ describe('Anti-bot — User-Agent filter', () => {
 
 describe('Source whitelist — anti parameter tampering', () => {
   // Importação síncrona via leitura do arquivo
-  const constFile = readFile('src/utils/constants.js');
+  const constFile = readFile('server/constants.js');
   const sourceMatch = constFile.match(/export\s+const\s+SOURCES\s*=\s*\[([^\]]+)\]/s);
   const SOURCES = sourceMatch
     ? sourceMatch[1].match(/'([^']+)'/g)?.map(s => s.replace(/'/g, '')) || []
@@ -242,7 +242,7 @@ describe('Source whitelist — anti parameter tampering', () => {
 // ══════════════════════════════════════════════════════════════
 
 describe('CORS — origin whitelist', () => {
-  const serverCode = readFile('server.js');
+  const serverCode = readFile('server/server.js');
 
   it('não permite wildcard (*) como origin', () => {
     // Garante que não há origin: '*' nas configurações
@@ -264,7 +264,7 @@ describe('CORS — origin whitelist', () => {
 // ══════════════════════════════════════════════════════════════
 
 describe('Security headers — server.js', () => {
-  const code = readFile('server.js');
+  const code = readFile('server/server.js');
 
   it('CSP está habilitado (não false)', () => {
     expect(code).toContain('contentSecurityPolicy:');
@@ -311,7 +311,7 @@ describe('Security headers — server.js', () => {
 // ══════════════════════════════════════════════════════════════
 
 describe('Rate limiting — configuração', () => {
-  const code = readFile('server.js');
+  const code = readFile('server/server.js');
 
   it('global limiter existe', () => {
     expect(code).toContain('globalLimiter');
@@ -343,7 +343,7 @@ describe('Rate limiting — configuração', () => {
 // ══════════════════════════════════════════════════════════════
 
 describe('Endpoints protegidos — sem acesso público', () => {
-  const code = readFile('server.js');
+  const code = readFile('server/server.js');
 
   it('motor-score GET requer assinatura ativa', () => {
     expect(code).toMatch(/motor-score.*requireActiveSubscription/s);
@@ -643,7 +643,7 @@ describe('SQL injection — parameterized queries', () => {
 // ══════════════════════════════════════════════════════════════
 
 describe('Payload size limits', () => {
-  const code = readFile('server.js');
+  const code = readFile('server/server.js');
 
   it('report-spin tem limite', () => {
     expect(code).toMatch(/report-spin.*limit.*16kb/s);
@@ -676,7 +676,7 @@ describe('Payload size limits', () => {
 // ══════════════════════════════════════════════════════════════
 
 describe('Anti-clone — middleware no server.js', () => {
-  const code = readFile('server.js');
+  const code = readFile('server/server.js');
 
   it('BLOCKED_UA regex existe', () => {
     expect(code).toContain('BLOCKED_UA');

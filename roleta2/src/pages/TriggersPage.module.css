@@ -531,8 +531,7 @@
   }
 
   .leftCol {
-    display: block;
-    max-height: 200px;
+    display: none;
   }
 
   .scoreValue {

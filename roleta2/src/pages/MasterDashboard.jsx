@@ -3,59 +3,49 @@
 // ✅ Font sizes recalibrados para melhor legibilidade
 // ✅ Signal bar e learning bar redesenhados
 
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { RadialBarChart, RadialBar, PolarAngleAxis } from 'recharts';
-import { Layers, Crosshair, BarChart3, Clock, Brain, TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import { calculateMasterScore } from '../services/masterScoring.js';
-import { learnFromHistory, calculateAdaptiveScore } from '../services/strategyLearning.js';
+import { Layers, Crosshair, BarChart3, Clock } from 'lucide-react';
+import { calculateMasterScore } from '../analysis/masterScoring.js';
+import { PHYSICAL_WHEEL } from '../constants/roulette.js';
 import EntrySignalCard from '../components/EntrySignalCard.jsx';
 import styles from './MasterDashboard.module.css';
-
-const WHEEL_ORDER = [
-  0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10,
-  5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26
-];
 
 const getCoveredNumbers = (targetNumbers, neighborMode) => {
   if (neighborMode === 0) return targetNumbers;
   const covered = new Set();
   targetNumbers.forEach(num => {
     covered.add(num);
-    const idx = WHEEL_ORDER.indexOf(num);
+    const idx = PHYSICAL_WHEEL.indexOf(num);
     for (let i = 1; i <= neighborMode; i++) {
-      covered.add(WHEEL_ORDER[(idx + i) % 37]);
-      covered.add(WHEEL_ORDER[(idx - i + 37) % 37]);
+      covered.add(PHYSICAL_WHEEL[(idx + i) % 37]);
+      covered.add(PHYSICAL_WHEEL[(idx - i + 37) % 37]);
     }
   });
   return Array.from(covered);
 };
 
-const MOTOR_THRESHOLD = 2; // quantos spins à frente o motor testa
-const MAX_BACKTEST_CHECKS = 30; // limita chamadas a calculateMasterScore
+const emptyScoreState = { "0": { wins: 0, losses: 0 }, "1": { wins: 0, losses: 0 }, "2": { wins: 0, losses: 0 } };
+const MOTOR_THRESHOLD = 2;
 
 /**
- * Backtest local do motor: percorre o histórico filtrado,
- * roda calculateMasterScore em sub-janelas e confere os próximos spins.
+ * Backtest local: percorre TODOS os dados do histórico, roda calculateMasterScore
+ * em sub-janelas e confere os próximos spins.
  */
 function computeMotorBacktest(spinHistory) {
-  const MIN_HISTORY = 50;
   const scores = { "0": { wins: 0, losses: 0 }, "1": { wins: 0, losses: 0 }, "2": { wins: 0, losses: 0 } };
 
-  const usable = spinHistory.length - MIN_HISTORY;
-  if (usable < MOTOR_THRESHOLD) return scores;
+  if (!spinHistory || spinHistory.length < MOTOR_THRESHOLD + 1) return scores;
 
-  const step = Math.max(3, Math.floor(usable / MAX_BACKTEST_CHECKS));
   let lastKey = '';
 
-  // i = posição no array (mais recente → 0). Análise usa spinHistory.slice(i).
-  // Spins "seguintes" ao sinal: i-1, i-2 (mais recentes que i).
-  for (let i = usable; i >= MOTOR_THRESHOLD; i -= step) {
+  for (let i = spinHistory.length - 1; i >= MOTOR_THRESHOLD; i--) {
     const result = calculateMasterScore(spinHistory.slice(i));
     if (!result?.entrySignal) continue;
 
     const nums = result.entrySignal.suggestedNumbers;
     const key = [...nums].sort().join(',');
-    if (key === lastKey) continue; // mesmo sinal, pula
+    if (key === lastKey) continue;
     lastKey = key;
 
     for (const mode of [0, 1, 2]) {
@@ -94,12 +84,11 @@ const HeroGauge = ({ value, color, size = 130 }) => {
 };
 
 // --- MINI GAUGE (per strategy) ---
-const StrategyGauge = React.memo(({ name, score, weight, accuracy }) => {
+const StrategyGauge = React.memo(({ name, score }) => {
   const clamped = Math.max(0, Math.min(100, score));
   const color = getScoreColor(clamped);
   const data = [{ value: clamped, fill: color }];
   const size = 72;
-  const hasLearning = weight !== undefined && weight !== 1;
 
   return (
     <div className={styles.gaugeCard}>
@@ -119,19 +108,6 @@ const StrategyGauge = React.memo(({ name, score, weight, accuracy }) => {
         </div>
       </div>
       <div className={styles.gaugeName}>{name}</div>
-      {hasLearning && (
-        <div className={styles.gaugeWeight} style={{
-          color: weight > 1.15 ? '#34d399' : weight < 0.85 ? '#ef4444' : 'rgba(255,255,255,0.3)',
-        }}>
-          {weight > 1.15 ? (
-            <><TrendingUp size={9} style={{ verticalAlign: 'middle', marginRight: 2 }} />{accuracy !== undefined ? `${accuracy}%` : ''}</>
-          ) : weight < 0.85 ? (
-            <><TrendingDown size={9} style={{ verticalAlign: 'middle', marginRight: 2 }} />{accuracy !== undefined ? `${accuracy}%` : ''}</>
-          ) : (
-            <><Minus size={9} style={{ verticalAlign: 'middle', marginRight: 2 }} />{accuracy !== undefined ? `${accuracy}%` : ''}</>
-          )}
-        </div>
-      )}
     </div>
   );
 });
@@ -140,7 +116,7 @@ const StrategyGauge = React.memo(({ name, score, weight, accuracy }) => {
 // HERO SCOREBOARD — Clean, sem emojis
 // ══════════════════════════════════════════════════════════════
 
-const HeroScoreboard = ({ wins, losses, neighborMode, setNeighborMode, entrySignal, totalUnits, coveredCount, timeText, timeStatusColor, isSignalAccepted: _isSignalAccepted, learned }) => {
+const HeroScoreboard = ({ wins, losses, neighborMode, setNeighborMode, entrySignal, totalUnits, coveredCount, timeText, timeStatusColor, isSignalAccepted, signalRound }) => {
   const totalEntries = wins + losses;
   const assertiveness = totalEntries > 0 ? ((wins / totalEntries) * 100) : 0;
   const assertText = assertiveness.toFixed(1);
@@ -158,6 +134,11 @@ const HeroScoreboard = ({ wins, losses, neighborMode, setNeighborMode, entrySign
             {v === 0 ? 'Seco' : `${v} Viz`}
           </button>
         ))}
+        {entrySignal && signalRound > 0 && (
+          <span className={styles.roundBadge}>
+            {signalRound}/{entrySignal.validFor} rod.
+          </span>
+        )}
       </div>
 
       <div className={styles.heroLayout}>
@@ -208,30 +189,9 @@ const HeroScoreboard = ({ wins, losses, neighborMode, setNeighborMode, entrySign
               {timeText}
             </span>
           </div>
-          {entrySignal.learned?.comboWinRate !== null && entrySignal.learned?.comboSamples >= 3 && (
-            <>
-              <div className={styles.signalDivider} />
-              <div className={styles.signalItem}>
-                <Brain size={13} className={styles.signalIconSvg} />
-                <span className={styles.signalVal} style={{ color: entrySignal.learned.comboWinRate >= 50 ? '#34d399' : '#fbbf24' }}>
-                  {entrySignal.learned.comboWinRate}%
-                </span>
-                <span className={styles.signalLbl}>hist.</span>
-              </div>
-            </>
-          )}
         </div>
       )}
 
-      {learned && learned.backtestPoints > 0 && (
-        <div className={styles.learningBar}>
-          <Brain size={11} className={styles.learningIconSvg} />
-          <span className={styles.learningText}>
-            {learned.backtestPoints} amostras · threshold {learned.bestConvergenceThreshold}x · validFor {learned.optimalValidFor}
-            {learned.bestCombo && ` · melhor: ${learned.bestCombo.strategies.join('+')} (${learned.bestCombo.winRate}%)`}
-          </span>
-        </div>
-      )}
     </div>
   );
 };
@@ -241,57 +201,77 @@ const HeroScoreboard = ({ wins, losses, neighborMode, setNeighborMode, entrySign
 // MAIN COMPONENT
 // ══════════════════════════════════════════════════════════════
 
-const MasterDashboard = ({ spinHistory, onSignalUpdate }) => {
-  const [neighborMode, setNeighborMode] = useState(0);
-  const [learnedProfile, setLearnedProfile] = useState(null);
-  const [isSignalAccepted, setIsSignalAccepted] = useState(false);
-  const learnTimeoutRef = useRef(null);
+const SIGNAL_HOLD_SPINS = 2; // Sinal segura por N resultados antes de mudar
 
-  // Scoreboard calculado localmente a partir dos dados filtrados
+const MasterDashboard = ({ spinHistory, fullHistory, onSignalUpdate }) => {
+  const [neighborMode, setNeighborMode] = useState(0);
+  const [isSignalAccepted, setIsSignalAccepted] = useState(false);
+  const lockedSignalRef = useRef(null);
+  const lockSpinIdRef = useRef(null);
+
+  // Sempre computa localmente do spinHistory filtrado
+  const analysis = useMemo(
+    () => calculateMasterScore(spinHistory, fullHistory),
+    [spinHistory, fullHistory]
+  );
+  const strategyScores = analysis?.strategyScores || [];
+  const rawEntrySignal = analysis?.entrySignal || null;
+
+  // Trava o sinal por SIGNAL_HOLD_SPINS resultados
+  const entrySignal = useMemo(() => {
+    if (!spinHistory || spinHistory.length === 0) return rawEntrySignal;
+
+    const currentId = spinHistory[0].signalId;
+
+    // Se não há sinal travado, aceita o novo (ou null)
+    if (!lockedSignalRef.current) {
+      if (rawEntrySignal) {
+        lockedSignalRef.current = rawEntrySignal;
+        lockSpinIdRef.current = currentId;
+      }
+      return rawEntrySignal;
+    }
+
+    // Conta quantos spins passaram desde que travou
+    const lockIdx = spinHistory.findIndex(s => s.signalId === lockSpinIdRef.current);
+    const spinsSinceLock = lockIdx === -1 ? SIGNAL_HOLD_SPINS : lockIdx;
+
+    // Se já passou o hold, libera pra novo sinal
+    if (spinsSinceLock >= SIGNAL_HOLD_SPINS) {
+      lockedSignalRef.current = rawEntrySignal;
+      lockSpinIdRef.current = currentId;
+      return rawEntrySignal;
+    }
+
+    // Ainda no hold — mantém sinal travado
+    return lockedSignalRef.current;
+  }, [rawEntrySignal, spinHistory]);
+
+  // Placar: backtest local (respeita o filtro)
   const scores = useMemo(
     () => computeMotorBacktest(spinHistory),
     [spinHistory]
   );
-
-  useEffect(() => {
-    if (!spinHistory || spinHistory.length < 80) return;
-
-    if (learnTimeoutRef.current) clearTimeout(learnTimeoutRef.current);
-    learnTimeoutRef.current = setTimeout(() => {
-      const profile = learnFromHistory(spinHistory, neighborMode);
-      setLearnedProfile(profile);
-    }, 2000);
-
-    return () => {
-      if (learnTimeoutRef.current) clearTimeout(learnTimeoutRef.current);
-    };
-  }, [spinHistory, neighborMode]);
-
-  const analysis = useMemo(() => {
-    if (learnedProfile && learnedProfile.backtestPoints > 0) {
-      return calculateAdaptiveScore(spinHistory, learnedProfile);
-    }
-    return calculateMasterScore(spinHistory);
-  }, [spinHistory, learnedProfile]);
+  const modeScore = scores[String(neighborMode)] || { wins: 0, losses: 0 };
 
   // Atualiza UI: onSignalUpdate e isSignalAccepted
   useEffect(() => {
-    if (!analysis?.entrySignal) {
+    if (!entrySignal) {
       setIsSignalAccepted(false);
       onSignalUpdate({ targets: [], expanded: [] });
       return;
     }
 
-    const rawSignal = analysis.entrySignal.suggestedNumbers;
+    const rawSignal = entrySignal.suggestedNumbers;
     const expanded = getCoveredNumbers(rawSignal, neighborMode);
     onSignalUpdate({ targets: rawSignal, expanded });
 
     if (spinHistory && spinHistory.length > 0) {
       setIsSignalAccepted(expanded.includes(spinHistory[0].number));
     }
-  }, [analysis, neighborMode, onSignalUpdate, spinHistory]);
+  }, [entrySignal, neighborMode, onSignalUpdate, spinHistory]);
 
-  if (!analysis || analysis.strategyScores.length === 0) {
+  if (!analysis || strategyScores.length === 0) {
     return (
       <div className={styles.emptyState}>
         Aguardando {50 - (spinHistory?.length || 0)} spins para o Painel Master...
@@ -299,19 +279,21 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate }) => {
     );
   }
 
-  const { entrySignal, strategyScores } = analysis;
-  const modeScore = scores[String(neighborMode)] || { wins: 0, losses: 0 };
   const unitsPerTarget = 1 + (neighborMode * 2);
   const totalUnits = entrySignal ? entrySignal.suggestedNumbers.length * unitsPerTarget : 0;
   const coveredCount = entrySignal ? getCoveredNumbers(entrySignal.suggestedNumbers, neighborMode).length : 0;
+
+  // Calcula em qual rodada o sinal está (1/2 do validFor)
+  const signalRound = useMemo(() => {
+    if (!entrySignal || !spinHistory || spinHistory.length === 0) return 0;
+    const lockIdx = spinHistory.findIndex(s => s.signalId === lockSpinIdRef.current);
+    return lockIdx === -1 ? 0 : lockIdx + 1;
+  }, [entrySignal, spinHistory]);
 
   let timeStatusColor = '#fbbf24';
   let timeText = '';
   if (isSignalAccepted) { timeStatusColor = '#34d399'; timeText = 'WIN'; }
   else if (entrySignal) { timeStatusColor = '#fbbf24'; timeText = 'ATIVO'; }
-
-  const weights = learnedProfile?.strategyWeights || {};
-  const accuracies = learnedProfile?.strategyAccuracy || {};
 
   return (
     <div className={styles.masterDashboardContainer}>
@@ -320,8 +302,7 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate }) => {
         neighborMode={neighborMode} setNeighborMode={setNeighborMode}
         entrySignal={entrySignal} totalUnits={totalUnits} coveredCount={coveredCount}
         timeText={timeText} timeStatusColor={timeStatusColor}
-        isSignalAccepted={isSignalAccepted}
-        learned={learnedProfile}
+        isSignalAccepted={isSignalAccepted} signalRound={signalRound}
       />
 
       <div className={styles.masterGridContainer}>
@@ -330,13 +311,11 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate }) => {
             key={s.name}
             name={s.name}
             score={s.score}
-            weight={weights[s.name]}
-            accuracy={accuracies[s.name]?.accuracy}
           />
         ))}
       </div>
 
-      <EntrySignalCard entrySignal={entrySignal} isSignalAccepted={isSignalAccepted} spinHistory={spinHistory} />
+      <EntrySignalCard entrySignal={entrySignal} spinHistory={spinHistory} />
     </div>
   );
 };

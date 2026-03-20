@@ -70,7 +70,7 @@
     -webkit-overflow-scrolling: touch;
     padding: 0.1rem 0;
   }
-  .racetrack-oval-svg { max-width: 410px; margin-left:  8px; }
+  .racetrack-oval-svg { width: 100%; max-width: 100%; }
 }
 @media (max-width: 380px) {
   .racetrack-oval-container {
@@ -78,5 +78,5 @@
     -webkit-overflow-scrolling: touch;
     padding: 0.1rem 0;
   }
-  .racetrack-oval-svg { max-width: 350px; margin-left:  8px; }
+  .racetrack-oval-svg { width: 100%; max-width: 100%; }
 }

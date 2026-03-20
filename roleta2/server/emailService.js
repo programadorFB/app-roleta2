@@ -27,7 +27,7 @@ function getTransporter() {
     port,
     secure: port === 465,
     auth: { user, pass },
-    tls: { rejectUnauthorized: process.env.NODE_ENV === 'production' },
+    tls: { rejectUnauthorized: false },
   });
 
   console.log(`📧 [EMAIL] Transporter criado: ${host}:${port}`);
@@ -76,6 +76,7 @@ function buildWelcomeEmail({ name, email, planName, expiresAt, amount }) {
       : null;
 
   const amountStr = amount ? `R$ ${(amount / 100).toFixed(2).replace('.', ',')}` : null;
+  const appUrl = process.env.FRONTEND_URL || 'https://tool.smartanalise.com.br';
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -219,7 +220,7 @@ function buildWelcomeEmail({ name, email, planName, expiresAt, amount }) {
 
   <!-- CTA BUTTON -->
   <tr><td align="center" style="padding:16px 44px 6px;">
-    <a href="https://ferramenta.smartanalise.com.br" target="_blank"
+    <a href="https://tool.smartanalise.com.br" target="_blank"
        style="display:inline-block;padding:15px 52px;background:linear-gradient(135deg,#c9a052,#a07830);color:#0d0b08;font-size:12px;font-weight:800;letter-spacing:3px;text-transform:uppercase;text-decoration:none;border:1px solid rgba(255,220,130,0.2);">
       &#9830;&ensp;ACESSAR AGORA&ensp;&#8594;
     </a>
@@ -229,7 +230,7 @@ function buildWelcomeEmail({ name, email, planName, expiresAt, amount }) {
   <tr><td align="center" style="padding:14px 44px 24px;">
     <table role="presentation" cellpadding="0" cellspacing="0"><tr>
       <td style="padding:0 6px;">
-        <a href="https://ferramenta.smartanalise.com.br" target="_blank" style="font-size:10px;color:rgba(201,160,82,0.45);text-decoration:none;letter-spacing:0.5px;">Ferramenta</a>
+        <a href="https://tool.smartanalise.com.br" target="_blank" style="font-size:10px;color:rgba(201,160,82,0.45);text-decoration:none;letter-spacing:0.5px;">Ferramenta</a>
       </td>
       <td style="color:rgba(201,160,82,0.12);font-size:10px;">&#9830;</td>
       <td style="padding:0 6px;">

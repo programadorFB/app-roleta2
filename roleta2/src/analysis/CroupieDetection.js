@@ -14,7 +14,7 @@ export const SECTORS = {
 /**
  * Calcula significância estatística usando Chi-Quadrado simplificado
  */
-const calculateSignificance = (observed, expected, _sampleSize) => {
+const calculateSignificance = (observed, expected, sampleSize) => {
   const chiSquare = Math.pow(observed - expected, 2) / expected;
   // Valor crítico aproximado para p < 0.05 com 5 graus de liberdade ≈ 11.07
   // Para simplificar: chiSquare > 3.84 indica p < 0.05 (significante)

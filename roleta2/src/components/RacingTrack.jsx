@@ -16,7 +16,7 @@ const WHEEL_ROTATED = [...WHEEL.slice(HALF), ...WHEEL.slice(0, HALF)];
 
 const RacingTrack = ({ selectedResult, onNumberClick, entrySignals = [], targetSignals = [] }) => {
   const [activeNumber, setActiveNumber] = useState(null);
-  const [isFlipped, setIsFlipped] = useState(false);
+  const [isFlipped, setIsFlipped] = useState(true);
 
   useEffect(() => {
     if (selectedResult) {
@@ -90,13 +90,13 @@ const RacingTrack = ({ selectedResult, onNumberClick, entrySignals = [], targetS
     A ${Ri} ${Ri} 0 0 1 ${leftCx} ${cy - Ri} Z` : '';
 
   const labels = isFlipped ? [
-    { text: 'VOISINS', x: W * 0.22 },
-    { text: 'ORPHELINS', x: W * 0.53 },
-    { text: 'TIER', x: W * 0.78 },
-  ] : [
     { text: 'TIER', x: W * 0.22 },
+    { text: 'ORPHELINS', x: W * 0.53 },
+    { text: 'VOISINS', x: W * 0.78 },
+  ] : [
+    { text: 'VOISINS', x: W * 0.22 },
     { text: 'ORPHELINS', x: W * 0.47 },
-    { text: 'VOISINS', x: W * 0.73 },
+    { text: 'TIER', x: W * 0.73 },
   ];
 
   const zeroLabelX = isFlipped ? W - pad - 2 : pad + 2;

@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Check, CreditCard, Shield, Zap, Info } from 'lucide-react'; // Ícone 'Info' adicionado
 import './PaywallModal.css';
 
-const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl: _checkoutUrl }) => {
+const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState('annual');

@@ -7,7 +7,8 @@ import {
 } from 'lucide-react';
 import styles from './DeepAnalysisPanel.module.css';
 import { useNotifications } from '../contexts/NotificationContext';
-import { checkConvergenceAlert, checkPatternBrokenAlert } from '../services/alertLogic';
+import { checkConvergenceAlert, checkPatternBrokenAlert } from '../analysis/alertLogic';
+import { calculateMasterScore } from '../analysis/masterScoring.js';
 
 // Importe todos os seus componentes de aba
 import SectorsAnalysis from './SectorAnalysis';
@@ -16,11 +17,9 @@ import TerminalAnalysis from './TerminalAnalysis';
 import AdvancedPatternsAnalysis from './AdvancedPatternsAnalysis';
 import FrequencyTable from './FrequencyTable';
 
-// 🔧 FIX #4: Usa calculateMasterScore completo (era analyzeCroupierPattern avulso)
-import { calculateMasterScore } from '../services/masterScoring.js';
 
 // 🔧 FIX #12: getNumberColor centralizado (era inline)
-import { getNumberColor } from '../utils/roulette';
+import { getNumberColor } from '../lib/roulette';
 
 // 🔧 FIX #13: PHYSICAL_WHEEL centralizado (era rouletteNumbers inline)
 import { PHYSICAL_WHEEL as rouletteNumbers } from '../constants/roulette';
@@ -144,16 +143,15 @@ const DeepAnalysisPanel = ({ spinHistory }) => {
         };
     }, [spinHistory]);
 
-    // ═══════════════════════════════════════════════════════════
-    // 🔧 AUDIT FIX #4: Lógica de alertas usando calculateMasterScore completo
-    // ANTES: usava apenas analyzeCroupierPattern com dados incompletos
-    // AGORA: roda TODAS as 5 estratégias e checa convergência real
-    // ═══════════════════════════════════════════════════════════
-    useEffect(() => {
-        if (spinHistory.length < 50) return; // 🔧 FIX: mínimo 50 (era 30)
+    // Fallback: importa calculateMasterScore para quando motorAnalysis não está disponível
+    const masterResult = useMemo(() => {
+        if (spinHistory.length < 50) return null;
+        return calculateMasterScore(spinHistory);
+    }, [spinHistory]);
 
-        // 🔧 FIX #4: Usa calculateMasterScore que roda TODAS as 5 análises
-        const masterResult = calculateMasterScore(spinHistory);
+    // Alertas usando motorAnalysis (backend) ou fallback local
+    useEffect(() => {
+        if (!masterResult || !masterResult.strategyScores?.length) return;
 
         // 1. Verificar Sinal Verde (convergência de 3+ estratégias)
         const convergenceAlert = checkConvergenceAlert(masterResult);
@@ -170,7 +168,7 @@ const DeepAnalysisPanel = ({ spinHistory }) => {
         // 3. Salvar análise atual para a próxima comparação
         prevAnalysesRef.current = masterResult;
 
-    }, [spinHistory, addNotification]);
+    }, [masterResult, addNotification]);
 
     // --- Componentes Auxiliares ---
 

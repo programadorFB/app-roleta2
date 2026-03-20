@@ -2,7 +2,7 @@
 // Testa: request(), findGameUrl(), launchGame()
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { findGameUrl } from '../../src/apiClient.js';
+import { findGameUrl } from '../../src/lib/apiClient.js';
 
 // ══════════════════════════════════════════════════════════════
 // findGameUrl — busca recursiva de game_url em payloads variados
@@ -137,7 +137,7 @@ describe('request (com fetch mockado)', () => {
     });
 
     // Import dinâmico para pegar a env atualizada
-    const { request } = await import('../../src/apiClient.js');
+    const { request } = await import('../../src/lib/apiClient.js');
     const result = await request('/login', { body: { email: 'test@test.com' }, method: 'POST' });
 
     expect(result.data).toBeTruthy();
@@ -158,7 +158,7 @@ describe('request (com fetch mockado)', () => {
       }),
     });
 
-    const { request } = await import('../../src/apiClient.js');
+    const { request } = await import('../../src/lib/apiClient.js');
     const result = await request('/start-game/120', { context: 'game' });
 
     expect(result.data).toBeNull();
@@ -171,7 +171,7 @@ describe('request (com fetch mockado)', () => {
   it('retorna statusCode 0 para erro de rede', async () => {
     globalThis.fetch = vi.fn().mockRejectedValue(new Error('Failed to fetch'));
 
-    const { request } = await import('../../src/apiClient.js');
+    const { request } = await import('../../src/lib/apiClient.js');
     const result = await request('/start-game/120', { context: 'game' });
 
     expect(result.data).toBeNull();
@@ -192,7 +192,7 @@ describe('request (com fetch mockado)', () => {
       });
     });
 
-    const { request } = await import('../../src/apiClient.js');
+    const { request } = await import('../../src/lib/apiClient.js');
     await request('/start-game/120', {
       queryParams: { userEmail: 'test@test.com' },
       jwtToken: 'abc123',
@@ -213,7 +213,7 @@ describe('request (com fetch mockado)', () => {
       });
     });
 
-    const { request } = await import('../../src/apiClient.js');
+    const { request } = await import('../../src/lib/apiClient.js');
     await request('/test', { jwtToken: 'mytoken123' });
 
     expect(capturedHeaders['Authorization']).toBe('Bearer mytoken123');

@@ -1,30 +1,18 @@
-# Secrets
+# Segredos — NUNCA commitar
 .env
-.env.*
-!.env.example
-!.env.test
+.env.local
+.env.production
+env.test
 
-# Dependencias
+# Dependências
 node_modules/
 
 # Build
 dist/
-*.map
 
 # Logs
 *.log
 logs/
-
-# Cache / Temp
-.vite/
-tmp/
-*.tmp
-
-# Runtime state
-motor-score.json
-
-# Coverage
-coverage/
 
 # Sistema
 .DS_Store
@@ -33,3 +21,14 @@ Thumbs.db
 # Editor
 .vscode/
 .idea/
+
+# Temporários
+tmp/
+*.tmp
+
+# Runtime state
+motor-score.json
+
+# Claude Code
+.claude/
+CLAUDE.md

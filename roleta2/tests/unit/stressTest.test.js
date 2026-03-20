@@ -3,8 +3,8 @@
 // Simula o pipeline completo: triggerMap + masterScore + scoreboard por usuário
 
 import { describe, it, expect } from 'vitest';
-import { buildTriggerMap, computeTriggerScoreboard } from '../../src/services/triggerAnalysis.js';
-import { calculateMasterScore } from '../../src/services/masterScoring.js';
+import { buildTriggerMap, computeTriggerScoreboard } from '../../src/analysis/triggerAnalysis.js';
+import { calculateMasterScore } from '../../src/analysis/masterScoring.js';
 import { generateSpinHistory } from '../helpers/spinFactory.js';
 
 // ── Helpers ─────────────────────────────────────────────

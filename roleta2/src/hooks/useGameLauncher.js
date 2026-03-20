@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { ROULETTE_GAME_IDS } from '../constants/roulette';
-import { launchGame } from '../apiClient.js';
-import { isRetryableError } from '../errorHandler.js';
+import { launchGame } from '../lib/apiClient.js';
+import { isRetryableError } from '../lib/errorHandler.js';
 
 export const LAUNCH_FAILURE = {
   NONE:            'NONE',
@@ -120,7 +120,7 @@ export const useGameLauncher = ({ selectedRoulette, jwtToken, isAuthenticated, u
       iframeRelaunchAttemptRef.current = 1;
       setTimeout(() => {
         if (gameUrl) { setGameUrl(''); setTimeout(() => handleLaunchGame(0), 500); }
-      }, 3000);
+      }, 3002);
     } else {
       setIframeError(true);
       setLaunchError('⚠️ Erro ao carregar o jogo. Clique em "Tentar Novamente".');

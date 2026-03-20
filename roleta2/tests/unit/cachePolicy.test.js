@@ -2,7 +2,7 @@
 // Testa: Consistência da política de cache entre Redis TTLs, polling frontend e scraper backend
 
 import { describe, it, expect } from 'vitest';
-import { TTL, KEY } from '../../redisService.js';
+import { TTL, KEY } from '../../server/redisService.js';
 
 // ══════════════════════════════════════════════════════════════
 // Constantes do sistema (replicadas dos arquivos relevantes)

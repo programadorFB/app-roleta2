@@ -1,9 +1,9 @@
-// pages/TriggersPage.jsx — v4 PURE COUNT SIGNALS
+// pages/TriggersPage.jsx — v5 BACKEND-DRIVEN SIGNALS + expand history
 
-import React, { useMemo, useRef, useState, useCallback, Suspense, lazy } from 'react';
-import { Zap, Clock, TrendingUp, ChevronDown, Crosshair } from 'lucide-react';
+import React, { useMemo, useState, useCallback, useRef, Suspense, lazy } from 'react';
+import { Zap, Clock, ChevronDown, Crosshair } from 'lucide-react';
 import TriggerStrategiesPanel from '../components/TriggerStrategiesPanel';
-import { buildTriggerMap, computeTriggerScoreboard } from '../services/triggerAnalysis';
+import { buildTriggerMap, getActiveTriggers, getActiveSignals as getActiveSignalsFn, computeTriggerScoreboard, checkTrigger } from '../analysis/triggerAnalysis';
 import { getRouletteColor, LOSS_THRESHOLD } from '../constants/roulette';
 import TriggerRadar from '../components/TriggerRadar';
 import styles from './TriggersPage.module.css';
@@ -11,19 +11,44 @@ import styles from './TriggersPage.module.css';
 const RacingTrack = lazy(() => import('../components/RacingTrack.jsx'));
 const ResultsGrid = lazy(() => import('../components/ResultGrid.jsx'));
 
-// Quantos sinais recentes mostrar no painel lateral
-const MAX_VISIBLE_SIGNALS = 10;
+// ── Historico individual de um gatilho ─────────────────────────
+function buildTriggerHistory(triggerNumber, spinHistory, triggerMap) {
+  const profile = triggerMap.get(triggerNumber);
+  if (!profile?.bestPattern) return null;
 
-// ══════════════════════════════════════════════════════════════
-// SIGNAL ENGINE — Cache-based para evitar sinais desaparecendo
-//
-// Problema anterior: a lista era reconstruída do zero a cada render.
-// Se o triggerMap mudava (número perdia significância estatística),
-// sinais pendentes sumiam instantaneamente.
-//
-// Fix: useRef guarda os dados do padrão no momento da detecção.
-// Sinais persistem até serem resolvidos (win/loss) e saírem da janela.
-// ══════════════════════════════════════════════════════════════
+  const covered = profile.bestPattern.coveredNumbers;
+  const results = [];
+
+  for (let i = LOSS_THRESHOLD; i < spinHistory.length; i++) {
+    if (spinHistory[i].number !== triggerNumber) continue;
+
+    let hitOn = 0;
+    for (let j = 1; j <= LOSS_THRESHOLD; j++) {
+      const ci = i - j;
+      if (ci < 0) break;
+      if (!hitOn && covered.includes(spinHistory[ci].number)) hitOn = j;
+    }
+
+    results.push({ label: hitOn ? `G${hitOn}` : 'RED', hitOn });
+  }
+
+  const g1 = results.filter(r => r.hitOn === 1).length;
+  const g2 = results.filter(r => r.hitOn === 2).length;
+  const g3 = results.filter(r => r.hitOn === 3).length;
+  const red = results.filter(r => !r.hitOn).length;
+  const total = results.length;
+  const wins = g1 + g2 + g3;
+
+  return {
+    triggerNumber,
+    action: profile.bestPattern.label,
+    covered,
+    confidence: profile.bestPattern.confidence,
+    g1, g2, g3, red, total, wins,
+    pct: total > 0 ? Math.round((wins / total) * 100) : 0,
+    recentResults: results.slice(0, 20).map(r => r.label),
+  };
+}
 
 // ── Scoreboard ─────────────────────────────────────────────────
 const TriggerScoreboard = ({ wins, losses }) => {
@@ -55,51 +80,9 @@ const TriggerScoreboard = ({ wins, losses }) => {
   );
 };
 
-// ── Historico individual de um gatilho ─────────────────────────
-function buildTriggerHistory(triggerNumber, spinHistory, triggerMap) {
-  const profile = triggerMap.get(triggerNumber);
-  if (!profile?.bestPattern) return null;
-
-  const covered = profile.bestPattern.coveredNumbers;
-  const results = []; // { result: 'G1'|'G2'|'G3'|'RED', spins: [trigger, ...checks] }
-
-  for (let i = LOSS_THRESHOLD; i < spinHistory.length; i++) {
-    if (spinHistory[i].number !== triggerNumber) continue;
-
-    let hitOn = 0;
-    const checksNums = [];
-    for (let j = 1; j <= LOSS_THRESHOLD; j++) {
-      const ci = i - j;
-      if (ci < 0) break;
-      checksNums.push(spinHistory[ci].number);
-      if (!hitOn && covered.includes(spinHistory[ci].number)) hitOn = j;
-    }
-
-    const label = hitOn ? `G${hitOn}` : 'RED';
-    results.push({ label, hitOn, checksNums });
-  }
-
-  const g1 = results.filter(r => r.hitOn === 1).length;
-  const g2 = results.filter(r => r.hitOn === 2).length;
-  const g3 = results.filter(r => r.hitOn === 3).length;
-  const red = results.filter(r => !r.hitOn).length;
-  const total = results.length;
-  const wins = g1 + g2 + g3;
-  const pct = total > 0 ? Math.round((wins / total) * 100) : 0;
-
-  return {
-    triggerNumber,
-    action: profile.bestPattern.label,
-    covered,
-    confidence: profile.bestPattern.confidence,
-    g1, g2, g3, red, total, wins, pct,
-    recentResults: results.slice(0, 20).map(r => r.label),
-  };
-}
-
 // ── Sinais em Progresso (com historico expandivel) ─────────────
-const ActiveSignalsPanel = ({ signals, perTriggerStats, spinHistory, triggerMap }) => {
-  const [expanded, setExpanded] = useState(null); // triggerNumber or null
+const ActiveSignalsPanel = ({ signals, spinHistory, triggerMap }) => {
+  const [expanded, setExpanded] = useState(null);
   const [historyData, setHistoryData] = useState(null);
 
   const handleClick = useCallback((triggerNumber) => {
@@ -118,7 +101,7 @@ const ActiveSignalsPanel = ({ signals, perTriggerStats, spinHistory, triggerMap 
         <Zap size={13} className={styles.signalsPanelIcon} />
         <span>Sinais em Progresso</span>
       </div>
-      {signals.length === 0 ? (
+      {(!signals || signals.length === 0) ? (
         <div className={styles.noSignals}>
           <Clock size={14} style={{ opacity: 0.25 }} />
           <span>Nenhum sinal ativo</span>
@@ -127,9 +110,6 @@ const ActiveSignalsPanel = ({ signals, perTriggerStats, spinHistory, triggerMap 
         <div className={styles.signalsList}>
           {signals.map((sig) => {
             const col = getRouletteColor(sig.triggerNumber);
-            const pt = perTriggerStats?.get(sig.triggerNumber);
-            const ptPct = pt && pt.total > 0 ? Math.round((pt.wins / pt.total) * 100) : null;
-            const ptColor = ptPct !== null ? (ptPct >= 60 ? '#34d399' : ptPct >= 40 ? '#c9a052' : '#ef4444') : null;
             const isExpanded = expanded === sig.triggerNumber;
 
             return (
@@ -143,11 +123,6 @@ const ActiveSignalsPanel = ({ signals, perTriggerStats, spinHistory, triggerMap 
                     {sig.triggerNumber}
                   </span>
                   <span className={styles.signalAction}>{sig.action}</span>
-                  {ptPct !== null && (
-                    <span className={styles.signalHitRate} style={{ color: ptColor }}>
-                      {ptPct}%
-                    </span>
-                  )}
                   <span className={styles.signalStatus}>
                     {sig.status === 'pending' && (
                       <span className={styles.signalPending}>{sig.remaining}/{LOSS_THRESHOLD}</span>
@@ -158,10 +133,8 @@ const ActiveSignalsPanel = ({ signals, perTriggerStats, spinHistory, triggerMap 
                   <ChevronDown size={11} className={`${styles.signalChevron} ${isExpanded ? styles['signalChevron--open'] : ''}`} />
                 </div>
 
-                {/* ── Expanded history panel ── */}
                 {isExpanded && historyData && (
                   <div className={styles.signalHistory}>
-                    {/* Stats row */}
                     <div className={styles.shStatsRow}>
                       <div className={styles.shStat}>
                         <span className={styles.shStatVal} style={{ color: '#34d399' }}>{historyData.g1}</span>
@@ -188,7 +161,6 @@ const ActiveSignalsPanel = ({ signals, perTriggerStats, spinHistory, triggerMap 
                       </div>
                     </div>
 
-                    {/* Recent results chips */}
                     {historyData.recentResults.length > 0 && (
                       <div className={styles.shResults}>
                         <span className={styles.shResultsLabel}>Ultimos resultados</span>
@@ -202,7 +174,6 @@ const ActiveSignalsPanel = ({ signals, perTriggerStats, spinHistory, triggerMap 
                       </div>
                     )}
 
-                    {/* Covered numbers */}
                     <div className={styles.shCovered}>
                       <span className={styles.shCoveredLabel}>Numeros cobertos</span>
                       <div className={styles.shCoveredNums}>
@@ -212,7 +183,6 @@ const ActiveSignalsPanel = ({ signals, perTriggerStats, spinHistory, triggerMap 
                       </div>
                     </div>
 
-                    {/* Confidence */}
                     <div className={styles.shFooter}>
                       <Crosshair size={10} style={{ opacity: 0.4 }} />
                       <span>Confianca: {historyData.confidence}%</span>
@@ -244,141 +214,40 @@ const TriggersPage = ({
 }) => {
   const latestNumbers = filteredSpinHistory;
 
+  // Sempre computa localmente do spinHistory filtrado
   const triggerMap = useMemo(
-    () => buildTriggerMap(filteredSpinHistory, filteredSpinHistory.length),
+    () => (filteredSpinHistory?.length >= 10)
+      ? buildTriggerMap(filteredSpinHistory, filteredSpinHistory.length)
+      : new Map(),
     [filteredSpinHistory]
   );
 
-  // Scoreboard calculado localmente a partir dos dados filtrados
   const scoreboard = useMemo(
     () => computeTriggerScoreboard(filteredSpinHistory, triggerMap, LOSS_THRESHOLD),
     [filteredSpinHistory, triggerMap]
   );
 
-  // Cache de sinais: congela dados do padrão no momento da detecção
-  // para que mudanças no triggerMap não façam sinais pendentes sumirem
-  const signalCacheRef = useRef(new Map());
+  const activeSignals = useMemo(
+    () => getActiveSignalsFn(filteredSpinHistory, triggerMap, LOSS_THRESHOLD),
+    [filteredSpinHistory, triggerMap]
+  );
 
-  const activeSignals = useMemo(() => {
-    if (!filteredSpinHistory || filteredSpinHistory.length < 2) return [];
+  const topTriggers = useMemo(
+    () => getActiveTriggers(triggerMap).slice(0, 5),
+    [triggerMap]
+  );
 
-    const cache = signalCacheRef.current;
+  const activeTrigger = useMemo(
+    () => filteredSpinHistory?.length > 0 ? checkTrigger(triggerMap, filteredSpinHistory[0].number) : null,
+    [triggerMap, filteredSpinHistory]
+  );
 
-    // Index signalId → posição no array para lookup O(1)
-    const scanLimit = Math.min(filteredSpinHistory.length - 1, 50);
-    const idxById = new Map();
-    for (let i = 0; i <= scanLimit; i++) {
-      idxById.set(filteredSpinHistory[i].signalId, i);
-    }
+  const allTriggersCount = useMemo(
+    () => getActiveTriggers(triggerMap).length,
+    [triggerMap]
+  );
 
-    // 1. Detecta novos triggers e congela os dados do padrão no cache
-    for (let i = 0; i <= scanLimit; i++) {
-      const spin = filteredSpinHistory[i];
-      if (cache.has(spin.signalId)) continue;
-
-      const profile = triggerMap.get(spin.number);
-      if (!profile?.bestPattern) continue;
-
-      cache.set(spin.signalId, {
-        triggerNumber: spin.number,
-        action: profile.bestPattern.label,
-        coveredNumbers: [...profile.bestPattern.coveredNumbers],
-        confidence: profile.bestPattern.confidence,
-      });
-    }
-
-    // 2. Monta lista de sinais a partir do cache, atualiza status
-    const entries = [];
-    const toDelete = [];
-    for (const [signalId, data] of cache) {
-      const idx = idxById.get(signalId);
-      if (idx === undefined || idx >= 50) {
-        toDelete.push(signalId);
-        continue;
-      }
-      entries.push({ signalId, data, idx });
-    }
-    toDelete.forEach(k => cache.delete(k));
-
-    // Ordena por recência (menor idx = mais recente)
-    entries.sort((a, b) => a.idx - b.idx);
-
-    const signals = [];
-    const seen = new Set();
-
-    for (const { data, idx } of entries) {
-      // Deduplica: mesmo trigger em sequência, mostra só o mais recente
-      const signalKey = `${data.triggerNumber}-${data.action}`;
-      if (seen.has(signalKey)) continue;
-      seen.add(signalKey);
-
-      let status = 'pending';
-      let remaining = LOSS_THRESHOLD;
-      let winAttempt = 0;
-      let checksAvailable = 0;
-
-      for (let j = 1; j <= LOSS_THRESHOLD; j++) {
-        const checkIdx = idx - j;
-        if (checkIdx < 0) break;
-        checksAvailable++;
-        if (data.coveredNumbers.includes(filteredSpinHistory[checkIdx].number)) {
-          status = 'win';
-          remaining = 0;
-          winAttempt = j;
-          break;
-        }
-      }
-
-      if (status !== 'win') {
-        if (checksAvailable >= LOSS_THRESHOLD) {
-          status = 'loss';
-          remaining = 0;
-        } else {
-          remaining = LOSS_THRESHOLD - checksAvailable;
-        }
-      }
-
-      signals.push({
-        triggerNumber: data.triggerNumber,
-        action: data.action,
-        coveredNumbers: data.coveredNumbers,
-        confidence: data.confidence,
-        status,
-        remaining,
-        winAttempt,
-        spinsAgo: idx,
-      });
-
-      if (signals.length >= MAX_VISIBLE_SIGNALS) break;
-    }
-
-    return signals;
-  }, [filteredSpinHistory, triggerMap]);
-
-  // Per-trigger hit rate (individual assertivity)
-  const perTriggerStats = useMemo(() => {
-    const stats = new Map();
-    const len = filteredSpinHistory.length;
-    for (let i = LOSS_THRESHOLD; i < len; i++) {
-      const num = filteredSpinHistory[i].number;
-      const profile = triggerMap.get(num);
-      if (!profile?.bestPattern) continue;
-      const covered = profile.bestPattern.coveredNumbers;
-      let hit = false;
-      for (let j = 1; j <= LOSS_THRESHOLD; j++) {
-        const ci = i - j;
-        if (ci < 0) break;
-        if (covered.includes(filteredSpinHistory[ci].number)) { hit = true; break; }
-      }
-      if (!stats.has(num)) stats.set(num, { wins: 0, total: 0 });
-      const s = stats.get(num);
-      s.total++;
-      if (hit) s.wins++;
-    }
-    return stats;
-  }, [filteredSpinHistory, triggerMap]);
-
-  // Números a destacar na RacingTrack: cobertos pelo sinal mais recente pending/win
+  // Números a destacar na RacingTrack
   const racingTargets = useMemo(() => {
     const sig = activeSignals.find(s => s.status === 'pending' || s.status === 'win');
     return sig ? sig.coveredNumbers : [];
@@ -399,10 +268,7 @@ const TriggersPage = ({
               forceCols={10}
             />
           </Suspense>
-          <TriggerRadar
-            triggerMap={triggerMap}
-            spinHistory={filteredSpinHistory}
-          />
+          <TriggerRadar topTriggers={topTriggers} spinHistory={filteredSpinHistory} />
         </aside>
 
         {/* ── MEIO: Jogo + RacingTrack ── */}
@@ -428,7 +294,11 @@ const TriggersPage = ({
         <aside className={styles.rightCol}>
           <div className={styles.rightContent}>
             <TriggerScoreboard wins={scoreboard.wins} losses={scoreboard.losses} />
-            <ActiveSignalsPanel signals={activeSignals} perTriggerStats={perTriggerStats} spinHistory={filteredSpinHistory} triggerMap={triggerMap} />
+            <ActiveSignalsPanel
+              signals={activeSignals}
+              spinHistory={filteredSpinHistory}
+              triggerMap={triggerMap}
+            />
             <TriggerStrategiesPanel
               spinHistory={filteredSpinHistory}
               triggerMap={triggerMap}

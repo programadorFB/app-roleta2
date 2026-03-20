@@ -11,7 +11,7 @@ import {
   translateNetworkError,
   processErrorResponse,
   displayError,
-} from '../../src/errorHandler.js';
+} from '../../src/lib/errorHandler.js';
 
 // ══════════════════════════════════════════════════════════════
 // isRetryableError

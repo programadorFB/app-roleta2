@@ -7,8 +7,9 @@ import {
   processErrorResponse, 
   translateNetworkError, 
   displayError 
-} from '../errorHandler';
+} from '../lib/errorHandler';
 import backLoginImg from '../assets/backlogin.png';
+import logoSvg from '../assets/w=600.svg';
 import './Login.css';
 
 const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {

@@ -7,7 +7,7 @@ const CELL_MIN  = 32;
 const GAP       = 6;
 const PADDING   = 10;
 const OVERSCAN  = 3;
-const VIEW_H    = 400;
+const VIEW_H    = 600;
 
 // --- Helpers ---
 const formatPullTooltip = (number, pullStats, previousStats) => {
@@ -167,15 +167,21 @@ const ResultBox = memo(({ number, color, index, isHighlighted, customClass }) =>
 ResultBox.displayName = 'ResultBox';
 
 // --- Componente Principal ---
+const MAX_DISPLAY = 100;
+
 const ResultsGrid = memo(({
-  latestNumbers = [],
+  latestNumbers: rawLatestNumbers = [],
   numberPullStats,
   numberPreviousStats,
   onResultClick,
   isPremium = false,
-  setIsPaywallOpen: _setIsPaywallOpen,
+  setIsPaywallOpen,
   forceCols = 0,
 }) => {
+  const latestNumbers = useMemo(
+    () => rawLatestNumbers.slice(0, MAX_DISPLAY),
+    [rawLatestNumbers]
+  );
   const [hoveredNumber,  setHoveredNumber]  = useState(null);
   const [filterMode,     setFilterMode]     = useState('default');
   const [scrollTop,      setScrollTop]      = useState(0);
