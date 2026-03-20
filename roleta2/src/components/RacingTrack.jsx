@@ -21,7 +21,7 @@ const RacingTrack = ({ selectedResult, onNumberClick, entrySignals = [], targetS
   useEffect(() => {
     if (selectedResult) {
       setActiveNumber(selectedResult.number);
-      const t = setTimeout(() => setActiveNumber(null), 3002);
+      const t = setTimeout(() => setActiveNumber(null), 3001);
       return () => clearTimeout(t);
     }
   }, [selectedResult]);

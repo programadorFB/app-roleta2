@@ -7,10 +7,9 @@ module.exports = {
     exec_mode: 'cluster',
     node_args: '--max-old-space-size=512',
 
-    // Variáveis de ambiente padrão
+    // Variáveis de ambiente padrão (PORT vem do Docker/sistema)
     env: {
       NODE_ENV: 'production',
-      PORT: 3002,
     },
 
     // Graceful restart

@@ -328,11 +328,11 @@ describe('displayError', () => {
   it('auto-limpa erro após timeout', () => {
     vi.useFakeTimers();
     const setError = vi.fn();
-    displayError({ icon: '❌', message: 'Erro' }, setError, { timeout: 3002 });
+    displayError({ icon: '❌', message: 'Erro' }, setError, { timeout: 3001 });
 
     expect(setError).toHaveBeenCalledTimes(1);
 
-    vi.advanceTimersByTime(3002);
+    vi.advanceTimersByTime(3001);
     expect(setError).toHaveBeenCalledTimes(2);
     expect(setError).toHaveBeenLastCalledWith('');
 

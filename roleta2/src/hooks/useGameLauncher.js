@@ -120,7 +120,7 @@ export const useGameLauncher = ({ selectedRoulette, jwtToken, isAuthenticated, u
       iframeRelaunchAttemptRef.current = 1;
       setTimeout(() => {
         if (gameUrl) { setGameUrl(''); setTimeout(() => handleLaunchGame(0), 500); }
-      }, 3002);
+      }, 3001);
     } else {
       setIframeError(true);
       setLaunchError('⚠️ Erro ao carregar o jogo. Clique em "Tentar Novamente".');

@@ -41,7 +41,7 @@ const allowedOrigins = [
   'https://fuza.onrender.com',
   'https://roleta3-1.onrender.com',
   'http://localhost:5173',
-  'http://localhost:3002',
+  'http://localhost:3001',
   'https://tool.smartanalise.com.br',
   'https://testes123.smartanalise.com.br',
   'https://ferramenta1.smartanalise.com.br',
@@ -798,7 +798,7 @@ io.on('connection', (socket) => {
 // ── Startup ───────────────────────────────────────────────────
 
 const startServer = async () => {
-  const PORT = process.env.PORT || 3002;
+  const PORT = process.env.PORT || 3001;
   try {
     await initRedis();
 
