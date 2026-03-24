@@ -241,7 +241,8 @@ const TriggersPage = ({
     [filteredSpinHistory, triggerMap]
   );
 
-  // ✅ FIX: Cache + dedup — sinais nunca somem abruptamente e nunca duplicam.
+  // ✅ FIX: Cache + dedup + filtro de resolvidos fantasmas.
+  // Sinal resolvido (win/loss) só aparece se o usuário já viu como pending.
   const activeSignals = useMemo(() => {
     let raw;
     if (backendTriggerAnalysis?.timestamp > 0) {
@@ -258,11 +259,17 @@ const TriggersPage = ({
         seen.set(sig.triggerNumber, sig);
       }
     }
-    const deduped = Array.from(seen.values());
 
-    // Cache: se encontrou sinais, atualiza. Se vazio, mantém cache por até N ciclos.
-    if (deduped.length > 0) {
-      signalCacheRef.current = deduped;
+    // Filtra resolvidos que nunca foram vistos como pending
+    const prevTriggers = new Set(signalCacheRef.current.map(s => s.triggerNumber));
+    const filtered = Array.from(seen.values()).filter(sig => {
+      if (sig.status === 'pending') return true; // pending sempre mostra
+      return prevTriggers.has(sig.triggerNumber);  // win/loss só se já estava no cache
+    });
+
+    // Cache: atualiza com sinais filtrados, mantém por até N ciclos se vazio.
+    if (filtered.length > 0) {
+      signalCacheRef.current = filtered;
       emptyCyclesRef.current = 0;
     } else {
       emptyCyclesRef.current++;
