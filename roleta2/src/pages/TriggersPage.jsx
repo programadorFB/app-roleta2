@@ -223,6 +223,9 @@ const TriggersPage = ({
   backendTriggerAnalysis,
 }) => {
   const latestNumbers = filteredSpinHistory;
+  // ✅ Cache: sinais nunca somem abruptamente. O cache mantém os últimos sinais
+  //    válidos e só é substituído quando chega dado real (backend ou local com sinais).
+  const signalCacheRef = useRef([]);
 
   // Sempre computa localmente do spinHistory filtrado
   const triggerMap = useMemo(
@@ -237,15 +240,28 @@ const TriggersPage = ({
     [filteredSpinHistory, triggerMap]
   );
 
-  // ✅ FIX: Só confia no backend se timestamp > 0 (backend realmente processou).
-  // Quando backend retorna default vazio (timestamp=0), usa fallback local.
-  // Isso evita o sumiço de sinais quando REST responde antes do Socket.IO.
-  const activeSignals = useMemo(
-    () => backendTriggerAnalysis?.timestamp > 0
-      ? (backendTriggerAnalysis.activeSignals || [])
-      : getActiveSignalsFn(filteredSpinHistory, triggerMap, LOSS_THRESHOLD),
-    [filteredSpinHistory, triggerMap, backendTriggerAnalysis]
-  );
+  // ✅ FIX: Cache de sinais — nunca dropa de "N sinais" pra "0" em uma renderização.
+  // Causa raiz do sumiço: triggerMap é volátil (recalculado a cada spin),
+  // um trigger com lift 3.1 pode cair pra 2.9 → sai do mapa → sinais somem.
+  // Com cache: mantém os últimos sinais válidos até backend ou local fornecer novos.
+  const activeSignals = useMemo(() => {
+    // Backend é a fonte de verdade quando disponível
+    if (backendTriggerAnalysis?.timestamp > 0) {
+      signalCacheRef.current = backendTriggerAnalysis.activeSignals || [];
+      return signalCacheRef.current;
+    }
+
+    // Fallback local
+    const localSignals = getActiveSignalsFn(filteredSpinHistory, triggerMap, LOSS_THRESHOLD);
+
+    // Só atualiza cache se encontrou sinais (nunca rebaixa pra vazio)
+    if (localSignals.length > 0) {
+      signalCacheRef.current = localSignals;
+    }
+
+    // Retorna cache (atual ou último não-vazio)
+    return signalCacheRef.current;
+  }, [filteredSpinHistory, triggerMap, backendTriggerAnalysis]);
 
   const topTriggers = useMemo(
     () => getActiveTriggers(triggerMap).slice(0, 5),
