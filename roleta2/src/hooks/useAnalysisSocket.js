@@ -1,6 +1,8 @@
 // hooks/useAnalysisSocket.js — Escuta análises pré-computadas do backend via Socket.IO
 // Faz fetch inicial nos endpoints REST e atualiza via eventos em tempo real.
-// ✅ FIX: Polling de backup a cada 15s para quando Socket.IO desconecta.
+// ✅ FIX: Rejeita dados com timestamp=0 (backend não processou ainda).
+// ✅ FIX: Nunca regride timestamp (dado mais antigo não sobrescreve mais recente).
+// ✅ FIX: Polling de backup a cada 15s quando Socket.IO cai.
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { io } from 'socket.io-client';
@@ -17,7 +19,24 @@ export const useAnalysisSocket = ({
   const [motorAnalysis, setMotorAnalysis] = useState(null);
   const [triggerAnalysis, setTriggerAnalysis] = useState(null);
   const socketRef = useRef(null);
-  const lastSocketEventRef = useRef(0); // timestamp do último evento Socket.IO
+  const lastSocketEventRef = useRef(0);
+
+  // ── Setters seguros: rejeitam timestamp=0 e nunca regrediram ──
+  const safeTriggerUpdate = useCallback((data) => {
+    if (!data || !data.timestamp || data.timestamp === 0) return; // default vazio do backend
+    setTriggerAnalysis(prev => {
+      if (prev && prev.timestamp > data.timestamp) return prev; // não regredir
+      return data;
+    });
+  }, []);
+
+  const safeMotorUpdate = useCallback((data) => {
+    if (!data || !data.timestamp || data.timestamp === 0) return;
+    setMotorAnalysis(prev => {
+      if (prev && prev.timestamp > data.timestamp) return prev;
+      return data;
+    });
+  }, []);
 
   // Fetch REST (usado no mount e como backup)
   const fetchData = useCallback(async () => {
@@ -31,17 +50,17 @@ export const useAnalysisSocket = ({
 
       if (motorRes.status === 'fulfilled' && motorRes.value.ok) {
         const data = await motorRes.value.json();
-        if (data.source === selectedRoulette) setMotorAnalysis(data);
+        if (data.source === selectedRoulette) safeMotorUpdate(data);
       }
 
       if (triggerRes.status === 'fulfilled' && triggerRes.value.ok) {
         const data = await triggerRes.value.json();
-        if (data.source === selectedRoulette) setTriggerAnalysis(data);
+        if (data.source === selectedRoulette) safeTriggerUpdate(data);
       }
     } catch (err) {
       console.error('[useAnalysisSocket] Erro no fetch:', err.message);
     }
-  }, [selectedRoulette, userEmail]);
+  }, [selectedRoulette, userEmail, safeTriggerUpdate, safeMotorUpdate]);
 
   // Reset ao trocar de roleta
   useEffect(() => {
@@ -70,14 +89,14 @@ export const useAnalysisSocket = ({
     socket.on('motor-analysis', (data) => {
       if (data.source === selectedRoulette) {
         lastSocketEventRef.current = Date.now();
-        setMotorAnalysis(data);
+        safeMotorUpdate(data);
       }
     });
 
     socket.on('trigger-analysis', (data) => {
       if (data.source === selectedRoulette) {
         lastSocketEventRef.current = Date.now();
-        setTriggerAnalysis(data);
+        safeTriggerUpdate(data);
       }
     });
 
@@ -87,10 +106,9 @@ export const useAnalysisSocket = ({
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [isAuthenticated, jwtToken, userEmail, selectedRoulette]);
+  }, [isAuthenticated, jwtToken, userEmail, selectedRoulette, safeTriggerUpdate, safeMotorUpdate]);
 
-  // ✅ FIX: Polling de backup — se o Socket.IO parou de enviar eventos
-  // por mais de POLL_INTERVAL, faz fetch REST pra manter dados frescos.
+  // Polling de backup — se Socket.IO parou de enviar eventos
   useEffect(() => {
     if (!isAuthenticated || !userEmail || !selectedRoulette) return;
 

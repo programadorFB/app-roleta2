@@ -237,12 +237,11 @@ const TriggersPage = ({
     [filteredSpinHistory, triggerMap]
   );
 
-  // ✅ FIX: Quando backend já respondeu, SEMPRE confia nele (mesmo se activeSignals=[]).
-  // Fallback local volátil só roda antes do primeiro response do backend.
-  // Antes: .length > 0 causava fallback pro triggerMap volátil quando backend retornava [],
-  //         e sinais sumiam porque o trigger não estava mais no map.
+  // ✅ FIX: Só confia no backend se timestamp > 0 (backend realmente processou).
+  // Quando backend retorna default vazio (timestamp=0), usa fallback local.
+  // Isso evita o sumiço de sinais quando REST responde antes do Socket.IO.
   const activeSignals = useMemo(
-    () => backendTriggerAnalysis != null
+    () => backendTriggerAnalysis?.timestamp > 0
       ? (backendTriggerAnalysis.activeSignals || [])
       : getActiveSignalsFn(filteredSpinHistory, triggerMap, LOSS_THRESHOLD),
     [filteredSpinHistory, triggerMap, backendTriggerAnalysis]
