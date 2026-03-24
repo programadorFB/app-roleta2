@@ -1,9 +1,12 @@
 // hooks/useAnalysisSocket.js — Escuta análises pré-computadas do backend via Socket.IO
 // Faz fetch inicial nos endpoints REST e atualiza via eventos em tempo real.
+// ✅ FIX: Polling de backup a cada 15s para quando Socket.IO desconecta.
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { API_URL } from '../constants/roulette';
+
+const POLL_INTERVAL = 15000; // 15s — backup quando socket cai
 
 export const useAnalysisSocket = ({
   selectedRoulette,
@@ -14,9 +17,10 @@ export const useAnalysisSocket = ({
   const [motorAnalysis, setMotorAnalysis] = useState(null);
   const [triggerAnalysis, setTriggerAnalysis] = useState(null);
   const socketRef = useRef(null);
+  const lastSocketEventRef = useRef(0); // timestamp do último evento Socket.IO
 
-  // Fetch inicial (REST) ao trocar de roleta ou ao montar
-  const fetchInitialData = useCallback(async () => {
+  // Fetch REST (usado no mount e como backup)
+  const fetchData = useCallback(async () => {
     if (!userEmail || !selectedRoulette) return;
 
     try {
@@ -35,7 +39,7 @@ export const useAnalysisSocket = ({
         if (data.source === selectedRoulette) setTriggerAnalysis(data);
       }
     } catch (err) {
-      console.error('[useAnalysisSocket] Erro no fetch inicial:', err.message);
+      console.error('[useAnalysisSocket] Erro no fetch:', err.message);
     }
   }, [selectedRoulette, userEmail]);
 
@@ -48,8 +52,8 @@ export const useAnalysisSocket = ({
   // Fetch inicial
   useEffect(() => {
     if (!isAuthenticated || !userEmail) return;
-    fetchInitialData();
-  }, [fetchInitialData, isAuthenticated, userEmail]);
+    fetchData();
+  }, [fetchData, isAuthenticated, userEmail]);
 
   // Socket.IO — escuta eventos de análise
   useEffect(() => {
@@ -65,12 +69,14 @@ export const useAnalysisSocket = ({
 
     socket.on('motor-analysis', (data) => {
       if (data.source === selectedRoulette) {
+        lastSocketEventRef.current = Date.now();
         setMotorAnalysis(data);
       }
     });
 
     socket.on('trigger-analysis', (data) => {
       if (data.source === selectedRoulette) {
+        lastSocketEventRef.current = Date.now();
         setTriggerAnalysis(data);
       }
     });
@@ -82,6 +88,21 @@ export const useAnalysisSocket = ({
       socketRef.current = null;
     };
   }, [isAuthenticated, jwtToken, userEmail, selectedRoulette]);
+
+  // ✅ FIX: Polling de backup — se o Socket.IO parou de enviar eventos
+  // por mais de POLL_INTERVAL, faz fetch REST pra manter dados frescos.
+  useEffect(() => {
+    if (!isAuthenticated || !userEmail || !selectedRoulette) return;
+
+    const interval = setInterval(() => {
+      const msSinceLastEvent = Date.now() - lastSocketEventRef.current;
+      if (msSinceLastEvent > POLL_INTERVAL) {
+        fetchData();
+      }
+    }, POLL_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated, userEmail, selectedRoulette, fetchData]);
 
   return { motorAnalysis, triggerAnalysis };
 };

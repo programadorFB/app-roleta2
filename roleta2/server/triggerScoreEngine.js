@@ -111,6 +111,10 @@ export async function processTriggerSource(sourceName) {
   }
 }
 
+// Controla frequência da limpeza (não precisa rodar a cada ciclo)
+const cleanupCounter = {};
+const CLEANUP_EVERY = 50; // roda a cada 50 ciclos (~5 min com poll de 5s)
+
 async function checkAndRegisterTriggers(source, numbers, triggerMap) {
   // 1. Busca sinais pendentes
   const { rows: pending } = await query(
@@ -167,12 +171,23 @@ async function checkAndRegisterTriggers(source, numbers, triggerMap) {
     if (profile?.bestPattern) {
       const covered = profile.bestPattern.coveredNumbers;
       const bp = profile.bestPattern;
-      await query(
+      const { rows: insertedRows } = await query(
         `INSERT INTO trigger_pending_signals
          (source, trigger_number, covered_numbers, pattern_label, confidence, lift)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id`,
         [source, num, covered, bp.label, bp.confidence, bp.lift]
       );
+      // ✅ FIX: Adiciona o novo sinal ao array pending para que spins
+      //         subsequentes do mesmo batch o detectem (antes era ignorado)
+      if (insertedRows[0]) {
+        pending.push({
+          id: insertedRows[0].id,
+          trigger_number: num,
+          covered_numbers: covered,
+          spins_after: 0,
+        });
+      }
       console.log(`[Trigger ${source}] Sinal registrado: trigger=${num} covered=[${covered.join(',')}] (${bp.label})`);
     }
   }
@@ -196,17 +211,21 @@ async function checkAndRegisterTriggers(source, numbers, triggerMap) {
     );
   }
 
-  // 4. Limpa sinais antigos resolvidos (mantém últimos 100 para debug)
-  await query(
-    `DELETE FROM trigger_pending_signals
-     WHERE source = $1 AND resolved = TRUE
-     AND id NOT IN (
-       SELECT id FROM trigger_pending_signals
+  // 4. Limpa sinais antigos resolvidos (throttled — a cada ~50 ciclos)
+  cleanupCounter[source] = (cleanupCounter[source] || 0) + 1;
+  if (cleanupCounter[source] >= CLEANUP_EVERY) {
+    cleanupCounter[source] = 0;
+    await query(
+      `DELETE FROM trigger_pending_signals
        WHERE source = $1 AND resolved = TRUE
-       ORDER BY created_at DESC LIMIT 100
-     )`,
-    [source]
-  );
+       AND id NOT IN (
+         SELECT id FROM trigger_pending_signals
+         WHERE source = $1 AND resolved = TRUE
+         ORDER BY created_at DESC LIMIT 100
+       )`,
+      [source]
+    );
+  }
 }
 
 /**
@@ -219,7 +238,7 @@ async function getActiveSignalsFromDB(source, triggerMap) {
             pattern_label, confidence, lift
      FROM trigger_pending_signals
      WHERE source = $1
-       AND (resolved = FALSE OR (resolved = TRUE AND created_at > NOW() - INTERVAL '3 minutes'))
+       AND (resolved = FALSE OR (resolved = TRUE AND created_at > NOW() - INTERVAL '10 minutes'))
      ORDER BY created_at DESC
      LIMIT 20`,
     [source]

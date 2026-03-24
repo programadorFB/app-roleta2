@@ -12,11 +12,15 @@ const RacingTrack = lazy(() => import('../components/RacingTrack.jsx'));
 const ResultsGrid = lazy(() => import('../components/ResultGrid.jsx'));
 
 // ── Historico individual de um gatilho ─────────────────────────
-function buildTriggerHistory(triggerNumber, spinHistory, triggerMap) {
+// ✅ FIX: Aceita fallback do sinal backend quando triggerMap volátil não tem mais o trigger
+function buildTriggerHistory(triggerNumber, spinHistory, triggerMap, fallbackSignal) {
   const profile = triggerMap.get(triggerNumber);
-  if (!profile?.bestPattern) return null;
+  const covered = profile?.bestPattern?.coveredNumbers || fallbackSignal?.coveredNumbers;
+  if (!covered) return null;
 
-  const covered = profile.bestPattern.coveredNumbers;
+  const action = profile?.bestPattern?.label || fallbackSignal?.action || '';
+  const confidence = profile?.bestPattern?.confidence || fallbackSignal?.confidence || 0;
+
   const results = [];
 
   for (let i = LOSS_THRESHOLD; i < spinHistory.length; i++) {
@@ -40,10 +44,7 @@ function buildTriggerHistory(triggerNumber, spinHistory, triggerMap) {
   const wins = g1 + g2 + g3;
 
   return {
-    triggerNumber,
-    action: profile.bestPattern.label,
-    covered,
-    confidence: profile.bestPattern.confidence,
+    triggerNumber, action, covered, confidence,
     g1, g2, g3, red, total, wins,
     pct: total > 0 ? Math.round((wins / total) * 100) : 0,
     recentResults: results.slice(0, 20).map(r => r.label),
@@ -85,13 +86,14 @@ const ActiveSignalsPanel = ({ signals, spinHistory, triggerMap }) => {
   const [expanded, setExpanded] = useState(null);
   const [historyData, setHistoryData] = useState(null);
 
-  const handleClick = useCallback((triggerNumber) => {
-    if (expanded === triggerNumber) {
+  // ✅ FIX: Passa o sinal inteiro como fallback para quando triggerMap não tem mais o trigger
+  const handleClick = useCallback((sig) => {
+    if (expanded === sig.triggerNumber) {
       setExpanded(null);
       setHistoryData(null);
     } else {
-      setExpanded(triggerNumber);
-      setHistoryData(buildTriggerHistory(triggerNumber, spinHistory, triggerMap));
+      setExpanded(sig.triggerNumber);
+      setHistoryData(buildTriggerHistory(sig.triggerNumber, spinHistory, triggerMap, sig));
     }
   }, [expanded, spinHistory, triggerMap]);
 
@@ -111,18 +113,25 @@ const ActiveSignalsPanel = ({ signals, spinHistory, triggerMap }) => {
           {signals.map((sig) => {
             const col = getRouletteColor(sig.triggerNumber);
             const isExpanded = expanded === sig.triggerNumber;
+            const pctColor = sig.confidence >= 60 ? '#34d399' : sig.confidence >= 40 ? '#c9a052' : '#ef4444';
 
             return (
               <div key={`${sig.triggerNumber}-${sig.spinsAgo}`} className={styles.signalItem}>
                 <div
                   className={`${styles.signalRow} ${styles[`signalRow--${sig.status}`]} ${isExpanded ? styles['signalRow--active'] : ''}`}
-                  onClick={() => handleClick(sig.triggerNumber)}
+                  onClick={() => handleClick(sig)}
                   style={{ cursor: 'pointer' }}
                 >
                   <span className={`${styles.signalChip} ${styles[`signalChip--${col}`]}`}>
                     {sig.triggerNumber}
                   </span>
                   <span className={styles.signalAction}>{sig.action}</span>
+                  {/* ✅ FIX: Porcentagem diretamente no card */}
+                  {sig.confidence > 0 && (
+                    <span className={styles.signalHitRate} style={{ color: pctColor }}>
+                      {Math.round(sig.confidence)}%
+                    </span>
+                  )}
                   <span className={styles.signalStatus}>
                     {sig.status === 'pending' && (
                       <span className={styles.signalPending}>{sig.remaining}/{LOSS_THRESHOLD}</span>
@@ -228,10 +237,13 @@ const TriggersPage = ({
     [filteredSpinHistory, triggerMap]
   );
 
-  // ✅ FIX: Prefere sinais do backend (DB-based, estáveis) em vez do triggerMap volátil local
+  // ✅ FIX: Quando backend já respondeu, SEMPRE confia nele (mesmo se activeSignals=[]).
+  // Fallback local volátil só roda antes do primeiro response do backend.
+  // Antes: .length > 0 causava fallback pro triggerMap volátil quando backend retornava [],
+  //         e sinais sumiam porque o trigger não estava mais no map.
   const activeSignals = useMemo(
-    () => backendTriggerAnalysis?.activeSignals?.length > 0
-      ? backendTriggerAnalysis.activeSignals
+    () => backendTriggerAnalysis != null
+      ? (backendTriggerAnalysis.activeSignals || [])
       : getActiveSignalsFn(filteredSpinHistory, triggerMap, LOSS_THRESHOLD),
     [filteredSpinHistory, triggerMap, backendTriggerAnalysis]
   );

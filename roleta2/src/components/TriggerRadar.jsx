@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { Radar } from 'lucide-react';
-import { RED_NUMBERS } from '../constants/roulette';
+import { RED_NUMBERS, LOSS_THRESHOLD } from '../constants/roulette';
 import styles from './TriggerRadar.module.css';
 
 const TOP_N = 5;
@@ -178,7 +178,7 @@ const TriggerRadar = ({ topTriggers: topTriggersProp = [], spinHistory }) => {
       </div>
 
       <div className={styles.footer}>
-        Quando sair o numero, aposte nos indicados por {spinHistory.length} rodadas
+        Quando sair o numero, aposte nos indicados por {LOSS_THRESHOLD} rodadas
       </div>
     </div>
   );

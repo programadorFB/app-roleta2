@@ -68,7 +68,7 @@ function analyzeSectors(spinHistory) {
   const rawScore = (coldestSector.spinsSinceLastHit / expectedAbsence) * 100;
   // Score visual logarítmico (não afeta status)
   const ratio = coldestSector.spinsSinceLastHit / expectedAbsence;
-  const score = Math.min(100, Math.max(0, 25 * Math.log2(Math.max(1, ratio))));
+  const score = Math.min(100, Math.max(0, 50 * Math.log2(Math.max(1, ratio))));
 
   let status = '🟠';
   if (rawScore > 150) status = '🟢';
@@ -108,7 +108,7 @@ function analyzeHidden(spinHistory) {
   const rawScore = (topOculto.level.level / HIDDEN_LEVELS.length) * 100;
   // Score visual logarítmico (não afeta status)
   const ratio = topOculto.absence / 37;
-  const score = Math.min(100, Math.max(0, 25 * Math.log2(Math.max(1, ratio))));
+  const score = Math.min(100, Math.max(0, 50 * Math.log2(Math.max(1, ratio))));
 
   let status = '🟠';
   if (rawScore > 80) status = '🟢';
@@ -165,7 +165,7 @@ function analyzeNeighbors(spinHistory) {
   const bestBet = patterns[0];
   // Score visual logarítmico (não afeta status)
   const lift = bestBet.accuracy / 100; // accuracy é precision: (hitRate/expected)*100
-  const score = Math.min(100, Math.max(0, 25 * Math.log2(Math.max(1, lift))));
+  const score = Math.min(100, Math.max(0, 50 * Math.log2(Math.max(1, lift))));
 
   let status = '🟠';
   if (bestBet.status.key === 'confirmed') status = '🟢';

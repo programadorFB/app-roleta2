@@ -410,9 +410,12 @@ export function getActiveSignals(spinHistory, triggerMap, validFor = DEFAULT_VAL
 
     // j = quantos spins atrás esse gatilho disparou
     // resultados conhecidos: spinHistory[0..j-1]
+    // ✅ FIX: Loop do mais antigo (k=j-1) pro mais recente (k=0) para
+    //         reportar o PRIMEIRO acerto (G1 > G2 > G3). Antes buscava
+    //         do mais recente e reportava G3 mesmo quando G1 já tinha acertado.
     let hit = false;
     let winAttempt = 0;
-    for (let k = 0; k < j; k++) {
+    for (let k = j - 1; k >= 0; k--) {
       if (profile.bestPattern.coveredNumbers.includes(spinHistory[k].number)) {
         hit = true;
         winAttempt = j - k; // em qual giro acertou (G1, G2, G3)

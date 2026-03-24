@@ -93,8 +93,8 @@ const TypeRow = ({ data, isExpanded, onToggle }) => {
   const pctColor = data.pct >= 60 ? '#34d399' : data.pct >= 40 ? '#c9a052' : '#ef4444';
 
   return (
-    <>
-      <div className={styles.typeBlock} onClick={onToggle}>
+    <div className={styles.typeBlock}>
+      <div onClick={onToggle} style={{ cursor: 'pointer' }}>
         <div className={styles.typeHeader}>
           <Icon size={13} className={styles.typeIcon} />
           <span className={styles.typeName}>{data.label}</span>
@@ -115,7 +115,26 @@ const TypeRow = ({ data, isExpanded, onToggle }) => {
           <span className={`${styles.typeStat} ${styles['typeStat--red']}`}><span className={styles.typeStatLabel}>RED</span> {data.red}</span>
         </div>
       </div>
-    </>
+
+      {/* ✅ FIX: Conteúdo expandido — histórico por trigger individual */}
+      {isExpanded && data.topTriggers?.length > 0 && (
+        <div className={styles.typeExpanded}>
+          <div className={styles.typeExpandedLabel}>Gatilhos deste tipo</div>
+          {data.topTriggers.map(t => {
+            const col = getRouletteColor(t.number);
+            const tPctColor = t.pct >= 60 ? '#34d399' : t.pct >= 40 ? '#c9a052' : '#ef4444';
+            return (
+              <div key={t.number} className={styles.triggerDetailRow}>
+                <span className={`${styles.triggerDetailChip} ${styles[`triggerDetailChip--${col}`]}`}>{t.number}</span>
+                <span className={styles.triggerDetailAction}>{t.action}</span>
+                <span className={styles.triggerDetailPct} style={{ color: tPctColor }}>{t.pct}%</span>
+                <span className={styles.triggerDetailCount}>{t.wins}/{t.total}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -143,7 +162,7 @@ const TYPE_LABELS = {
 function computeAssertivity(spinHistory, triggerMap) {
   const types = {};
   for (const key of Object.keys(TYPE_LABELS)) {
-    types[key] = { g1: 0, g2: 0, g3: 0, red: 0, results: [] };
+    types[key] = { g1: 0, g2: 0, g3: 0, red: 0, results: [], perTrigger: {} };
   }
 
   for (let i = LOSS_THRESHOLD; i < spinHistory.length; i++) {
@@ -165,6 +184,13 @@ function computeAssertivity(spinHistory, triggerMap) {
     else if (hitOn === 2) { bucket.g2++; bucket.results.push('G2'); }
     else if (hitOn === 3) { bucket.g3++; bucket.results.push('G3'); }
     else { bucket.red++; bucket.results.push('R'); }
+
+    // ✅ FIX: Rastreia dados por trigger individual para expansão
+    if (!bucket.perTrigger[num]) {
+      bucket.perTrigger[num] = { wins: 0, losses: 0, action: profile.bestPattern.label };
+    }
+    if (hitOn > 0) bucket.perTrigger[num].wins++;
+    else bucket.perTrigger[num].losses++;
   }
 
   const result = [];
@@ -172,11 +198,22 @@ function computeAssertivity(spinHistory, triggerMap) {
     const total = data.g1 + data.g2 + data.g3 + data.red;
     if (total === 0) continue;
     const wins = data.g1 + data.g2 + data.g3;
+
+    const topTriggers = Object.entries(data.perTrigger)
+      .map(([n, s]) => ({
+        number: parseInt(n), ...s,
+        total: s.wins + s.losses,
+        pct: (s.wins + s.losses) > 0 ? Math.round((s.wins / (s.wins + s.losses)) * 100) : 0,
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 6);
+
     result.push({
       key, label: TYPE_LABELS[key],
       g1: data.g1, g2: data.g2, g3: data.g3, red: data.red,
       total, pct: Math.round((wins / total) * 100),
       recentResults: [...data.results].reverse(),
+      topTriggers,
     });
   }
   result.sort((a, b) => b.pct - a.pct);
