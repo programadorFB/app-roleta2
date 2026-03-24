@@ -19,6 +19,7 @@ import { useAuth }               from './hooks/useAuth.js';
 import { useGameLauncher, LAUNCH_FAILURE } from './hooks/useGameLauncher.js';
 import { useSpinHistory }        from './hooks/useSpinHistory.js';
 import { useInactivityTimeout }  from './hooks/useInactivityTimeout.js';
+import { useAnalysisSocket }    from './hooks/useAnalysisSocket.js';
 
 // Heavy components — carregados só quando necessários
 const MasterDashboard   = lazy(() => import('./pages/MasterDashboard.jsx'));
@@ -132,6 +133,13 @@ const App = () => {
   useInactivityTimeout({
     isActive:  !!(gameUrl && isAuthenticated),
     onTimeout: handleLogout,
+  });
+
+  const { triggerAnalysis } = useAnalysisSocket({
+    selectedRoulette,
+    userEmail: userInfo?.email || '',
+    jwtToken,
+    isAuthenticated,
   });
 
   // ── UI handlers ───────────────────────────────────────────
@@ -437,6 +445,7 @@ const App = () => {
             numberPreviousStats={numberPreviousStats}
             onResultClick={handleResultBoxClick}
             onNumberClick={handleNumberClick}
+            backendTriggerAnalysis={triggerAnalysis}
           />
         </Suspense>
       )}

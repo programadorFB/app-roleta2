@@ -19,33 +19,48 @@ function analyzeTerminals(spinHistory) {
     }
   });
 
-  const mostDue = terminalStats.sort((a, b) => b.absence - a.absence)[0];
+  const sorted = terminalStats.sort((a, b) => b.absence - a.absence);
+  const mostDue = sorted[0];
   const score = (mostDue.absence / 37) * 100;
 
   let status = '🟠';
   if (score > 120) status = '🟢';
   if (score > 80 && score <= 120) status = '🟡';
 
+  // ✅ FIX: Retorna números reais do terminal mais devido em vez de strings 'TM5'.
+  // Antes: ['TM5', 'TM3', 'TM1'] → filtradas pelo código de convergência (typeof !== 'number')
+  //        Cavalos nunca contribuía números ao entrySignal.
+  // Agora: números reais dos 2 terminais mais devendo → participam da convergência.
+  const topTwoTerminals = sorted.slice(0, 2);
+  const terminalNumbers = [];
+  for (const t of topTwoTerminals) {
+    for (let n = 0; n <= 36; n++) {
+      if (n % 10 === t.terminal) terminalNumbers.push(n);
+    }
+  }
+
   return {
     name: 'Cavalos',
     score: Math.min(score, 100),
     status,
     signal: mostDue.absence > 25 ? `TM${mostDue.terminal} devendo` : 'OK',
-    numbers: terminalStats.slice(0, 3).map(t => `TM${t.terminal}`)
+    numbers: terminalNumbers
   };
 }
 
 // Lógica de 'SectorAnalysis'
 function analyzeSectors(spinHistory) {
   const totalSpins = spinHistory.length;
-  let coldestSector = { name: '-', spinsSinceLastHit: 0 };
+  // ✅ FIX: Armazena os números junto ao coldestSector diretamente.
+  // Antes: lookup posterior por nome era frágil (retornava [] se nome fosse '-').
+  let coldestSector = { name: '-', spinsSinceLastHit: 0, numbers: [] };
 
-  Object.values(SECTORS).forEach(sector => {
+  Object.entries(SECTORS).forEach(([, sector]) => {
     const lastHitIndex = spinHistory.findIndex(spin => sector.numbers.includes(spin.number));
     const spinsSinceLastHit = (lastHitIndex === -1) ? totalSpins : lastHitIndex;
 
     if (spinsSinceLastHit > coldestSector.spinsSinceLastHit) {
-      coldestSector = { name: sector.name, spinsSinceLastHit };
+      coldestSector = { name: sector.name, spinsSinceLastHit, numbers: sector.numbers };
     }
   });
 
@@ -64,7 +79,7 @@ function analyzeSectors(spinHistory) {
     score,
     status,
     signal: `Setor ${coldestSector.name} devendo`,
-    numbers: SECTORS[Object.keys(SECTORS).find(key => SECTORS[key].name === coldestSector.name)]?.numbers || []
+    numbers: coldestSector.numbers
   };
 }
 
@@ -142,7 +157,8 @@ function analyzeTriggers(spinHistory, fullHistory) {
 
 // Lógica de 'neighborhoodAnalysis'
 function analyzeNeighbors(spinHistory) {
-  const patterns = analyzeNeighborhood(spinHistory, 2, 50);
+  // ✅ MELHORIA: 50→100 spins. 50 é pouco para 37 possibilidades, gera muito ruído.
+  const patterns = analyzeNeighborhood(spinHistory, 2, 100);
   if (!patterns || patterns.length === 0) {
     return { name: 'Vizinhos', score: 0, status: '🟠', signal: 'Aguardando dados...', numbers: [] };
   }
@@ -227,7 +243,7 @@ export const calculateMasterScore = (spinHistory, fullHistory) => {
       convergence: convergenceCount,
       suggestedNumbers: top5Numbers,
       confidence: globalAssertiveness,
-      validFor: 2,
+      validFor: 3, // Alinhado com LOSS_THRESHOLD=3 do motorScoreEngine
       reason: `${convergenceCount} estratégias alinhadas`
     };
   }

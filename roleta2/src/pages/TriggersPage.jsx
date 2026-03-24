@@ -211,6 +211,7 @@ const TriggersPage = ({
   numberPreviousStats,
   onResultClick,
   onNumberClick,
+  backendTriggerAnalysis,
 }) => {
   const latestNumbers = filteredSpinHistory;
 
@@ -227,9 +228,12 @@ const TriggersPage = ({
     [filteredSpinHistory, triggerMap]
   );
 
+  // ✅ FIX: Prefere sinais do backend (DB-based, estáveis) em vez do triggerMap volátil local
   const activeSignals = useMemo(
-    () => getActiveSignalsFn(filteredSpinHistory, triggerMap, LOSS_THRESHOLD),
-    [filteredSpinHistory, triggerMap]
+    () => backendTriggerAnalysis?.activeSignals?.length > 0
+      ? backendTriggerAnalysis.activeSignals
+      : getActiveSignalsFn(filteredSpinHistory, triggerMap, LOSS_THRESHOLD),
+    [filteredSpinHistory, triggerMap, backendTriggerAnalysis]
   );
 
   const topTriggers = useMemo(

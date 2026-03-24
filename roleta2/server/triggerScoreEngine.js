@@ -2,7 +2,7 @@
 // Monitora TODAS as mesas passivamente: detecta gatilhos, checa resultados, persiste placar.
 // Emite resultados via Socket.IO para o frontend renderizar diretamente.
 
-import { buildTriggerMap, checkTrigger, getActiveTriggers, getActiveSignals } from '../src/analysis/triggerAnalysis.js';
+import { buildTriggerMap, checkTrigger, getActiveTriggers } from '../src/analysis/triggerAnalysis.js';
 import { getFullHistory } from './dbService.js';
 import { query } from './db.js';
 
@@ -74,7 +74,9 @@ export async function processTriggerSource(sourceName) {
 
     // Emite resultado completo via Socket.IO
     try {
-      const activeSignals = getActiveSignals(spinHistory, triggerMap, TRIGGER_LOSS_THRESHOLD);
+      // ✅ FIX: Sinais ativos vêm do DB (estáveis) em vez do triggerMap volátil.
+      // Antes: getActiveSignals(triggerMap) perdia sinais quando triggerMap mudava entre spins.
+      const activeSignals = await getActiveSignalsFromDB(sourceName, triggerMap);
       const topTriggers = getActiveTriggers(triggerMap).slice(0, 5);
       const activeTrigger = spinHistory.length > 0
         ? checkTrigger(triggerMap, spinHistory[0].number)
@@ -117,19 +119,23 @@ async function checkAndRegisterTriggers(source, numbers, triggerMap) {
   );
 
   const toResolve = [];
+  // ✅ FIX: Set de IDs para skip correto (antes usava toResolve.includes(sig.id) que
+  //         comparava número com objetos → SEMPRE false → sinais contados como WIN + LOSS)
+  const resolvedInBatch = new Set();
 
   for (const num of numbers) {
     if (typeof num !== 'number' || num < 0 || num > 36) continue;
 
     // 1a. Confere num contra cada sinal pendente
     for (const sig of pending) {
-      if (toResolve.includes(sig.id)) continue; // já resolvido neste batch
+      if (resolvedInBatch.has(sig.id)) continue; // já resolvido neste batch
 
       sig.spins_after++;
 
       if (sig.covered_numbers.includes(num)) {
         // WIN
         toResolve.push({ id: sig.id, result: 'win' });
+        resolvedInBatch.add(sig.id);
         await query(
           `INSERT INTO trigger_scores (source, wins, updated_at)
            VALUES ($1, 1, NOW())
@@ -144,6 +150,7 @@ async function checkAndRegisterTriggers(source, numbers, triggerMap) {
       if (sig.spins_after >= TRIGGER_LOSS_THRESHOLD) {
         // LOSS — errou 3 vezes
         toResolve.push({ id: sig.id, result: 'loss' });
+        resolvedInBatch.add(sig.id);
         await query(
           `INSERT INTO trigger_scores (source, losses, updated_at)
            VALUES ($1, 1, NOW())
@@ -159,11 +166,14 @@ async function checkAndRegisterTriggers(source, numbers, triggerMap) {
     const profile = triggerMap.get(num);
     if (profile?.bestPattern) {
       const covered = profile.bestPattern.coveredNumbers;
+      const bp = profile.bestPattern;
       await query(
-        'INSERT INTO trigger_pending_signals (source, trigger_number, covered_numbers) VALUES ($1, $2, $3)',
-        [source, num, covered]
+        `INSERT INTO trigger_pending_signals
+         (source, trigger_number, covered_numbers, pattern_label, confidence, lift)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [source, num, covered, bp.label, bp.confidence, bp.lift]
       );
-      console.log(`[Trigger ${source}] Sinal registrado: trigger=${num} covered=[${covered.join(',')}] (${profile.bestPattern.label})`);
+      console.log(`[Trigger ${source}] Sinal registrado: trigger=${num} covered=[${covered.join(',')}] (${bp.label})`);
     }
   }
 
@@ -178,11 +188,11 @@ async function checkAndRegisterTriggers(source, numbers, triggerMap) {
     }
   }
 
-  // 3. Marca resolvidos
-  if (resolvedIds.size > 0) {
+  // 3. Marca resolvidos COM resultado (win/loss)
+  for (const r of toResolve) {
     await query(
-      'UPDATE trigger_pending_signals SET resolved = TRUE WHERE id = ANY($1)',
-      [[...resolvedIds]]
+      'UPDATE trigger_pending_signals SET resolved = TRUE, result = $1 WHERE id = $2',
+      [r.result, r.id]
     );
   }
 
@@ -197,6 +207,51 @@ async function checkAndRegisterTriggers(source, numbers, triggerMap) {
      )`,
     [source]
   );
+}
+
+/**
+ * Busca sinais ativos do DB — estáveis, não dependem do triggerMap volátil.
+ * Retorna pendentes + wins/losses recentes (últimos 3 minutos) para exibição.
+ */
+async function getActiveSignalsFromDB(source, triggerMap) {
+  const { rows } = await query(
+    `SELECT id, trigger_number, covered_numbers, spins_after, resolved, result,
+            pattern_label, confidence, lift
+     FROM trigger_pending_signals
+     WHERE source = $1
+       AND (resolved = FALSE OR (resolved = TRUE AND created_at > NOW() - INTERVAL '3 minutes'))
+     ORDER BY created_at DESC
+     LIMIT 20`,
+    [source]
+  );
+
+  return rows.map(row => {
+    const remaining = TRIGGER_LOSS_THRESHOLD - row.spins_after;
+    // Metadata: usa DB (capturada no momento do disparo) com fallback pro triggerMap atual
+    const profile = triggerMap.get(row.trigger_number);
+    const label = row.pattern_label || profile?.bestPattern?.label || `Trigger ${row.trigger_number}`;
+    const conf = row.confidence ?? profile?.bestPattern?.confidence ?? 0;
+    const lft = row.lift ?? profile?.bestPattern?.lift ?? 0;
+
+    let status;
+    if (row.resolved) {
+      status = row.result || (row.spins_after < TRIGGER_LOSS_THRESHOLD ? 'win' : 'loss');
+    } else {
+      status = 'pending';
+    }
+
+    return {
+      triggerNumber: row.trigger_number,
+      action: label,
+      confidence: conf,
+      lift: lft,
+      coveredNumbers: row.covered_numbers,
+      spinsAgo: row.spins_after,
+      remaining: Math.max(0, remaining),
+      status,
+      winAttempt: status === 'win' ? row.spins_after : undefined,
+    };
+  });
 }
 
 // ── Assertividade por tipo (equivalente ao frontend TriggerStrategiesPanel) ──

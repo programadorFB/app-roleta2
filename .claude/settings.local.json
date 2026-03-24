@@ -11,7 +11,9 @@
       "Bash(find /c/Users/programador-fb/Desktop/Projetos/app-roleta2 -type f \\\\\\(-name *.ts -o -name *.tsx -o -name *.js -o -name *.jsx \\\\\\))",
       "Bash(npx vite:*)",
       "Bash(grep:*)",
-      "Bash(npx vitest:*)"
+      "Bash(npx vitest:*)",
+      "Bash(find /c/Users/programador-fb/Desktop/Projetos/01_iGaming/app-roleta2/roleta2 -name *migration* -o -name *schema* -o -name *.sql)",
+      "Bash(find /c/Users/programador-fb/Desktop/Projetos/01_iGaming/app-roleta2/roleta2/src/analysis -type f -name *.js)"
     ]
   }
 }

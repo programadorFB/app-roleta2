@@ -26,7 +26,7 @@ const getCoveredNumbers = (targetNumbers, neighborMode) => {
 };
 
 const emptyScoreState = { "0": { wins: 0, losses: 0 }, "1": { wins: 0, losses: 0 }, "2": { wins: 0, losses: 0 } };
-const MOTOR_THRESHOLD = 2;
+const MOTOR_THRESHOLD = 3; // Alinhado com LOSS_THRESHOLD=3 do motorScoreEngine
 
 /**
  * Backtest local: percorre TODOS os dados do histórico, roda calculateMasterScore

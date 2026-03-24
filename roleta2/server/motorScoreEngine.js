@@ -6,7 +6,9 @@ import { calculateMasterScore } from '../src/analysis/masterScoring.js';
 import { getFullHistory } from './dbService.js';
 import { query } from './db.js';
 
-const LOSS_THRESHOLD = 2;
+// ✅ MELHORIA: 2→3 spins. Com 5 números de 37, P(acerto em 2 spins)≈25% — injusto.
+// Com 3 spins P(acerto)≈35%. Julgamento mais fair para o sinal.
+const LOSS_THRESHOLD = 3;
 
 // ── Socket.IO + cache de análise ────────────────────────────
 let ioInstance = null;

@@ -411,9 +411,11 @@ export function getActiveSignals(spinHistory, triggerMap, validFor = DEFAULT_VAL
     // j = quantos spins atrás esse gatilho disparou
     // resultados conhecidos: spinHistory[0..j-1]
     let hit = false;
+    let winAttempt = 0;
     for (let k = 0; k < j; k++) {
       if (profile.bestPattern.coveredNumbers.includes(spinHistory[k].number)) {
         hit = true;
+        winAttempt = j - k; // em qual giro acertou (G1, G2, G3)
         break;
       }
     }
@@ -430,6 +432,7 @@ export function getActiveSignals(spinHistory, triggerMap, validFor = DEFAULT_VAL
       spinsAgo: j,
       remaining,
       status,
+      winAttempt: hit ? winAttempt : undefined,
     });
   }
 
