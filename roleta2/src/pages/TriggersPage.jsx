@@ -116,7 +116,7 @@ const ActiveSignalsPanel = ({ signals, spinHistory, triggerMap }) => {
             const pctColor = sig.confidence >= 60 ? '#34d399' : sig.confidence >= 40 ? '#c9a052' : '#ef4444';
 
             return (
-              <div key={`${sig.triggerNumber}-${sig.spinsAgo}`} className={styles.signalItem}>
+              <div key={sig.triggerNumber} className={styles.signalItem}>
                 <div
                   className={`${styles.signalRow} ${styles[`signalRow--${sig.status}`]} ${isExpanded ? styles['signalRow--active'] : ''}`}
                   onClick={() => handleClick(sig)}
@@ -223,9 +223,10 @@ const TriggersPage = ({
   backendTriggerAnalysis,
 }) => {
   const latestNumbers = filteredSpinHistory;
-  // ✅ Cache: sinais nunca somem abruptamente. O cache mantém os últimos sinais
-  //    válidos e só é substituído quando chega dado real (backend ou local com sinais).
+  // ✅ Cache: sinais nunca somem abruptamente.
   const signalCacheRef = useRef([]);
+  const emptyCyclesRef = useRef(0);
+  const MAX_EMPTY_CYCLES = 5; // após 5 renders vazios, limpa cache
 
   // Sempre computa localmente do spinHistory filtrado
   const triggerMap = useMemo(
@@ -240,26 +241,36 @@ const TriggersPage = ({
     [filteredSpinHistory, triggerMap]
   );
 
-  // ✅ FIX: Cache de sinais — nunca dropa de "N sinais" pra "0" em uma renderização.
-  // Causa raiz do sumiço: triggerMap é volátil (recalculado a cada spin),
-  // um trigger com lift 3.1 pode cair pra 2.9 → sai do mapa → sinais somem.
-  // Com cache: mantém os últimos sinais válidos até backend ou local fornecer novos.
+  // ✅ FIX: Cache + dedup — sinais nunca somem abruptamente e nunca duplicam.
   const activeSignals = useMemo(() => {
-    // Backend é a fonte de verdade quando disponível
+    let raw;
     if (backendTriggerAnalysis?.timestamp > 0) {
-      signalCacheRef.current = backendTriggerAnalysis.activeSignals || [];
-      return signalCacheRef.current;
+      raw = backendTriggerAnalysis.activeSignals || [];
+    } else {
+      raw = getActiveSignalsFn(filteredSpinHistory, triggerMap, LOSS_THRESHOLD);
     }
 
-    // Fallback local
-    const localSignals = getActiveSignalsFn(filteredSpinHistory, triggerMap, LOSS_THRESHOLD);
+    // Dedup por triggerNumber (pendente tem prioridade sobre win/loss)
+    const seen = new Map();
+    for (const sig of raw) {
+      const existing = seen.get(sig.triggerNumber);
+      if (!existing || (sig.status === 'pending' && existing.status !== 'pending')) {
+        seen.set(sig.triggerNumber, sig);
+      }
+    }
+    const deduped = Array.from(seen.values());
 
-    // Só atualiza cache se encontrou sinais (nunca rebaixa pra vazio)
-    if (localSignals.length > 0) {
-      signalCacheRef.current = localSignals;
+    // Cache: se encontrou sinais, atualiza. Se vazio, mantém cache por até N ciclos.
+    if (deduped.length > 0) {
+      signalCacheRef.current = deduped;
+      emptyCyclesRef.current = 0;
+    } else {
+      emptyCyclesRef.current++;
+      if (emptyCyclesRef.current >= MAX_EMPTY_CYCLES) {
+        signalCacheRef.current = [];
+      }
     }
 
-    // Retorna cache (atual ou último não-vazio)
     return signalCacheRef.current;
   }, [filteredSpinHistory, triggerMap, backendTriggerAnalysis]);
 

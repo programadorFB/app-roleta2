@@ -401,12 +401,18 @@ export function computeTriggerScoreboard(spinHistory, triggerMap, validFor = DEF
 export function getActiveSignals(spinHistory, triggerMap, validFor = DEFAULT_VALID_FOR) {
   if (!spinHistory || spinHistory.length < 2) return [];
   const signals = [];
+  // ✅ FIX: Dedup — mesmo número pode aparecer 2x nos últimos 4 spins (ex: 17,5,17,3).
+  // Sem dedup, criava 2 sinais para trigger 17 → duplicata no frontend.
+  const seenTriggers = new Set();
 
   // j vai até validFor inclusive: quando j=validFor todos os spins da janela são conhecidos
   // e podemos retornar 'loss' se nenhum acertou
   for (let j = 0; j <= Math.min(validFor, spinHistory.length - 1); j++) {
-    const profile = triggerMap.get(spinHistory[j].number);
+    const num = spinHistory[j].number;
+    if (seenTriggers.has(num)) continue; // já processou esse trigger
+    const profile = triggerMap.get(num);
     if (!profile?.bestPattern) continue;
+    seenTriggers.add(num);
 
     // j = quantos spins atrás esse gatilho disparou
     // resultados conhecidos: spinHistory[0..j-1]

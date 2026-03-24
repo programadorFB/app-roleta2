@@ -244,9 +244,19 @@ async function getActiveSignalsFromDB(source, triggerMap) {
     [source]
   );
 
-  return rows.map(row => {
+  // ✅ FIX: Dedup por trigger_number — pendente tem prioridade sobre resolvido.
+  // Antes: mesmo trigger_number podia ter 2+ rows (uma pending + uma resolved recente)
+  // → frontend mostrava o mesmo gatilho duplicado.
+  const seen = new Map(); // trigger_number → mapped signal
+  for (const row of rows) {
+    // Se já vimos esse trigger, só substitui se o novo é pending e o velho não
+    if (seen.has(row.trigger_number)) {
+      const existing = seen.get(row.trigger_number);
+      if (existing._resolved === false) continue; // pending já registrado, mantém
+      if (row.resolved) continue; // ambos resolvidos, mantém o mais recente (já no map)
+    }
+
     const remaining = TRIGGER_LOSS_THRESHOLD - row.spins_after;
-    // Metadata: usa DB (capturada no momento do disparo) com fallback pro triggerMap atual
     const profile = triggerMap.get(row.trigger_number);
     const label = row.pattern_label || profile?.bestPattern?.label || `Trigger ${row.trigger_number}`;
     const conf = row.confidence ?? profile?.bestPattern?.confidence ?? 0;
@@ -259,7 +269,7 @@ async function getActiveSignalsFromDB(source, triggerMap) {
       status = 'pending';
     }
 
-    return {
+    seen.set(row.trigger_number, {
       triggerNumber: row.trigger_number,
       action: label,
       confidence: conf,
@@ -269,8 +279,12 @@ async function getActiveSignalsFromDB(source, triggerMap) {
       remaining: Math.max(0, remaining),
       status,
       winAttempt: status === 'win' ? row.spins_after : undefined,
-    };
-  });
+      _resolved: row.resolved, // usado internamente pra priorização
+    });
+  }
+
+  // Remove campo interno antes de retornar
+  return Array.from(seen.values()).map(({ _resolved, ...sig }) => sig);
 }
 
 // ── Assertividade por tipo (equivalente ao frontend TriggerStrategiesPanel) ──
