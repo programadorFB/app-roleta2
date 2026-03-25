@@ -695,7 +695,9 @@ app.get('/api/motor-score', requireActiveSubscription, async (req, res) => {
   if (!source) return res.status(400).json({ error: 'source required' });
   const limit = req.query.limit;
   try {
-    // Quando limit é número, filtra sinais resolvidos dentro das últimas N rodadas
+    const cumulative = await getMotorScores(source);
+
+    // Quando limit é número, tenta filtrar pelos resolvidos recentes
     if (limit && limit !== 'all' && Number.isFinite(Number(limit)) && Number(limit) > 0) {
       const { rows } = await query(
         `WITH cutoff AS (
@@ -711,20 +713,26 @@ app.get('/api/motor-score', requireActiveSubscription, async (req, res) => {
            AND created_at >= COALESCE((SELECT "timestamp" FROM cutoff), '1970-01-01')`,
         [source, Number(limit)]
       );
-      // Conta wins/losses por mode a partir do resolved_modes JSONB
-      const scores = { "0": { wins: 0, losses: 0 }, "1": { wins: 0, losses: 0 }, "2": { wins: 0, losses: 0 } };
-      for (const row of rows) {
-        const rm = row.resolved_modes || {};
-        for (const mode of ['0', '1', '2']) {
-          if (rm[mode] === 'win')  scores[mode].wins++;
-          if (rm[mode] === 'loss') scores[mode].losses++;
+
+      // Se há dados filtrados, conta wins/losses por mode
+      if (rows.length > 0) {
+        const scores = { "0": { wins: 0, losses: 0 }, "1": { wins: 0, losses: 0 }, "2": { wins: 0, losses: 0 } };
+        for (const row of rows) {
+          const rm = row.resolved_modes || {};
+          for (const mode of ['0', '1', '2']) {
+            if (rm[mode] === 'win')  scores[mode].wins++;
+            if (rm[mode] === 'loss') scores[mode].losses++;
+          }
         }
+        return res.json(scores);
       }
-      return res.json(scores);
+
+      // Sem histórico filtrado ainda → fallback para cumulativo
+      return res.json(cumulative);
     }
 
     // Sem limit ou 'all': retorna total acumulado
-    res.json(await getMotorScores(source));
+    res.json(cumulative);
   } catch (e) {
     Sentry.captureException(e);
     res.status(500).json({ error: e.message });
