@@ -135,7 +135,7 @@ const App = () => {
     onTimeout: handleLogout,
   });
 
-  const { triggerAnalysis } = useAnalysisSocket({
+  const { motorAnalysis, triggerAnalysis } = useAnalysisSocket({
     selectedRoulette,
     userEmail: userInfo?.email || '',
     jwtToken,
@@ -365,7 +365,7 @@ const App = () => {
               {stats.historyFilter >= 20
                 ? (
                   <Suspense fallback={<div className="waiting-card">Carregando painel...</div>}>
-                    <MasterDashboard spinHistory={filteredSpinHistory} fullHistory={spinHistory} onSignalUpdate={setEntrySignals} />
+                    <MasterDashboard spinHistory={filteredSpinHistory} fullHistory={spinHistory} onSignalUpdate={setEntrySignals} backendMotorAnalysis={motorAnalysis} />
                   </Suspense>
                 )
                 : <div className="waiting-card">Aguardando {20 - stats.historyFilter} spins para o Painel Master...</div>

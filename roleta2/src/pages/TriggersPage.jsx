@@ -236,10 +236,14 @@ const TriggersPage = ({
     [filteredSpinHistory]
   );
 
-  const scoreboard = useMemo(
-    () => computeTriggerScoreboard(filteredSpinHistory, triggerMap, LOSS_THRESHOLD),
-    [filteredSpinHistory, triggerMap]
-  );
+  // ✅ FIX: Usa scoreboard do backend (DB persistente) quando disponível.
+  // O cálculo local depende do triggerMap volátil e subcontabiliza drasticamente.
+  const scoreboard = useMemo(() => {
+    if (backendTriggerAnalysis?.timestamp > 0 && backendTriggerAnalysis.scoreboard) {
+      return backendTriggerAnalysis.scoreboard;
+    }
+    return computeTriggerScoreboard(filteredSpinHistory, triggerMap, LOSS_THRESHOLD);
+  }, [filteredSpinHistory, triggerMap, backendTriggerAnalysis]);
 
   // ✅ FIX: Cache + dedup + filtro de resolvidos fantasmas.
   // Sinal resolvido (win/loss) só aparece se o usuário já viu como pending.

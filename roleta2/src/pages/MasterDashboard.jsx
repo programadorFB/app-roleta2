@@ -203,7 +203,7 @@ const HeroScoreboard = ({ wins, losses, neighborMode, setNeighborMode, entrySign
 
 const SIGNAL_HOLD_SPINS = 2; // Sinal segura por N resultados antes de mudar
 
-const MasterDashboard = ({ spinHistory, fullHistory, onSignalUpdate }) => {
+const MasterDashboard = ({ spinHistory, fullHistory, onSignalUpdate, backendMotorAnalysis }) => {
   const [neighborMode, setNeighborMode] = useState(0);
   const [isSignalAccepted, setIsSignalAccepted] = useState(false);
   const lockedSignalRef = useRef(null);
@@ -247,11 +247,15 @@ const MasterDashboard = ({ spinHistory, fullHistory, onSignalUpdate }) => {
     return lockedSignalRef.current;
   }, [rawEntrySignal, spinHistory]);
 
-  // Placar: backtest local (respeita o filtro)
-  const scores = useMemo(
-    () => computeMotorBacktest(spinHistory),
-    [spinHistory]
-  );
+  // ✅ FIX: Usa scoreboard do backend (DB persistente) quando disponível.
+  // O backtest local depende de recomputar calculateMasterScore em cada sub-janela,
+  // o que subcontabiliza quando condições mudam entre spins.
+  const scores = useMemo(() => {
+    if (backendMotorAnalysis?.timestamp > 0 && backendMotorAnalysis.motorScores) {
+      return backendMotorAnalysis.motorScores;
+    }
+    return computeMotorBacktest(spinHistory);
+  }, [spinHistory, backendMotorAnalysis]);
   const modeScore = scores[String(neighborMode)] || { wins: 0, losses: 0 };
 
   // Atualiza UI: onSignalUpdate e isSignalAccepted
