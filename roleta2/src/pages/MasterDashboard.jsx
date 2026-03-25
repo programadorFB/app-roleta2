@@ -6,6 +6,8 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { RadialBarChart, RadialBar, PolarAngleAxis } from 'recharts';
 import { Layers, Crosshair, BarChart3, Clock } from 'lucide-react';
 import { PHYSICAL_WHEEL } from '../constants/roulette.js';
+import { API_URL } from '../constants/roulette.js';
+import { signedFetch } from '../lib/signedFetch.js';
 import EntrySignalCard from '../components/EntrySignalCard.jsx';
 import styles from './MasterDashboard.module.css';
 
@@ -163,18 +165,29 @@ const HeroScoreboard = ({ wins, losses, neighborMode, setNeighborMode, entrySign
 
 const SIGNAL_HOLD_SPINS = 2; // Sinal segura por N resultados antes de mudar
 
-const MasterDashboard = ({ spinHistory, onSignalUpdate, backendMotorAnalysis }) => {
+const MasterDashboard = ({ spinHistory, onSignalUpdate, backendMotorAnalysis, historyFilter, selectedRoulette, userEmail }) => {
   const [neighborMode, setNeighborMode] = useState(0);
   const [isSignalAccepted, setIsSignalAccepted] = useState(false);
   const lockedSignalRef = useRef(null);
   const lockSpinIdRef = useRef(null);
 
-  // Dados 100% do backend — zero cálculo local
-  const scores = backendMotorAnalysis?.motorScores || emptyScoreState;
+  // Estratégias e sinal sempre do backend (Socket.IO)
   const strategyScores = backendMotorAnalysis?.strategyScores || [];
   const rawEntrySignal = backendMotorAnalysis?.entrySignal || null;
 
-  const modeScore = scores[String(neighborMode)] || { wins: 0, losses: 0 };
+  // Placar filtrado por rodadas — busca do backend com limit (igual TriggersPage)
+  const [filteredScores, setFilteredScores] = useState(emptyScoreState);
+
+  useEffect(() => {
+    if (!selectedRoulette || !userEmail) return;
+    const limit = historyFilter === 'all' ? 'all' : Number(historyFilter);
+    signedFetch(`${API_URL}/api/motor-score?source=${selectedRoulette}&limit=${limit}&userEmail=${encodeURIComponent(userEmail)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setFilteredScores(data); })
+      .catch(() => {});
+  }, [selectedRoulette, historyFilter, userEmail, backendMotorAnalysis?.timestamp]);
+
+  const modeScore = filteredScores[String(neighborMode)] || { wins: 0, losses: 0 };
 
   // Trava o sinal por SIGNAL_HOLD_SPINS resultados
   const entrySignal = useMemo(() => {

@@ -693,7 +693,53 @@ const getMotorScores = async (source) => {
 app.get('/api/motor-score', requireActiveSubscription, async (req, res) => {
   const source = req.query.source;
   if (!source) return res.status(400).json({ error: 'source required' });
+  const limit = req.query.limit;
   try {
+    // Quando limit é número, filtra sinais resolvidos dentro das últimas N rodadas
+    if (limit && limit !== 'all' && Number.isFinite(Number(limit)) && Number(limit) > 0) {
+      const { rows } = await query(
+        `WITH cutoff AS (
+           SELECT "timestamp" FROM signals
+           WHERE source = $1
+           ORDER BY "timestamp" DESC
+           OFFSET $2 - 1 LIMIT 1
+         )
+         SELECT
+           neighbor_mode,
+           COUNT(*) FILTER (WHERE resolved_modes->>'0' = 'win' OR resolved_modes->>'1' = 'win' OR resolved_modes->>'2' = 'win') AS total_resolved,
+           jsonb_object_agg(
+             mode_key,
+             jsonb_build_object('wins', mode_wins, 'losses', mode_losses)
+           ) AS scores
+         FROM (
+           SELECT
+             m.id,
+             m.resolved_modes,
+             mode.key AS mode_key,
+             COUNT(*) FILTER (WHERE mode.value::text = '"win"') AS mode_wins,
+             COUNT(*) FILTER (WHERE mode.value::text = '"loss"') AS mode_losses
+           FROM motor_pending_signals m,
+                jsonb_each(m.resolved_modes) AS mode(key, value)
+           WHERE m.source = $1
+             AND jsonb_typeof(m.resolved_modes) = 'object'
+             AND m.resolved_modes != '{}'::jsonb
+             AND m.created_at >= COALESCE((SELECT "timestamp" FROM cutoff), '1970-01-01')
+           GROUP BY m.id, m.resolved_modes, mode.key
+         ) sub
+         GROUP BY true`,
+        [source, Number(limit)]
+      );
+      // Monta o resultado no formato {0:{wins,losses}, 1:{...}, 2:{...}}
+      const scores = { "0": { wins: 0, losses: 0 }, "1": { wins: 0, losses: 0 }, "2": { wins: 0, losses: 0 } };
+      if (rows[0]?.scores) {
+        for (const [mode, data] of Object.entries(rows[0].scores)) {
+          scores[mode] = { wins: parseInt(data.wins, 10) || 0, losses: parseInt(data.losses, 10) || 0 };
+        }
+      }
+      return res.json(scores);
+    }
+
+    // Sem limit ou 'all': retorna total acumulado
     res.json(await getMotorScores(source));
   } catch (e) {
     Sentry.captureException(e);

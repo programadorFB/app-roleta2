@@ -365,7 +365,7 @@ const App = () => {
               {stats.historyFilter >= 20
                 ? (
                   <Suspense fallback={<div className="waiting-card">Carregando painel...</div>}>
-                    <MasterDashboard spinHistory={filteredSpinHistory} onSignalUpdate={setEntrySignals} backendMotorAnalysis={motorAnalysis} />
+                    <MasterDashboard spinHistory={filteredSpinHistory} onSignalUpdate={setEntrySignals} backendMotorAnalysis={motorAnalysis} historyFilter={historyFilter} selectedRoulette={selectedRoulette} userEmail={userInfo?.email || ''} />
                   </Suspense>
                 )
                 : <div className="waiting-card">Aguardando {20 - stats.historyFilter} spins para o Painel Master...</div>
