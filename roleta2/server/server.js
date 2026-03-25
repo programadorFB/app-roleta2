@@ -181,6 +181,8 @@ app.use(globalLimiter);
 
 // ── Anti-bot / Anti-clone ───────────────────────────
 const BLOCKED_UA = /wget|curl|scrapy|python-requests|httpclient|crawler|spider|headless|phantomjs|selenium/i;
+const API_SIGNING_SECRET = process.env.API_SIGNING_SECRET || '';
+const HMAC_WINDOW_SECONDS = 60;
 
 app.use((req, res, next) => {
   const ua = req.headers['user-agent'] || '';
@@ -192,6 +194,73 @@ app.use((req, res, next) => {
 
   // Bloquear requests sem User-Agent em endpoints protegidos
   if (req.url.startsWith('/api/') && !ua && !req.headers['x-crawler-secret']) {
+    return res.status(403).json({ error: 'Acesso negado' });
+  }
+
+  next();
+});
+
+// ── HMAC Request Signing Verification ───────────────
+// Verifica X-Sig e X-Ts em rotas /api/ (produção).
+// Pula rotas que já possuem autenticação própria (crawler, webhooks).
+app.use((req, res, next) => {
+  if (!IS_PROD || !API_SIGNING_SECRET) return next();
+
+  const isApiRoute = req.url.startsWith('/api/') || req.url.startsWith('/login') || req.url.startsWith('/start-game');
+  if (!isApiRoute) return next();
+
+  // Rotas com autenticação própria — não precisam de HMAC
+  if (req.headers['x-crawler-secret'] || req.headers['x-hubla-token']) return next();
+  // Health check
+  if (req.url === '/api/health' || req.url === '/health') return next();
+
+  const sig = req.headers['x-sig'];
+  const ts = parseInt(req.headers['x-ts'], 10);
+
+  if (!sig || !ts) return res.status(403).json({ error: 'Acesso negado' });
+
+  // Timestamp dentro da janela permitida
+  const now = Math.floor(Date.now() / 1000);
+  if (Math.abs(now - ts) > HMAC_WINDOW_SECONDS) {
+    return res.status(403).json({ error: 'Acesso negado' });
+  }
+
+  // Verifica HMAC — timing-safe
+  const urlPath = req.path; // pathname sem query string
+  const msg = `${ts}:${urlPath}`;
+  const expected = crypto.createHmac('sha256', API_SIGNING_SECRET).update(msg).digest('hex');
+
+  const sigBuf = Buffer.from(String(sig));
+  const expBuf = Buffer.from(expected);
+  if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+    return res.status(403).json({ error: 'Acesso negado' });
+  }
+
+  next();
+});
+
+// ── Origin Enforcement (além do CORS) ───────────────
+// Rejeita requests com Origin/Referer de domínios não autorizados.
+app.use((req, res, next) => {
+  if (!IS_PROD) return next();
+
+  const isApiRoute = req.url.startsWith('/api/') || req.url.startsWith('/login') || req.url.startsWith('/start-game');
+  if (!isApiRoute) return next();
+  if (req.headers['x-crawler-secret'] || req.headers['x-hubla-token']) return next();
+
+  const origin = req.headers['origin'] || '';
+  const referer = req.headers['referer'] || '';
+
+  // Requests sem origin (server-to-server, mobile, etc.) são cobertos pelo HMAC acima
+  if (!origin && !referer) return next();
+
+  const isAllowed = (url) => {
+    if (!url) return true;
+    return allowedOrigins.some(ao => url.startsWith(ao)) ||
+           (FRONTEND_URL && url.startsWith(FRONTEND_URL));
+  };
+
+  if (!isAllowed(origin) || !isAllowed(referer)) {
     return res.status(403).json({ error: 'Acesso negado' });
   }
 
@@ -219,7 +288,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-hubla-token', 'x-crawler-secret'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-hubla-token', 'x-crawler-secret', 'X-Sig', 'X-Ts'],
 }));
 
 app.use(compression({
@@ -653,7 +722,31 @@ app.post('/api/motor-score/reset', adminLimiter, requireAdminAuth, express.json(
 app.get('/api/trigger-score', requireActiveSubscription, async (req, res) => {
   const source = req.query.source;
   if (!source) return res.status(400).json({ error: 'source required' });
+  const limit = req.query.limit;
   try {
+    // Quando limit é um número, filtra sinais resolvidos dentro das últimas N rodadas
+    if (limit && limit !== 'all' && Number.isFinite(Number(limit)) && Number(limit) > 0) {
+      const { rows } = await query(
+        `WITH cutoff AS (
+           SELECT "timestamp" FROM signals
+           WHERE source = $1
+           ORDER BY "timestamp" DESC
+           OFFSET $2 - 1 LIMIT 1
+         )
+         SELECT
+           COUNT(*) FILTER (WHERE result = 'win') AS wins,
+           COUNT(*) FILTER (WHERE result = 'loss') AS losses
+         FROM trigger_pending_signals
+         WHERE source = $1
+           AND resolved = TRUE
+           AND created_at >= COALESCE((SELECT "timestamp" FROM cutoff), '1970-01-01')`,
+        [source, Number(limit)]
+      );
+      const r = rows[0] || { wins: 0, losses: 0 };
+      return res.json({ wins: parseInt(r.wins, 10), losses: parseInt(r.losses, 10) });
+    }
+
+    // Sem limit ou 'all': retorna total acumulado
     const { rows } = await query(
       'SELECT wins, losses FROM trigger_scores WHERE source = $1',
       [source]

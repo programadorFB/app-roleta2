@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { API_URL } from '../constants/roulette';
+import { signedFetch } from '../lib/signedFetch';
 
 const POLL_INTERVAL = 15000; // 15s — backup quando socket cai
 
@@ -44,8 +45,8 @@ export const useAnalysisSocket = ({
 
     try {
       const [motorRes, triggerRes] = await Promise.allSettled([
-        fetch(`${API_URL}/api/motor-analysis?source=${selectedRoulette}&userEmail=${encodeURIComponent(userEmail)}`),
-        fetch(`${API_URL}/api/trigger-analysis?source=${selectedRoulette}&userEmail=${encodeURIComponent(userEmail)}`),
+        signedFetch(`${API_URL}/api/motor-analysis?source=${selectedRoulette}&userEmail=${encodeURIComponent(userEmail)}`),
+        signedFetch(`${API_URL}/api/trigger-analysis?source=${selectedRoulette}&userEmail=${encodeURIComponent(userEmail)}`),
       ]);
 
       if (motorRes.status === 'fulfilled' && motorRes.value.ok) {

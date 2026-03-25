@@ -16,7 +16,8 @@
       "Bash(find /c/Users/programador-fb/Desktop/Projetos/01_iGaming/app-roleta2/roleta2/src/analysis -type f -name *.js)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(find C:Usersprogramador-fbDesktopProjetos01_iGamingapp-roleta2roleta2src -type f -name *.tsx -o -name *.ts)"
+      "Bash(find C:Usersprogramador-fbDesktopProjetos01_iGamingapp-roleta2roleta2src -type f -name *.tsx -o -name *.ts)",
+      "Bash(npx eslint:*)"
     ]
   }
 }

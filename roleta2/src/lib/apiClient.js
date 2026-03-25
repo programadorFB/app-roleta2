@@ -9,6 +9,7 @@
  */
 
 import { processErrorResponse, translateNetworkError } from './errorHandler.js';
+import { signedFetch } from './signedFetch.js';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -62,7 +63,7 @@ export async function request(endpoint, options = {}) {
   }
 
   try {
-    const response = await fetch(url.toString(), fetchOptions);
+    const response = await signedFetch(url.toString(), fetchOptions);
 
     if (!response.ok) {
       // 🔧 FIX: Usa processErrorResponse que detecta paywall em QUALQUER contexto

@@ -447,6 +447,9 @@ const App = () => {
             onResultClick={handleResultBoxClick}
             onNumberClick={handleNumberClick}
             backendTriggerAnalysis={triggerAnalysis}
+            selectedRoulette={selectedRoulette}
+            historyFilter={historyFilter}
+            userEmail={userInfo?.email || ''}
           />
         </Suspense>
       )}

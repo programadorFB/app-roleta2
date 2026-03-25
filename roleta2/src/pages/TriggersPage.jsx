@@ -1,10 +1,11 @@
 // pages/TriggersPage.jsx — v5 BACKEND-DRIVEN SIGNALS + expand history
 
-import React, { useMemo, useState, useCallback, useRef, Suspense, lazy } from 'react';
+import React, { useMemo, useState, useCallback, useRef, useEffect, Suspense, lazy } from 'react';
 import { Zap, Clock, ChevronDown, Crosshair } from 'lucide-react';
 import TriggerStrategiesPanel from '../components/TriggerStrategiesPanel';
-import { buildTriggerMap, getActiveTriggers, getActiveSignals as getActiveSignalsFn, computeTriggerScoreboard, checkTrigger } from '../analysis/triggerAnalysis';
-import { getRouletteColor, LOSS_THRESHOLD } from '../constants/roulette';
+import { buildTriggerMap, getActiveTriggers, getActiveSignals as getActiveSignalsFn, checkTrigger } from '../analysis/triggerAnalysis';
+import { getRouletteColor, LOSS_THRESHOLD, API_URL } from '../constants/roulette';
+import { signedFetch } from '../lib/signedFetch';
 import TriggerRadar from '../components/TriggerRadar';
 import styles from './TriggersPage.module.css';
 
@@ -214,7 +215,6 @@ const ActiveSignalsPanel = ({ signals, spinHistory, triggerMap }) => {
 
 const TriggersPage = ({
   filteredSpinHistory,
-  fullHistory,
   gameIframeComponent,
   selectedResult,
   numberPullStats,
@@ -222,6 +222,9 @@ const TriggersPage = ({
   onResultClick,
   onNumberClick,
   backendTriggerAnalysis,
+  selectedRoulette,
+  historyFilter,
+  userEmail,
 }) => {
   const latestNumbers = filteredSpinHistory;
   // ✅ Cache: sinais nunca somem abruptamente.
@@ -237,21 +240,17 @@ const TriggersPage = ({
     [filteredSpinHistory]
   );
 
-  // ✅ FIX: TriggerMap estável do histórico completo para o scoreboard.
-  // O triggerMap filtrado (100 spins) tem poucos triggers → subcontabiliza.
-  // O fullHistory (1000 spins) produz um mapa muito mais completo.
-  const fullTriggerMap = useMemo(
-    () => (fullHistory?.length >= 50)
-      ? buildTriggerMap(fullHistory, fullHistory.length)
-      : triggerMap,
-    [fullHistory, triggerMap]
-  );
+  // Scoreboard: vem do backend (DB), filtrado por rodadas
+  const [backendScoreboard, setBackendScoreboard] = useState({ wins: 0, losses: 0 });
 
-  // Scoreboard: usa fullTriggerMap (estável) mas conta só dentro do filtro
-  const scoreboard = useMemo(
-    () => computeTriggerScoreboard(filteredSpinHistory, fullTriggerMap, LOSS_THRESHOLD),
-    [filteredSpinHistory, fullTriggerMap]
-  );
+  useEffect(() => {
+    if (!selectedRoulette || !userEmail) return;
+    const limit = historyFilter === 'all' ? 'all' : Number(historyFilter);
+    signedFetch(`${API_URL}/api/trigger-score?source=${selectedRoulette}&limit=${limit}&userEmail=${encodeURIComponent(userEmail)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setBackendScoreboard({ wins: data.wins, losses: data.losses }); })
+      .catch(() => {});
+  }, [selectedRoulette, historyFilter, userEmail, backendTriggerAnalysis?.timestamp]);
 
   // ✅ FIX: Cache + dedup + filtro de resolvidos fantasmas.
   // Sinal resolvido (win/loss) só aparece se o usuário já viu como pending.
@@ -354,7 +353,7 @@ const TriggersPage = ({
         {/* ── DIREITA: Placar + Sinais + Gatilhos ── */}
         <aside className={styles.rightCol}>
           <div className={styles.rightContent}>
-            <TriggerScoreboard wins={scoreboard.wins} losses={scoreboard.losses} />
+            <TriggerScoreboard wins={backendScoreboard.wins} losses={backendScoreboard.losses} />
             <ActiveSignalsPanel
               signals={activeSignals}
               spinHistory={filteredSpinHistory}

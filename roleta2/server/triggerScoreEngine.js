@@ -221,7 +221,7 @@ async function checkAndRegisterTriggers(source, numbers, triggerMap) {
        AND id NOT IN (
          SELECT id FROM trigger_pending_signals
          WHERE source = $1 AND resolved = TRUE
-         ORDER BY created_at DESC LIMIT 100
+         ORDER BY created_at DESC LIMIT 1500
        )`,
       [source]
     );

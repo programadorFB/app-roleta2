@@ -3,6 +3,7 @@ import { io } from 'socket.io-client';
 import { API_URL } from '../constants/roulette';
 import { convertSpinItem, getNumberColor, computePullStats, computePreviousStats } from '../lib/roulette';
 import { processErrorResponse } from '../lib/errorHandler';
+import { signedFetch } from '../lib/signedFetch';
 
 const POLL_INTERVAL_MS = 1000;
 const MAX_HISTORY      = 1000;
@@ -33,7 +34,7 @@ export const useSpinHistory = ({
         ? `${API_URL}/api/history-delta?source=${selectedRoulette}&userEmail=${encodeURIComponent(userEmail)}&since=${latestId}`
         : `${API_URL}/api/full-history?source=${selectedRoulette}&userEmail=${encodeURIComponent(userEmail)}`;
 
-      const response = await fetch(endpoint);
+      const response = await signedFetch(endpoint);
       if (response.status === 304) return;
 
       if (!response.ok) {
