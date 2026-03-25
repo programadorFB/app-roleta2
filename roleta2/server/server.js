@@ -693,46 +693,8 @@ const getMotorScores = async (source) => {
 app.get('/api/motor-score', requireActiveSubscription, async (req, res) => {
   const source = req.query.source;
   if (!source) return res.status(400).json({ error: 'source required' });
-  const limit = req.query.limit;
   try {
-    const cumulative = await getMotorScores(source);
-
-    // Quando limit é número, tenta filtrar pelos resolvidos recentes
-    if (limit && limit !== 'all' && Number.isFinite(Number(limit)) && Number(limit) > 0) {
-      const { rows } = await query(
-        `WITH cutoff AS (
-           SELECT "timestamp" FROM signals
-           WHERE source = $1
-           ORDER BY "timestamp" DESC
-           OFFSET $2 - 1 LIMIT 1
-         )
-         SELECT resolved_modes
-         FROM motor_pending_signals
-         WHERE source = $1
-           AND resolved = TRUE
-           AND created_at >= COALESCE((SELECT "timestamp" FROM cutoff), '1970-01-01')`,
-        [source, Number(limit)]
-      );
-
-      // Se há dados filtrados, conta wins/losses por mode
-      if (rows.length > 0) {
-        const scores = { "0": { wins: 0, losses: 0 }, "1": { wins: 0, losses: 0 }, "2": { wins: 0, losses: 0 } };
-        for (const row of rows) {
-          const rm = row.resolved_modes || {};
-          for (const mode of ['0', '1', '2']) {
-            if (rm[mode] === 'win')  scores[mode].wins++;
-            if (rm[mode] === 'loss') scores[mode].losses++;
-          }
-        }
-        return res.json(scores);
-      }
-
-      // Sem histórico filtrado ainda → fallback para cumulativo
-      return res.json(cumulative);
-    }
-
-    // Sem limit ou 'all': retorna total acumulado
-    res.json(cumulative);
+    res.json(await getMotorScores(source));
   } catch (e) {
     Sentry.captureException(e);
     res.status(500).json({ error: e.message });
