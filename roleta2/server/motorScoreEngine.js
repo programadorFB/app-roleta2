@@ -176,22 +176,28 @@ export async function processSource(sourceName) {
   }
 }
 
+// Controla frequência da limpeza de resolvidos antigos
+const cleanupCounter = {};
+const CLEANUP_EVERY = 50;
+
 async function checkSpinsAgainstPending(source, numbers) {
+  // Só busca sinais PENDENTES (não totalmente resolvidos)
   const { rows: pending } = await query(
-    'SELECT id, suggested_numbers, spins_after, resolved_modes FROM motor_pending_signals WHERE source = $1',
+    `SELECT id, suggested_numbers, spins_after, resolved_modes
+     FROM motor_pending_signals
+     WHERE source = $1 AND resolved = FALSE`,
     [source]
   );
 
   if (pending.length === 0) return;
 
-  const toDelete = new Set();
+  const fullyResolved = new Set();
 
   for (const num of numbers) {
     if (typeof num !== 'number' || num < 0 || num > 36) continue;
 
     for (const sig of pending) {
-      // Pula sinais já totalmente resolvidos neste batch
-      if (toDelete.has(sig.id)) continue;
+      if (fullyResolved.has(sig.id)) continue;
 
       sig.spins_after++;
       const resolved = sig.resolved_modes || {};
@@ -218,23 +224,33 @@ async function checkSpinsAgainstPending(source, numbers) {
             console.log(`[Motor ${source}] LOSS mode=${mode} after ${sig.spins_after} spins signal=[${sig.suggested_numbers.join(',')}]`);
           }
         }
-        toDelete.add(sig.id);
+        fullyResolved.add(sig.id);
       }
     }
   }
 
-  // Atualiza pendentes
+  // Atualiza TODOS os pendentes (spins_after + resolved_modes)
   for (const sig of pending) {
-    if (!toDelete.has(sig.id)) {
-      await query(
-        'UPDATE motor_pending_signals SET spins_after = $1, resolved_modes = $2 WHERE id = $3',
-        [sig.spins_after, JSON.stringify(sig.resolved_modes), sig.id]
-      );
-    }
+    const isFullyResolved = fullyResolved.has(sig.id);
+    await query(
+      'UPDATE motor_pending_signals SET spins_after = $1, resolved_modes = $2, resolved = $3 WHERE id = $4',
+      [sig.spins_after, JSON.stringify(sig.resolved_modes), isFullyResolved, sig.id]
+    );
   }
 
-  // Remove resolvidos
-  if (toDelete.size > 0) {
-    await query('DELETE FROM motor_pending_signals WHERE id = ANY($1)', [[...toDelete]]);
+  // Limpa resolvidos antigos (throttled — a cada ~50 ciclos, mantém últimos 1500)
+  cleanupCounter[source] = (cleanupCounter[source] || 0) + 1;
+  if (cleanupCounter[source] >= CLEANUP_EVERY) {
+    cleanupCounter[source] = 0;
+    await query(
+      `DELETE FROM motor_pending_signals
+       WHERE source = $1 AND resolved = TRUE
+       AND id NOT IN (
+         SELECT id FROM motor_pending_signals
+         WHERE source = $1 AND resolved = TRUE
+         ORDER BY created_at DESC LIMIT 1500
+       )`,
+      [source]
+    );
   }
 }

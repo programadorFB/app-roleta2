@@ -44,9 +44,9 @@ describe('MasterDashboard NÃO contém cálculo local de scoring', () => {
 // ══════════════════════════════════════════════════════════════
 
 describe('MasterDashboard USA backendMotorAnalysis para o placar', () => {
-  it('placar vem de backendMotorAnalysis.motorScores (Socket.IO)', () => {
-    expect(dashboardSource).toContain('backendMotorAnalysis');
-    expect(dashboardSource).toContain('.motorScores');
+  it('placar vem do backend via fetch /api/motor-score (filtrado por rodadas)', () => {
+    expect(dashboardSource).toContain('/api/motor-score');
+    expect(dashboardSource).toContain('signedFetch');
   });
 
   it('acessa backendMotorAnalysis.strategyScores para os gauges', () => {
