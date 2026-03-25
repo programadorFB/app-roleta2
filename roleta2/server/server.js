@@ -24,7 +24,7 @@ import {
   getSubscriptionByEmail, getSubscriptionAuditLog, getAllAuditLogs,
   ACTIVE_STATUSES,
 } from './subscriptionService.js';
-import { processSource, initMotorEngine, getLatestMotorAnalysis } from './motorScoreEngine.js';
+import { processSource, initMotorEngine, getLatestMotorAnalysis, computeFilteredMotorScore } from './motorScoreEngine.js';
 import { processTriggerSource, initTriggerEngine, getLatestTriggerAnalysis } from './triggerScoreEngine.js';
 
 dotenv.config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.env') });
@@ -693,7 +693,13 @@ const getMotorScores = async (source) => {
 app.get('/api/motor-score', requireActiveSubscription, async (req, res) => {
   const source = req.query.source;
   if (!source) return res.status(400).json({ error: 'source required' });
+  const limit = req.query.limit;
   try {
+    // Com limit numérico: backtest das últimas N rodadas (roda no backend)
+    if (limit && limit !== 'all' && Number.isFinite(Number(limit)) && Number(limit) > 0) {
+      return res.json(await computeFilteredMotorScore(source, Number(limit)));
+    }
+    // Sem limit ou 'all': cumulativo do DB
     res.json(await getMotorScores(source));
   } catch (e) {
     Sentry.captureException(e);

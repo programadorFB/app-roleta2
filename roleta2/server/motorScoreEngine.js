@@ -17,6 +17,46 @@ const latestAnalysis = {};
 export function initMotorEngine(io) { ioInstance = io; }
 export function getLatestMotorAnalysis(source) { return latestAnalysis[source] || null; }
 
+/**
+ * Backtest filtrado: computa wins/losses para as últimas `limit` rodadas.
+ * Roda NO BACKEND (era no browser antes). Chamado pelo endpoint /api/motor-score?limit=N.
+ */
+export async function computeFilteredMotorScore(sourceName, limit) {
+  const history = await getFullHistory(sourceName);
+  if (!history || history.length < 4) return emptyScores();
+
+  const spinHistory = history.slice(0, limit).map(dbRowToSpin);
+  if (spinHistory.length < 4) return emptyScores();
+
+  const scores = emptyScores();
+  let lastKey = '';
+
+  for (let i = spinHistory.length - 1; i >= LOSS_THRESHOLD; i--) {
+    const result = calculateMasterScore(spinHistory.slice(i));
+    if (!result?.entrySignal) continue;
+
+    const nums = result.entrySignal.suggestedNumbers;
+    const key = [...nums].sort().join(',');
+    if (key === lastKey) continue;
+    lastKey = key;
+
+    for (const mode of [0, 1, 2]) {
+      const covered = getCovered(nums, mode);
+      let hit = false;
+      for (let j = 1; j <= LOSS_THRESHOLD; j++) {
+        if (i - j >= 0 && covered.includes(spinHistory[i - j].number)) {
+          hit = true;
+          break;
+        }
+      }
+      if (hit) scores[String(mode)].wins++;
+      else scores[String(mode)].losses++;
+    }
+  }
+
+  return scores;
+}
+
 const WHEEL = [
   0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,
   5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26
