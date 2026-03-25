@@ -247,15 +247,11 @@ const MasterDashboard = ({ spinHistory, fullHistory, onSignalUpdate, backendMoto
     return lockedSignalRef.current;
   }, [rawEntrySignal, spinHistory]);
 
-  // ✅ FIX: Usa scoreboard do backend (DB persistente) quando disponível.
-  // O backtest local depende de recomputar calculateMasterScore em cada sub-janela,
-  // o que subcontabiliza quando condições mudam entre spins.
-  const scores = useMemo(() => {
-    if (backendMotorAnalysis?.timestamp > 0 && backendMotorAnalysis.motorScores) {
-      return backendMotorAnalysis.motorScores;
-    }
-    return computeMotorBacktest(spinHistory);
-  }, [spinHistory, backendMotorAnalysis]);
+  // Placar: backtest local (respeita o filtro de rodadas)
+  const scores = useMemo(
+    () => computeMotorBacktest(spinHistory),
+    [spinHistory]
+  );
   const modeScore = scores[String(neighborMode)] || { wins: 0, losses: 0 };
 
   // Atualiza UI: onSignalUpdate e isSignalAccepted

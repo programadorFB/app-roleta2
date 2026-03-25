@@ -214,6 +214,7 @@ const ActiveSignalsPanel = ({ signals, spinHistory, triggerMap }) => {
 
 const TriggersPage = ({
   filteredSpinHistory,
+  fullHistory,
   gameIframeComponent,
   selectedResult,
   numberPullStats,
@@ -228,7 +229,7 @@ const TriggersPage = ({
   const emptyCyclesRef = useRef(0);
   const MAX_EMPTY_CYCLES = 5; // após 5 renders vazios, limpa cache
 
-  // Sempre computa localmente do spinHistory filtrado
+  // TriggerMap do filtro (para sinais, radar, etc.)
   const triggerMap = useMemo(
     () => (filteredSpinHistory?.length >= 10)
       ? buildTriggerMap(filteredSpinHistory, filteredSpinHistory.length)
@@ -236,14 +237,21 @@ const TriggersPage = ({
     [filteredSpinHistory]
   );
 
-  // ✅ FIX: Usa scoreboard do backend (DB persistente) quando disponível.
-  // O cálculo local depende do triggerMap volátil e subcontabiliza drasticamente.
-  const scoreboard = useMemo(() => {
-    if (backendTriggerAnalysis?.timestamp > 0 && backendTriggerAnalysis.scoreboard) {
-      return backendTriggerAnalysis.scoreboard;
-    }
-    return computeTriggerScoreboard(filteredSpinHistory, triggerMap, LOSS_THRESHOLD);
-  }, [filteredSpinHistory, triggerMap, backendTriggerAnalysis]);
+  // ✅ FIX: TriggerMap estável do histórico completo para o scoreboard.
+  // O triggerMap filtrado (100 spins) tem poucos triggers → subcontabiliza.
+  // O fullHistory (1000 spins) produz um mapa muito mais completo.
+  const fullTriggerMap = useMemo(
+    () => (fullHistory?.length >= 50)
+      ? buildTriggerMap(fullHistory, fullHistory.length)
+      : triggerMap,
+    [fullHistory, triggerMap]
+  );
+
+  // Scoreboard: usa fullTriggerMap (estável) mas conta só dentro do filtro
+  const scoreboard = useMemo(
+    () => computeTriggerScoreboard(filteredSpinHistory, fullTriggerMap, LOSS_THRESHOLD),
+    [filteredSpinHistory, fullTriggerMap]
+  );
 
   // ✅ FIX: Cache + dedup + filtro de resolvidos fantasmas.
   // Sinal resolvido (win/loss) só aparece se o usuário já viu como pending.

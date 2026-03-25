@@ -439,6 +439,7 @@ const App = () => {
         <Suspense fallback={<Spinner />}>
           <TriggersPage
             filteredSpinHistory={filteredSpinHistory}
+            fullHistory={spinHistory}
             gameIframeComponent={gameIframeComponent}
             selectedResult={selectedResult}
             numberPullStats={numberPullStats}
