@@ -1,12 +1,10 @@
-// pages/MasterDashboard.jsx — ADAPTIVE LEARNING v6 (CLEAN UI)
-// ✅ Zero emojis — ícones Lucide + tipografia limpa
-// ✅ Font sizes recalibrados para melhor legibilidade
-// ✅ Signal bar e learning bar redesenhados
+// pages/MasterDashboard.jsx — BACKEND-DRIVEN v7
+// Placar, estratégias e sinal vêm 100% do backend (motorScoreEngine.js via Socket.IO).
+// Zero cálculo local de scoring — o frontend apenas renderiza.
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { RadialBarChart, RadialBar, PolarAngleAxis } from 'recharts';
 import { Layers, Crosshair, BarChart3, Clock } from 'lucide-react';
-import { calculateMasterScore } from '../analysis/masterScoring.js';
 import { PHYSICAL_WHEEL } from '../constants/roulette.js';
 import EntrySignalCard from '../components/EntrySignalCard.jsx';
 import styles from './MasterDashboard.module.css';
@@ -26,44 +24,6 @@ const getCoveredNumbers = (targetNumbers, neighborMode) => {
 };
 
 const emptyScoreState = { "0": { wins: 0, losses: 0 }, "1": { wins: 0, losses: 0 }, "2": { wins: 0, losses: 0 } };
-const MOTOR_THRESHOLD = 3; // Alinhado com LOSS_THRESHOLD=3 do motorScoreEngine
-
-/**
- * Backtest local: percorre TODOS os dados do histórico, roda calculateMasterScore
- * em sub-janelas e confere os próximos spins.
- */
-function computeMotorBacktest(spinHistory) {
-  const scores = { "0": { wins: 0, losses: 0 }, "1": { wins: 0, losses: 0 }, "2": { wins: 0, losses: 0 } };
-
-  if (!spinHistory || spinHistory.length < MOTOR_THRESHOLD + 1) return scores;
-
-  let lastKey = '';
-
-  for (let i = spinHistory.length - 1; i >= MOTOR_THRESHOLD; i--) {
-    const result = calculateMasterScore(spinHistory.slice(i));
-    if (!result?.entrySignal) continue;
-
-    const nums = result.entrySignal.suggestedNumbers;
-    const key = [...nums].sort().join(',');
-    if (key === lastKey) continue;
-    lastKey = key;
-
-    for (const mode of [0, 1, 2]) {
-      const covered = getCoveredNumbers(nums, mode);
-      let hit = false;
-      for (let j = 1; j <= MOTOR_THRESHOLD; j++) {
-        if (i - j >= 0 && covered.includes(spinHistory[i - j].number)) {
-          hit = true;
-          break;
-        }
-      }
-      if (hit) scores[String(mode)].wins++;
-      else scores[String(mode)].losses++;
-    }
-  }
-
-  return scores;
-}
 
 // --- COLOR HELPER ---
 const getScoreColor = (s) => s >= 70 ? '#34d399' : s >= 40 ? '#fbbf24' : '#ef4444';
@@ -203,19 +163,18 @@ const HeroScoreboard = ({ wins, losses, neighborMode, setNeighborMode, entrySign
 
 const SIGNAL_HOLD_SPINS = 2; // Sinal segura por N resultados antes de mudar
 
-const MasterDashboard = ({ spinHistory, fullHistory, onSignalUpdate, backendMotorAnalysis }) => {
+const MasterDashboard = ({ spinHistory, onSignalUpdate, backendMotorAnalysis }) => {
   const [neighborMode, setNeighborMode] = useState(0);
   const [isSignalAccepted, setIsSignalAccepted] = useState(false);
   const lockedSignalRef = useRef(null);
   const lockSpinIdRef = useRef(null);
 
-  // Sempre computa localmente do spinHistory filtrado
-  const analysis = useMemo(
-    () => calculateMasterScore(spinHistory, fullHistory),
-    [spinHistory, fullHistory]
-  );
-  const strategyScores = analysis?.strategyScores || [];
-  const rawEntrySignal = analysis?.entrySignal || null;
+  // Dados 100% do backend — zero cálculo local
+  const scores = backendMotorAnalysis?.motorScores || emptyScoreState;
+  const strategyScores = backendMotorAnalysis?.strategyScores || [];
+  const rawEntrySignal = backendMotorAnalysis?.entrySignal || null;
+
+  const modeScore = scores[String(neighborMode)] || { wins: 0, losses: 0 };
 
   // Trava o sinal por SIGNAL_HOLD_SPINS resultados
   const entrySignal = useMemo(() => {
@@ -247,13 +206,6 @@ const MasterDashboard = ({ spinHistory, fullHistory, onSignalUpdate, backendMoto
     return lockedSignalRef.current;
   }, [rawEntrySignal, spinHistory]);
 
-  // Placar: backtest local (respeita o filtro de rodadas)
-  const scores = useMemo(
-    () => computeMotorBacktest(spinHistory),
-    [spinHistory]
-  );
-  const modeScore = scores[String(neighborMode)] || { wins: 0, losses: 0 };
-
   // Atualiza UI: onSignalUpdate e isSignalAccepted
   useEffect(() => {
     if (!entrySignal) {
@@ -271,10 +223,11 @@ const MasterDashboard = ({ spinHistory, fullHistory, onSignalUpdate, backendMoto
     }
   }, [entrySignal, neighborMode, onSignalUpdate, spinHistory]);
 
-  if (!analysis || strategyScores.length === 0) {
+  // Aguardando backend processar
+  if (!backendMotorAnalysis || strategyScores.length === 0) {
     return (
       <div className={styles.emptyState}>
-        Aguardando {50 - (spinHistory?.length || 0)} spins para o Painel Master...
+        Aguardando dados do backend...
       </div>
     );
   }

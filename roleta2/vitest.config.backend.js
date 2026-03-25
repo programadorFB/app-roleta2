@@ -20,5 +20,21 @@ export default defineConfig({
     },
 
     reporters: ['verbose'],
+
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'text-summary', 'json-summary'],
+      reportsDirectory: './coverage',
+      include: [
+        'server/**/*.js',
+        'src/analysis/**/*.js',
+        'src/lib/**/*.js',
+        'src/constants/**/*.js',
+      ],
+      exclude: [
+        'server/server.js',        // entrypoint com side effects
+        'server/emailService.js',   // SMTP, não testável sem server
+      ],
+    },
   },
 });
