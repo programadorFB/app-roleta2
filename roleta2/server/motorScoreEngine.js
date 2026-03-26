@@ -207,6 +207,27 @@ export async function processSource(sourceName) {
     // 7. Emite resultado completo via Socket.IO
     try {
       const motorScores = await getMotorScores(sourceName);
+      
+      // ✅ MELHORIA: Busca o sinal pendente real do banco de dados para garantir persistência.
+      // Isso evita que o sinal suma da tela se o alinhamento de estratégias oscilar.
+      const { rows: pendingRows } = await query(
+        'SELECT suggested_numbers, created_at FROM motor_pending_signals WHERE source = $1 AND resolved = FALSE ORDER BY created_at DESC LIMIT 1',
+        [sourceName]
+      );
+
+      let persistentSignal = analysis.entrySignal;
+      if (pendingRows.length > 0) {
+        const p = pendingRows[0];
+        // Se já temos um sinal no DB, ele tem prioridade para exibição
+        persistentSignal = {
+          suggestedNumbers: p.suggested_numbers,
+          confidence: analysis.entrySignal?.confidence || 70, // Fallback de confiança
+          convergence: analysis.entrySignal?.convergence || 3,
+          validFor: LOSS_THRESHOLD,
+          reason: 'Sinal persistente em análise'
+        };
+      }
+
       latestAnalysis[sourceName] = {
         source: sourceName,
         timestamp: Date.now(),
@@ -216,7 +237,7 @@ export async function processSource(sourceName) {
           name: s.name, score: s.score, status: s.status,
           signal: s.signal, numbers: s.numbers,
         })),
-        entrySignal: analysis.entrySignal,
+        entrySignal: persistentSignal,
         motorScores,
       };
       if (ioInstance) ioInstance.emit('motor-analysis', latestAnalysis[sourceName]);

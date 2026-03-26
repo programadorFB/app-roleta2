@@ -44,7 +44,7 @@ const triggerMapCache = {};
 export async function processTriggerSource(sourceName) {
   try {
     const history = await getFullHistory(sourceName);
-    if (!history || history.length < 80) return;
+    if (!history || history.length < 10) return; // Mínimo para gatilhos básicos
 
     const spinHistory = history.map(dbRowToSpin);
 
@@ -166,9 +166,14 @@ async function checkAndRegisterTriggers(source, numbers, triggerMap) {
       }
     }
 
-    // 1b. Checa se ESTE num é um trigger → registra novo sinal pendente
+    // 1b. Checa se ESTE num é um trigger -> registra novo sinal pendente
     const profile = triggerMap.get(num);
     if (profile?.bestPattern) {
+      // ✅ MELHORIA: Verifica se já existe um sinal PENDENTE para este gatilho
+      // Evita emitir 2 sinais para o mesmo número ao mesmo tempo.
+      const isAlreadyPending = pending.some(p => p.trigger_number === num);
+      if (isAlreadyPending) continue;
+
       const covered = profile.bestPattern.coveredNumbers;
       const bp = profile.bestPattern;
       const { rows: insertedRows } = await query(
@@ -178,6 +183,7 @@ async function checkAndRegisterTriggers(source, numbers, triggerMap) {
          RETURNING id`,
         [source, num, covered, bp.label, bp.confidence, bp.lift]
       );
+
       // ✅ FIX: Adiciona o novo sinal ao array pending para que spins
       //         subsequentes do mesmo batch o detectem (antes era ignorado)
       if (insertedRows[0]) {
@@ -234,13 +240,18 @@ async function checkAndRegisterTriggers(source, numbers, triggerMap) {
  */
 async function getActiveSignalsFromDB(source, triggerMap) {
   const { rows } = await query(
-    `SELECT id, trigger_number, covered_numbers, spins_after, resolved, result,
-            pattern_label, confidence, lift
-     FROM trigger_pending_signals
-     WHERE source = $1
-       AND (resolved = FALSE OR (resolved = TRUE AND created_at > NOW() - INTERVAL '10 minutes'))
-     ORDER BY created_at DESC
-     LIMIT 20`,
+    `(SELECT id, trigger_number, covered_numbers, spins_after, resolved, result,
+             pattern_label, confidence, lift, created_at
+      FROM trigger_pending_signals
+      WHERE source = $1 AND resolved = FALSE)
+     UNION ALL
+     (SELECT id, trigger_number, covered_numbers, spins_after, resolved, result,
+             pattern_label, confidence, lift, created_at
+      FROM trigger_pending_signals
+      WHERE source = $1 AND resolved = TRUE
+      ORDER BY created_at DESC
+      LIMIT 6)
+     ORDER BY created_at DESC`,
     [source]
   );
 
