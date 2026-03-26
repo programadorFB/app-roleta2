@@ -18,43 +18,40 @@ export function initMotorEngine(io) { ioInstance = io; }
 export function getLatestMotorAnalysis(source) { return latestAnalysis[source] || null; }
 
 /**
- * Backtest filtrado: computa wins/losses para as últimas `limit` rodadas.
- * Roda NO BACKEND (era no browser antes). Chamado pelo endpoint /api/motor-score?limit=N.
+ * Placar filtrado: busca os últimos `limit` sinais RESOLVIDOS no banco.
+ * Roda NO BACKEND. Chamado pelo endpoint /api/motor-score?limit=N.
+ * Agora usa os dados reais do robô (motor_pending_signals) em vez de backtest.
  */
 export async function computeFilteredMotorScore(sourceName, limit) {
-  const history = await getFullHistory(sourceName);
-  if (!history || history.length < 4) return emptyScores();
-
-  const spinHistory = history.slice(0, limit).map(dbRowToSpin);
-  if (spinHistory.length < 4) return emptyScores();
-
   const scores = emptyScores();
-  let lastKey = '';
+  const numericLimit = limit === 'all' ? 1000 : parseInt(limit, 10);
 
-  for (let i = spinHistory.length - 1; i >= LOSS_THRESHOLD; i--) {
-    const result = calculateMasterScore(spinHistory.slice(i));
-    if (!result?.entrySignal) continue;
+  try {
+    const { rows } = await query(
+      `SELECT resolved_modes 
+       FROM motor_pending_signals 
+       WHERE source = $1 AND resolved = TRUE 
+       ORDER BY created_at DESC 
+       LIMIT $2`,
+      [sourceName, numericLimit]
+    );
 
-    const nums = result.entrySignal.suggestedNumbers;
-    const key = [...nums].sort().join(',');
-    if (key === lastKey) continue;
-    lastKey = key;
+    if (rows.length === 0) return scores;
 
-    for (const mode of [0, 1, 2]) {
-      const covered = getCovered(nums, mode);
-      let hit = false;
-      for (let j = 1; j <= LOSS_THRESHOLD; j++) {
-        if (i - j >= 0 && covered.includes(spinHistory[i - j].number)) {
-          hit = true;
-          break;
-        }
+    rows.forEach(row => {
+      const modes = row.resolved_modes || {};
+      for (const m of [0, 1, 2]) {
+        const mk = String(m);
+        if (modes[mk] === 'win') scores[mk].wins++;
+        else if (modes[mk] === 'loss') scores[mk].losses++;
       }
-      if (hit) scores[String(mode)].wins++;
-      else scores[String(mode)].losses++;
-    }
-  }
+    });
 
-  return scores;
+    return scores;
+  } catch (err) {
+    console.error(`[Motor ${sourceName}] Erro no placar filtrado:`, err.message);
+    return scores;
+  }
 }
 
 const WHEEL = [
