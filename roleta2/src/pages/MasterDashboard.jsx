@@ -235,6 +235,13 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate, backendMotorAnalysis, hi
     }
   }, [entrySignal, neighborMode, onSignalUpdate, spinHistory]);
 
+  // Calcula em qual rodada o sinal está (1/2 do validFor)
+  const signalRound = useMemo(() => {
+    if (!entrySignal || !spinHistory || spinHistory.length === 0) return 0;
+    const lockIdx = spinHistory.findIndex(s => s.signalId === lockSpinIdRef.current);
+    return lockIdx === -1 ? 0 : lockIdx + 1;
+  }, [entrySignal, spinHistory]);
+
   // Aguardando backend processar
   if (!backendMotorAnalysis || backendMotorAnalysis.source !== selectedRoulette || strategyScores.length === 0) {
     return (
@@ -247,13 +254,6 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate, backendMotorAnalysis, hi
   const unitsPerTarget = 1 + (neighborMode * 2);
   const totalUnits = entrySignal ? entrySignal.suggestedNumbers.length * unitsPerTarget : 0;
   const coveredCount = entrySignal ? getCoveredNumbers(entrySignal.suggestedNumbers, neighborMode).length : 0;
-
-  // Calcula em qual rodada o sinal está (1/2 do validFor)
-  const signalRound = useMemo(() => {
-    if (!entrySignal || !spinHistory || spinHistory.length === 0) return 0;
-    const lockIdx = spinHistory.findIndex(s => s.signalId === lockSpinIdRef.current);
-    return lockIdx === -1 ? 0 : lockIdx + 1;
-  }, [entrySignal, spinHistory]);
 
   let timeStatusColor = '#fbbf24';
   let timeText = '';
