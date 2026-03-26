@@ -123,11 +123,11 @@ function analyzeHidden(spinHistory) {
   };
 }
 
-// Lógica de 'triggerAnalysis' — sempre usa 300 spins, independente do filtro
-const TRIGGER_LOOKBACK = 300;
-
+// Lógica de 'triggerAnalysis'
 function analyzeTriggers(spinHistory, fullHistory) {
-  const triggerHistory = (fullHistory || spinHistory).slice(0, TRIGGER_LOOKBACK);
+  // Se for análise em tempo real (motor), fullHistory terá 1000.
+  // Se for backtest filtrado, spinHistory terá o tamanho do filtro.
+  const triggerHistory = fullHistory || spinHistory;
   if (!triggerHistory || triggerHistory.length < 10) {
     return { name: 'Gatilhos', score: 0, status: '🟠', signal: 'Aguardando dados...', numbers: [] };
   }
@@ -157,8 +157,8 @@ function analyzeTriggers(spinHistory, fullHistory) {
 
 // Lógica de 'neighborhoodAnalysis'
 function analyzeNeighbors(spinHistory) {
-  // ✅ MELHORIA: 50→100 spins. 50 é pouco para 37 possibilidades, gera muito ruído.
-  const patterns = analyzeNeighborhood(spinHistory, 2, 100);
+  const lookback = spinHistory.length;
+  const patterns = analyzeNeighborhood(spinHistory, 2, lookback);
   if (!patterns || patterns.length === 0) {
     return { name: 'Vizinhos', score: 0, status: '🟠', signal: 'Aguardando dados...', numbers: [] };
   }
@@ -186,7 +186,7 @@ function analyzeNeighbors(spinHistory) {
  * Roda as 5 análises e as compila.
  */
 export const calculateMasterScore = (spinHistory, fullHistory) => {
-  if (!spinHistory || spinHistory.length < 50) {
+  if (!spinHistory || spinHistory.length < 4) {
     return {
       globalAssertiveness: 0,
       totalSignals: 0,

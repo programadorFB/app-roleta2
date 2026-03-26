@@ -62,7 +62,7 @@ function getStatus(hitRate) {
  * REQ 4: Métricas adicionais - Assimetria (Esquerda vs Direita)
  * Compara os hits dos vizinhos à esquerda vs. os vizinhos à direita do centro.
  */
-function calculateAsymmetry(spinHistory, centerIndex, radius, lookback = 50) {
+function calculateAsymmetry(spinHistory, centerIndex, radius, lookback = 1000) {
     const recentSpins = spinHistory.slice(0, Math.min(lookback, spinHistory.length));
     if (recentSpins.length === 0) return { leftRate: 0, rightRate: 0, leftNeighbors: [], rightNeighbors: [] };
 
@@ -92,9 +92,10 @@ function calculateAsymmetry(spinHistory, centerIndex, radius, lookback = 50) {
  * REQ 4: Métricas adicionais - Momentum (Esquentando/Esfriando)
  * Compara a taxa de hit recente (ex: 25 spins) com uma taxa mais longa (ex: 50 spins).
  */
-function calculateMomentum(spinHistory, neighbors, lookback = 50) {
-    const recentSpins = spinHistory.slice(0, Math.min(lookback / 2, spinHistory.length)); // ex: 25 spins
-    const olderSpins = spinHistory.slice(0, Math.min(lookback, spinHistory.length));    // ex: 50 spins
+function calculateMomentum(spinHistory, neighbors, lookback = 1000) {
+    const actualLookback = Math.min(lookback, spinHistory.length);
+    const recentSpins = spinHistory.slice(0, Math.min(actualLookback / 2, spinHistory.length));
+    const olderSpins = spinHistory.slice(0, actualLookback);
 
     const recentRate = calculateNeighborHitRate(recentSpins, neighbors);
     const olderRate = calculateNeighborHitRate(olderSpins, neighbors);
@@ -112,9 +113,9 @@ function calculateMomentum(spinHistory, neighbors, lookback = 50) {
  * @param {number} lookback - Quantos spins analisar (default 50).
  * @returns {object[]} - Array com análise de todos os 37 números.
  */
-export function analyzeNeighborhood(spinHistory, neighborRadius = 2, lookback = 50) {
+export function analyzeNeighborhood(spinHistory, neighborRadius = 2, lookback = 1000) {
   
-  if (spinHistory.length < 20) return []; // Guarda de dados mínimos
+  if (spinHistory.length < 4) return []; // Mínimo para evitar erros
 
   const patterns = [];
   const recentSpins = spinHistory.slice(0, Math.min(lookback, spinHistory.length));

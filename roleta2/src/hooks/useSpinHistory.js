@@ -192,7 +192,7 @@ export const useSpinHistory = ({
         black: ((counts.black || 0) / total * 100).toFixed(1),
         green: ((counts.green || 0) / total * 100).toFixed(1),
       },
-      latestNumbers: spinHistory.slice(0, 100),
+      latestNumbers: filteredSpinHistory,
     };
   }, [filteredSpinHistory, spinHistory]);
 

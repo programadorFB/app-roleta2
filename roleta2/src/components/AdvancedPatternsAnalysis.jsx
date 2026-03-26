@@ -87,12 +87,12 @@ const AdvancedPatternsAnalysis = ({ spinHistory }) => {
 
   const analysis = useMemo(() => {
     const totalSpins = spinHistory.length;
-    // Análises avançadas exigem um histórico maior
-    if (totalSpins < 50) {
+    // Análises avançadas exigem um histórico mínimo
+    if (totalSpins < 4) {
       return { totalSpins, top10Ocultos: [], top5HotHorses: [], mostFrequentSequence: null };
     }
 
-    const recentSpins = spinHistory.slice(0, 50);
+    const recentSpins = spinHistory;
 
     // --- 1. Lógica de OCULTOS (REQ 1) ---
     const ocultosAnalysis = [];
@@ -115,7 +115,7 @@ const AdvancedPatternsAnalysis = ({ spinHistory }) => {
     const horseAnalysis = [];
     
     // REQ 2: Algoritmo "findHotHorses" (versão otimizada)
-    // Encontra os cavalos que *mais saíram* (hits) nos últimos 50 spins
+    // Encontra os cavalos que *mais saíram* (hits) no histórico fornecido
     ALL_HORSES_PAIRS.forEach(pair => {
       const [num1, num2] = pair;
       let hits = 0;
@@ -125,7 +125,7 @@ const AdvancedPatternsAnalysis = ({ spinHistory }) => {
         }
       });
 
-      const score = (hits / 50) * 100; // % de hits nos últimos 50
+      const score = (hits / totalSpins) * 100; // % de hits no histórico total
       if (hits > 0) {
         horseAnalysis.push({ pair: `${num1}-${num2}`, hits, score });
       }
@@ -166,11 +166,11 @@ const AdvancedPatternsAnalysis = ({ spinHistory }) => {
 
 
   // --- Renderização ---
-  if (analysis.totalSpins < 50) {
+  if (analysis.totalSpins < 4) {
     return (
       <div className={styles['strategy-card']}>
         <p className={`${styles['card-concept']} ${styles['empty-state']}`} style={{ textAlign: 'center' }}>
-          Aguardando {50 - analysis.totalSpins} spins para iniciar Análises Avançadas...
+          Aguardando mais spins para iniciar Análises Avançadas...
         </p>
       </div>
     );

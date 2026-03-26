@@ -137,7 +137,7 @@ export async function processSource(sourceName) {
   try {
     // 1. Busca histórico completo (até 1000, cache Redis)
     const history = await getFullHistory(sourceName);
-    if (!history || history.length < 50) return;
+    if (!history || history.length < 4) return; // Mínimo de 4 para conferência de spins
 
     // 2. Converte para formato do masterScoring
     const spinHistory = history.map(dbRowToSpin);
