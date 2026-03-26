@@ -116,6 +116,24 @@
   font-family: 'Outfit', sans-serif;
 }
 
+.recentHistoryList {
+  display: flex;
+  gap: 3px;
+  margin-top: 6px;
+  justify-content: center;
+}
+
+.recentItem {
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.5rem;
+  font-weight: 900;
+  border-radius: 2px;
+}
+
 /* Central gauge wrapper */
 .heroGaugeWrap {
   position: relative;

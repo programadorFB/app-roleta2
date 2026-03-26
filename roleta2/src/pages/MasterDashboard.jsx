@@ -44,6 +44,19 @@ const HeroGauge = ({ value, color, size = 130 }) => {
   );
 };
 
+const RecentHistoryItem = ({ result }) => {
+  const isWin = result === 'win';
+  return (
+    <span className={styles.recentItem} style={{ 
+      background: isWin ? 'rgba(52,211,153,0.15)' : 'rgba(239,68,68,0.15)',
+      color: isWin ? '#34d399' : '#ef4444',
+      border: `1px solid ${isWin ? 'rgba(52,211,153,0.3)' : 'rgba(239,68,68,0.3)'}`
+    }}>
+      {isWin ? 'W' : 'L'}
+    </span>
+  );
+};
+
 // --- MINI GAUGE (per strategy) ---
 const StrategyGauge = React.memo(({ name, score }) => {
   const clamped = Math.max(0, Math.min(100, score));
@@ -77,7 +90,7 @@ const StrategyGauge = React.memo(({ name, score }) => {
 // HERO SCOREBOARD — Clean, sem emojis
 // ══════════════════════════════════════════════════════════════
 
-const HeroScoreboard = ({ wins, losses, neighborMode, setNeighborMode, entrySignal, totalUnits, coveredCount, timeText, timeStatusColor, isSignalAccepted, signalRound }) => {
+const HeroScoreboard = ({ wins, losses, neighborMode, setNeighborMode, entrySignal, totalUnits, coveredCount, timeText, timeStatusColor, isSignalAccepted, signalRound, recentHistory = [] }) => {
   const totalEntries = wins + losses;
   const assertiveness = totalEntries > 0 ? ((wins / totalEntries) * 100) : 0;
   const assertText = assertiveness.toFixed(1);
@@ -105,7 +118,13 @@ const HeroScoreboard = ({ wins, losses, neighborMode, setNeighborMode, entrySign
       <div className={styles.heroLayout}>
         <div className={styles.counterBox}>
           <div className={styles.counterValue} style={{ color: '#34d399', textShadow: '0 0 16px rgba(52,211,153,0.4)' }}>{wins}</div>
-          <div className={styles.counterLabel} style={{ color: 'rgba(52,211,153,0.7)' }}>WIN</div>
+          <div className={styles.counterLabel} style={{ color: 'rgba(52,211,153,0.6)' }}>WIN</div>
+          {/* Histórico visual de Wins/Losses */}
+          <div className={styles.recentHistoryList}>
+            {recentHistory.map((h, i) => (
+              <RecentHistoryItem key={h.id || i} result={h.modes?.[String(neighborMode)]} />
+            ))}
+          </div>
         </div>
 
         <div className={styles.heroGaugeWrap}>
@@ -268,6 +287,7 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate, backendMotorAnalysis, hi
         entrySignal={entrySignal} totalUnits={totalUnits} coveredCount={coveredCount}
         timeText={timeText} timeStatusColor={timeStatusColor}
         isSignalAccepted={isSignalAccepted} signalRound={signalRound}
+        recentHistory={filteredScores.recentHistory}
       />
 
       <div className={styles.masterGridContainer}>
