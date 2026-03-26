@@ -236,10 +236,10 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate, backendMotorAnalysis, hi
   }, [entrySignal, neighborMode, onSignalUpdate, spinHistory]);
 
   // Aguardando backend processar
-  if (!backendMotorAnalysis || strategyScores.length === 0) {
+  if (!backendMotorAnalysis || backendMotorAnalysis.source !== selectedRoulette || strategyScores.length === 0) {
     return (
       <div className={styles.emptyState}>
-        Aguardando dados do backend...
+        Carregando dados da {selectedRoulette.replace('_', ' ')}...
       </div>
     );
   }

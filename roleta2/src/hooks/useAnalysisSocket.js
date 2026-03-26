@@ -63,10 +63,12 @@ export const useAnalysisSocket = ({
     }
   }, [selectedRoulette, userEmail, safeTriggerUpdate, safeMotorUpdate]);
 
-  // Reset ao trocar de roleta
+  // Reset de segurança apenas se mudar de roleta (opcional: manter dados antigos até os novos chegarem)
   useEffect(() => {
-    setMotorAnalysis(null);
-    setTriggerAnalysis(null);
+    // Em vez de null, poderíamos marcar como 'carregando' se quiséssemos, 
+    // mas remover o reset abrupto evita o flash de 'Aguardando dados'.
+    // setMotorAnalysis(null);
+    // setTriggerAnalysis(null);
   }, [selectedRoulette]);
 
   // Fetch inicial
