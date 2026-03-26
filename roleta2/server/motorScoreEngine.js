@@ -18,27 +18,42 @@ export function initMotorEngine(io) { ioInstance = io; }
 export function getLatestMotorAnalysis(source) { return latestAnalysis[source] || null; }
 
 /**
- * Placar filtrado: busca os últimos `limit` sinais RESOLVIDOS no banco.
+ * Placar filtrado: busca os sinais RESOLVIDOS que ocorreram DENTRO das últimas `limit` rodadas.
  * Roda NO BACKEND. Chamado pelo endpoint /api/motor-score?limit=N.
- * Agora usa os dados reais do robô (motor_pending_signals) em vez de backtest.
+ * Agora usa o timestamp da rodada N atrás como ponto de corte temporal.
  */
 export async function computeFilteredMotorScore(sourceName, limit) {
   const scores = emptyScores();
   const numericLimit = limit === 'all' ? 1000 : parseInt(limit, 10);
 
   try {
-    const { rows } = await query(
-      `SELECT resolved_modes 
-       FROM motor_pending_signals 
-       WHERE source = $1 AND resolved = TRUE 
-       ORDER BY created_at DESC 
-       LIMIT $2`,
-      [sourceName, numericLimit]
+    // 1. Descobre o timestamp da rodada N atrás no histórico oficial
+    const { rows: cutoffRows } = await query(
+      `SELECT timestamp FROM signals 
+       WHERE source = $1 
+       ORDER BY timestamp DESC 
+       OFFSET $2 LIMIT 1`,
+      [sourceName, Math.max(0, numericLimit - 1)]
     );
 
-    if (rows.length === 0) return scores;
+    const cutoffTimestamp = cutoffRows.length > 0 
+      ? cutoffRows[0].timestamp 
+      : '1970-01-01'; // Fallback se histórico for menor que o limite
 
-    rows.forEach(row => {
+    // 2. Busca sinais que "nasceram" a partir desse momento e já foram resolvidos
+    const { rows: signalRows } = await query(
+      `SELECT resolved_modes 
+       FROM motor_pending_signals 
+       WHERE source = $1 
+         AND created_at >= $2
+         AND resolved = TRUE 
+       ORDER BY created_at DESC`,
+      [sourceName, cutoffTimestamp]
+    );
+
+    if (signalRows.length === 0) return scores;
+
+    signalRows.forEach(row => {
       const modes = row.resolved_modes || {};
       for (const m of [0, 1, 2]) {
         const mk = String(m);
@@ -49,7 +64,7 @@ export async function computeFilteredMotorScore(sourceName, limit) {
 
     return scores;
   } catch (err) {
-    console.error(`[Motor ${sourceName}] Erro no placar filtrado:`, err.message);
+    console.error(`[Motor ${sourceName}] Erro no placar temporal:`, err.message);
     return scores;
   }
 }
