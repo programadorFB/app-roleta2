@@ -17,8 +17,8 @@ for (let t = 0; t <= 9; t++) {
 const DEFAULT_LOOKBACK = 2000;
 const MIN_NEIGHBORS = 2;
 const MAX_NEIGHBORS = 5;
-const MIN_APPEARANCES = 5;
-const MIN_LIFT_PP = 3;
+const MIN_APPEARANCES = 3;
+const MIN_LIFT_PP = 1.5;
 const DEFAULT_VALID_FOR = 3; // ✅ NOVO: quantos spins à frente o backtest testa
 
 // ══════════════════════════════════════════════════════════════
@@ -72,7 +72,7 @@ function isStatisticallySignificant(hits, total, expectedRate) {
   const expectedHits = (expectedRate / 100) * total;
   if (expectedHits === 0) return false;
   const chiSquare = Math.pow(hits - expectedHits, 2) / expectedHits;
-  return chiSquare > 3.84; // p < 0.05
+  return chiSquare > 1.5; // p mais suave (era 3.84)
 }
 
 // ══════════════════════════════════════════════════════════════
