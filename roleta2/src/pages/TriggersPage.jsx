@@ -252,6 +252,60 @@ const TriggersPage = ({
       .catch(() => {});
   }, [selectedRoulette, historyFilter, userEmail, backendTriggerAnalysis?.timestamp]);
 
+  // ✅ FIX: Cache + dedup + filtro de resolvidos fantasmas.
+  // Sinal resolvido (win/loss) só aparece se o usuário já viu como pending.
+  const activeSignals = useMemo(() => {
+    let raw;
+    if (backendTriggerAnalysis?.timestamp > 0) {
+      raw = backendTriggerAnalysis.activeSignals || [];
+    } else {
+      raw = getActiveSignalsFn(filteredSpinHistory, triggerMap, LOSS_THRESHOLD);
+    }
+
+    // Dedup por triggerNumber (pendente tem prioridade sobre win/loss)
+    const seen = new Map();
+    for (const sig of raw) {
+      const existing = seen.get(sig.triggerNumber);
+      if (!existing || (sig.status === 'pending' && existing.status !== 'pending')) {
+        seen.set(sig.triggerNumber, sig);
+      }
+    }
+
+    // Filtra resolvidos que nunca foram vistos como pending
+    const prevTriggers = new Set(signalCacheRef.current.map(s => s.triggerNumber));
+    const filtered = Array.from(seen.values()).filter(sig => {
+      if (sig.status === 'pending') return true; // pending sempre mostra
+      return prevTriggers.has(sig.triggerNumber);  // win/loss só se já estava no cache
+    });
+
+    // Cache: atualiza com sinais filtrados, mantém por até N ciclos se vazio.
+    if (filtered.length > 0) {
+      signalCacheRef.current = filtered;
+      emptyCyclesRef.current = 0;
+    } else {
+      emptyCyclesRef.current++;
+      if (emptyCyclesRef.current >= MAX_EMPTY_CYCLES) {
+        signalCacheRef.current = [];
+      }
+    }
+
+    return signalCacheRef.current;
+  }, [filteredSpinHistory, triggerMap, backendTriggerAnalysis]);
+
+  const topTriggers = useMemo(
+    () => getActiveTriggers(triggerMap).slice(0, 5),
+    [triggerMap]
+  );
+
+  const activeTrigger = useMemo(
+    () => filteredSpinHistory?.length > 0 ? checkTrigger(triggerMap, filteredSpinHistory[0].number) : null,
+    [triggerMap, filteredSpinHistory]
+  );
+
+  const allTriggersCount = useMemo(
+    () => getActiveTriggers(triggerMap).length,
+    [triggerMap]
+  );
 
   // Números a destacar na RacingTrack
   const racingTargets = useMemo(() => {
