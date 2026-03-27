@@ -693,14 +693,11 @@ const getMotorScores = async (source) => {
 app.get('/api/motor-score', requireActiveSubscription, async (req, res) => {
   const source = req.query.source;
   if (!source) return res.status(400).json({ error: 'source required' });
-  const limit = req.query.limit;
+  const limit = req.query.limit || 'all';
   try {
-    // Com limit numérico: backtest das últimas N rodadas (roda no backend)
-    if (limit && limit !== 'all' && Number.isFinite(Number(limit)) && Number(limit) > 0) {
-      return res.json(await computeFilteredMotorScore(source, Number(limit)));
-    }
-    // Sem limit ou 'all': cumulativo do DB
-    res.json(await getMotorScores(source));
+    const result = await computeFilteredMotorScore(source, limit);
+    console.log(`[DEBUG /api/motor-score] source=${source} limit=${limit} signalHistory=${result.signalHistory?.length ?? 'MISSING'} scores=`, JSON.stringify({ '0': result['0'], '1': result['1'], '2': result['2'] }));
+    res.json(result);
   } catch (e) {
     Sentry.captureException(e);
     res.status(500).json({ error: e.message });
@@ -732,12 +729,13 @@ app.get('/api/trigger-score', requireActiveSubscription, async (req, res) => {
   try {
     // Quando limit é um número, filtra sinais resolvidos dentro das últimas N rodadas
     if (limit && limit !== 'all' && Number.isFinite(Number(limit)) && Number(limit) > 0) {
+      const offset = Math.max(0, Number(limit) - 1);
       const { rows } = await query(
         `WITH cutoff AS (
            SELECT "timestamp" FROM signals
            WHERE source = $1
            ORDER BY "timestamp" DESC
-           OFFSET $2 - 1 LIMIT 1
+           OFFSET $2 LIMIT 1
          )
          SELECT
            COUNT(*) FILTER (WHERE result = 'win') AS wins,
@@ -746,7 +744,7 @@ app.get('/api/trigger-score', requireActiveSubscription, async (req, res) => {
          WHERE source = $1
            AND resolved = TRUE
            AND created_at >= COALESCE((SELECT "timestamp" FROM cutoff), '1970-01-01')`,
-        [source, Number(limit)]
+        [source, offset]
       );
       const r = rows[0] || { wins: 0, losses: 0 };
       return res.json({ wins: parseInt(r.wins, 10), losses: parseInt(r.losses, 10) });

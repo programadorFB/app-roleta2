@@ -29,29 +29,51 @@ export async function computeFilteredMotorScore(sourceName, limit) {
   try {
     // 1. Descobre o timestamp da rodada N atrás no histórico oficial
     const { rows: cutoffRows } = await query(
-      `SELECT timestamp FROM signals 
-       WHERE source = $1 
-       ORDER BY timestamp DESC 
+      `SELECT timestamp FROM signals
+       WHERE source = $1
+       ORDER BY timestamp DESC
        OFFSET $2 LIMIT 1`,
       [sourceName, Math.max(0, numericLimit - 1)]
     );
 
-    const cutoffTimestamp = cutoffRows.length > 0 
-      ? cutoffRows[0].timestamp 
+    const cutoffTimestamp = cutoffRows.length > 0
+      ? cutoffRows[0].timestamp
       : '1970-01-01'; // Fallback se histórico for menor que o limite
 
-    // 2. Busca sinais que "nasceram" a partir desse momento e já foram resolvidos
-    const { rows: signalRows } = await query(
-      `SELECT resolved_modes 
-       FROM motor_pending_signals 
-       WHERE source = $1 
-         AND created_at >= $2
-         AND resolved = TRUE 
-       ORDER BY created_at DESC`,
-      [sourceName, cutoffTimestamp]
-    );
+    console.log(`[DEBUG computeFilteredMotorScore] source=${sourceName} limit=${limit} numericLimit=${numericLimit} cutoffRows=${cutoffRows.length} cutoffTimestamp=${cutoffTimestamp}`);
 
-    if (signalRows.length === 0) return scores;
+    // 2. Busca sinais resolvidos com dados completos (inclui histórico)
+    // Tenta com spin_results; se coluna não existe ainda, busca sem ela
+    let signalRows;
+    let hasSpinResults = true;
+    try {
+      ({ rows: signalRows } = await query(
+        `SELECT id, suggested_numbers, spins_after, resolved_modes, spin_results, created_at
+         FROM motor_pending_signals
+         WHERE source = $1
+           AND created_at >= $2
+           AND resolved = TRUE
+         ORDER BY created_at DESC`,
+        [sourceName, cutoffTimestamp]
+      ));
+    } catch {
+      hasSpinResults = false;
+      ({ rows: signalRows } = await query(
+        `SELECT id, suggested_numbers, spins_after, resolved_modes, created_at
+         FROM motor_pending_signals
+         WHERE source = $1
+           AND created_at >= $2
+           AND resolved = TRUE
+         ORDER BY created_at DESC`,
+        [sourceName, cutoffTimestamp]
+      ));
+    }
+
+    console.log(`[DEBUG computeFilteredMotorScore] signalRows=${signalRows.length} hasSpinResults=${hasSpinResults}`, signalRows.length > 0 ? `first_row_modes=${JSON.stringify(signalRows[0].resolved_modes)}` : '(empty)');
+
+    if (signalRows.length === 0) return { ...scores, signalHistory: [], recentHistory: [] };
+
+    const signalHistory = [];
 
     signalRows.forEach(row => {
       const modes = row.resolved_modes || {};
@@ -60,12 +82,26 @@ export async function computeFilteredMotorScore(sourceName, limit) {
         if (modes[mk] === 'win') scores[mk].wins++;
         else if (modes[mk] === 'loss') scores[mk].losses++;
       }
+
+      signalHistory.push({
+        id: row.id,
+        suggestedNumbers: row.suggested_numbers,
+        spinsAfter: row.spins_after,
+        resolvedModes: modes,
+        spinResults: hasSpinResults ? (row.spin_results || []) : [],
+        createdAt: row.created_at,
+      });
     });
 
-    return scores;
+    const recentHistory = signalHistory.slice(0, 10).map(s => ({
+      id: s.id,
+      modes: s.resolvedModes
+    }));
+
+    return { ...scores, signalHistory, recentHistory };
   } catch (err) {
     console.error(`[Motor ${sourceName}] Erro no placar temporal:`, err.message);
-    return scores;
+    return { ...scores, signalHistory: [], recentHistory: [] };
   }
 }
 
@@ -253,12 +289,29 @@ export async function processSource(sourceName) {
 const cleanupCounter = {};
 const CLEANUP_EVERY = 50;
 
+// Flag: coluna spin_results existe? Detectada uma vez, cacheada.
+let _hasSpinResultsCol = null;
+
+async function checkSpinResultsColumn() {
+  if (_hasSpinResultsCol !== null) return _hasSpinResultsCol;
+  try {
+    await query(`SELECT spin_results FROM motor_pending_signals LIMIT 0`);
+    _hasSpinResultsCol = true;
+  } catch {
+    _hasSpinResultsCol = false;
+  }
+  return _hasSpinResultsCol;
+}
+
 async function checkSpinsAgainstPending(source, numbers) {
+  const hasCol = await checkSpinResultsColumn();
+
   // Só busca sinais PENDENTES (não totalmente resolvidos)
+  const selectCols = hasCol
+    ? 'id, suggested_numbers, spins_after, resolved_modes, spin_results'
+    : 'id, suggested_numbers, spins_after, resolved_modes';
   const { rows: pending } = await query(
-    `SELECT id, suggested_numbers, spins_after, resolved_modes
-     FROM motor_pending_signals
-     WHERE source = $1 AND resolved = FALSE`,
+    `SELECT ${selectCols} FROM motor_pending_signals WHERE source = $1 AND resolved = FALSE`,
     [source]
   );
 
@@ -275,14 +328,24 @@ async function checkSpinsAgainstPending(source, numbers) {
       sig.spins_after++;
       const resolved = sig.resolved_modes || {};
 
+      // Acumula os resultados reais da roleta
+      if (hasCol) {
+        const results = sig.spin_results || [];
+        results.push(num);
+        sig.spin_results = results;
+      }
+
       for (const mode of [0, 1, 2]) {
         const mk = String(mode);
         if (resolved[mk]) continue;
         const covered = getCovered(sig.suggested_numbers, mode);
         if (covered.includes(num)) {
           resolved[mk] = 'win';
+          // Registra em qual gale (spin) o win aconteceu
+          resolved[`${mk}_gale`] = sig.spins_after;
+          resolved[`${mk}_hit`] = num;
           await incrementScore(source, mode, 'wins');
-          console.log(`[Motor ${source}] WIN mode=${mode} num=${num} signal=[${sig.suggested_numbers.join(',')}]`);
+          console.log(`[Motor ${source}] WIN mode=${mode} gale=${sig.spins_after} num=${num} signal=[${sig.suggested_numbers.join(',')}]`);
         }
       }
 
@@ -302,13 +365,20 @@ async function checkSpinsAgainstPending(source, numbers) {
     }
   }
 
-  // Atualiza TODOS os pendentes (spins_after + resolved_modes)
+  // Atualiza TODOS os pendentes (spins_after + resolved_modes + spin_results)
   for (const sig of pending) {
     const isFullyResolved = fullyResolved.has(sig.id);
-    await query(
-      'UPDATE motor_pending_signals SET spins_after = $1, resolved_modes = $2, resolved = $3 WHERE id = $4',
-      [sig.spins_after, JSON.stringify(sig.resolved_modes), isFullyResolved, sig.id]
-    );
+    if (hasCol) {
+      await query(
+        'UPDATE motor_pending_signals SET spins_after = $1, resolved_modes = $2, resolved = $3, spin_results = $4 WHERE id = $5',
+        [sig.spins_after, JSON.stringify(sig.resolved_modes), isFullyResolved, sig.spin_results, sig.id]
+      );
+    } else {
+      await query(
+        'UPDATE motor_pending_signals SET spins_after = $1, resolved_modes = $2, resolved = $3 WHERE id = $4',
+        [sig.spins_after, JSON.stringify(sig.resolved_modes), isFullyResolved, sig.id]
+      );
+    }
   }
 
   // Limpa resolvidos antigos (throttled — a cada ~50 ciclos, mantém últimos 1500)
@@ -327,3 +397,4 @@ async function checkSpinsAgainstPending(source, numbers) {
     );
   }
 }
+

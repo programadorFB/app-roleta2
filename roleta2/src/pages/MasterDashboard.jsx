@@ -8,6 +8,7 @@ import { Layers, Crosshair, BarChart3, Clock } from 'lucide-react';
 import { PHYSICAL_WHEEL, API_URL } from '../constants/roulette.js';
 import { signedFetch } from '../lib/signedFetch.js';
 import EntrySignalCard from '../components/EntrySignalCard.jsx';
+import SignalHistory from '../components/SignalHistory.jsx';
 import styles from './MasterDashboard.module.css';
 
 const getCoveredNumbers = (targetNumbers, neighborMode) => {
@@ -119,12 +120,6 @@ const HeroScoreboard = ({ wins, losses, neighborMode, setNeighborMode, entrySign
         <div className={styles.counterBox}>
           <div className={styles.counterValue} style={{ color: '#34d399', textShadow: '0 0 16px rgba(52,211,153,0.4)' }}>{wins}</div>
           <div className={styles.counterLabel} style={{ color: 'rgba(52,211,153,0.6)' }}>WIN</div>
-          {/* Histórico visual de Wins/Losses */}
-          <div className={styles.recentHistoryList}>
-            {recentHistory.map((h, i) => (
-              <RecentHistoryItem key={h.id || i} result={h.modes?.[String(neighborMode)]} />
-            ))}
-          </div>
         </div>
 
         <div className={styles.heroGaugeWrap}>
@@ -142,6 +137,14 @@ const HeroScoreboard = ({ wins, losses, neighborMode, setNeighborMode, entrySign
           <div className={styles.counterLabel} style={{ color: 'rgba(239,68,68,0.7)' }}>LOSS</div>
         </div>
       </div>
+
+      {recentHistory && recentHistory.length > 0 && (
+        <div className={styles.recentHistoryList}>
+          {recentHistory.map((h, i) => (
+            <RecentHistoryItem key={h.id || i} result={h.modes?.[String(neighborMode)]} />
+          ))}
+        </div>
+      )}
 
       {entrySignal && (
         <div className={styles.signalBar}>
@@ -199,10 +202,28 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate, backendMotorAnalysis, hi
   useEffect(() => {
     if (!selectedRoulette || !userEmail) return;
     const limit = historyFilter === 'all' ? 'all' : Number(historyFilter);
-    signedFetch(`${API_URL}/api/motor-score?source=${selectedRoulette}&limit=${limit}&userEmail=${encodeURIComponent(userEmail)}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data) setFilteredScores(data); })
-      .catch(() => {});
+    const url = `${API_URL}/api/motor-score?source=${selectedRoulette}&limit=${limit}&userEmail=${encodeURIComponent(userEmail)}`;
+    console.log('[DEBUG SignalHistory] Fetching motor-score:', url);
+    signedFetch(url)
+      .then(r => {
+        console.log('[DEBUG SignalHistory] Response status:', r.status, r.ok);
+        return r.ok ? r.json() : null;
+      })
+      .then(data => {
+        if (data) {
+          console.log('[DEBUG SignalHistory] Data received:', {
+            keys: Object.keys(data),
+            signalHistoryLength: data.signalHistory?.length ?? 'MISSING',
+            signalHistorySample: data.signalHistory?.slice(0, 2),
+            recentHistoryLength: data.recentHistory?.length ?? 'MISSING',
+            scores: { '0': data['0'], '1': data['1'], '2': data['2'] },
+          });
+          setFilteredScores(data);
+        } else {
+          console.warn('[DEBUG SignalHistory] No data returned (null)');
+        }
+      })
+      .catch(err => { console.error('[DEBUG SignalHistory] Fetch error:', err); });
   }, [selectedRoulette, historyFilter, userEmail, backendMotorAnalysis?.timestamp]);
 
   const modeScore = filteredScores[String(neighborMode)] || { wins: 0, losses: 0 };
@@ -301,6 +322,11 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate, backendMotorAnalysis, hi
       </div>
 
       <EntrySignalCard entrySignal={entrySignal} spinHistory={spinHistory} />
+
+      <SignalHistory
+        signalHistory={filteredScores.signalHistory}
+        neighborMode={neighborMode}
+      />
     </div>
   );
 };

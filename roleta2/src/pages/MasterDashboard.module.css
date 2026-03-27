@@ -18,7 +18,7 @@
   border: 1px solid rgba(180,120,50,0.09);
   border-top: 1px solid rgba(201,160,82,0.18);
   padding: 0.6rem 0.6rem 0.5rem;
-  overflow: hidden;
+  overflow: visible;
   box-shadow:
     0 20px 60px rgba(0,0,0,0.8),
     inset 0 1px 2px rgba(201,160,82,0.05),
@@ -86,9 +86,9 @@
 /* Hero layout: WIN | GAUGE | LOSS */
 .heroLayout {
   display: grid;
-  grid-template-columns: 1fr 2.4fr 1fr;
+  grid-template-columns: 1fr minmax(0, 2fr) 1fr;
   align-items: center;
-  gap: 0;
+  gap: 0.3rem;
   min-height: 80px;
 }
 
@@ -99,6 +99,8 @@
   justify-content: center;
   gap: 2px;
   padding: 0.4rem 0;
+  overflow: hidden;
+  min-width: 0;
 }
 
 .counterValue {
@@ -118,9 +120,9 @@
 
 .recentHistoryList {
   display: flex;
-  gap: 3px;
-  margin-top: 6px;
+  gap: 4px;
   justify-content: center;
+  margin-top: 0.3rem;
 }
 
 .recentItem {
@@ -140,6 +142,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
 .heroGaugeWrap .recharts-wrapper {
@@ -188,17 +191,15 @@
 .signalBar {
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-wrap: nowrap;
-  gap: 0;
+  justify-content: space-evenly;
+  flex-wrap: wrap;
+  gap: 0.15rem 0;
   margin-top: 0.5rem;
   padding: 0.4rem 0.4rem;
   background: linear-gradient(165deg, rgba(201,160,82,0.06) 0%, rgba(201,160,82,0.015) 100%);
   border: 1px solid rgba(201,160,82,0.1);
   border-top: 1px solid rgba(201,160,82,0.2);
   box-shadow: inset 0 1px 0 rgba(201,160,82,0.08);
-  overflow-x: auto;
-  overflow-y: hidden;
 }
 
 .signalItem {
@@ -435,7 +436,7 @@
 /* ── 1024px: Tablet ── */
 @media (max-width: 1024px) {
   .heroLayout {
-    grid-template-columns: 1fr 2fr 1fr;
+    grid-template-columns: 1fr minmax(0, 1.8fr) 1fr;
     min-height: 70px;
   }
 
@@ -459,7 +460,7 @@
   }
 
   .heroLayout {
-    grid-template-columns: 1fr 2.2fr 1fr;
+    grid-template-columns: 1fr minmax(0, 1.8fr) 1fr;
     min-height: 60px;
   }
 
@@ -545,7 +546,7 @@
   }
 
   .heroLayout {
-    grid-template-columns: 1fr 2fr 1fr;
+    grid-template-columns: 1fr minmax(0, 1.6fr) 1fr;
     min-height: 50px;
   }
 
@@ -641,7 +642,7 @@
   }
 
   .heroLayout {
-    grid-template-columns: 1fr 1.8fr 1fr;
+    grid-template-columns: 1fr minmax(0, 1.5fr) 1fr;
     min-height: 45px;
   }
 
@@ -725,7 +726,7 @@
 /* ── 320px: Ultra small ── */
 @media (max-width: 320px) {
   .heroLayout {
-    grid-template-columns: 1fr 1.6fr 1fr;
+    grid-template-columns: 1fr minmax(0, 1.4fr) 1fr;
     min-height: 40px;
   }
 
