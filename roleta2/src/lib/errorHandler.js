@@ -228,6 +228,16 @@ export function translateError(statusCode, context = 'generic', errorData = {}) 
     };
   }
 
+  // 🔧 FIX: Mensagem especial para 500 em contexto de game — verificações pendentes
+  if (statusCode >= 500 && context === 'game') {
+    return {
+      title: 'Verificações Pendentes',
+      message: 'Antes de jogar, complete todas as verificações na plataforma: verificação facial, telefone, e-mail e dados pessoais.',
+      icon: '⚠️',
+      details: errorData.message || null
+    };
+  }
+
   // 🔧 FIX: Mensagem especial para 404 em contexto de game
   if (statusCode === 404 && context === 'game') {
     return {
