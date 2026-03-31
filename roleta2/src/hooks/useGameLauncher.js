@@ -145,6 +145,14 @@ export const useGameLauncher = ({ selectedRoulette, jwtToken, isAuthenticated, u
     hasLaunchedRef.current = false;
   }, [cancelRetry]);
 
+  // Reset estado do jogo ao deslogar (inatividade, 401, manual)
+  // para que o auto-launch funcione ao re-logar
+  useEffect(() => {
+    if (!isAuthenticated) {
+      resetGame();
+    }
+  }, [isAuthenticated, resetGame]);
+
   useEffect(() => {
     if (isAuthenticated && jwtToken && !gameUrl && !isLaunching && !hasLaunchedRef.current) {
       hasLaunchedRef.current = true;
