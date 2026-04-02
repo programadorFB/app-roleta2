@@ -227,7 +227,9 @@ async function handleAccessGranted(payload) {
 
   // Envia email de boas-vindas apenas para novos membros
   if (!existing || existing.status !== 'active') {
-    sendWelcomeEmail({ name, email, planName }).catch(() => {});
+    sendWelcomeEmail({ name, email, planName }).catch(err =>
+      console.error(`❌ [HUBLA] Falha ao enviar email de boas-vindas para ${email}:`, err.message),
+    );
   }
 
   return result;
@@ -267,7 +269,9 @@ async function handlePaymentSucceeded(payload) {
 
   // Envia email de boas-vindas para novos membros ou reativações
   if (!existing || existing.status !== 'active') {
-    sendWelcomeEmail({ name, email, planName, expiresAt, amount: totalCents }).catch(() => {});
+    sendWelcomeEmail({ name, email, planName, expiresAt, amount: totalCents }).catch(err =>
+      console.error(`❌ [HUBLA] Falha ao enviar email de boas-vindas para ${email}:`, err.message),
+    );
   }
 
   return result;
