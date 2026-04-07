@@ -382,3 +382,126 @@ async function checkSpinsAgainstPending(source, numbers) {
     );
   }
 }
+
+/**
+ * Backfill: reprocessa as últimas 1000 rodadas de uma source,
+ * reconstruindo motor_pending_signals e motor_scores retroativamente.
+ * Usado para restaurar histórico após limpeza de dados corrompidos.
+ */
+export async function backfillMotorScores(sourceName) {
+  console.log(`[Backfill ${sourceName}] Iniciando...`);
+
+  const hasCol = await checkSpinResultsColumn();
+
+  // 1. Busca últimas 1000 rodadas direto do DB (sem cache Redis)
+  const { rows: rawHistory } = await query(
+    `SELECT timestamp, signalid AS "signalId", gameid AS "gameId", signal
+     FROM signals WHERE source = $1
+     ORDER BY timestamp DESC LIMIT 1000`,
+    [sourceName]
+  );
+
+  if (!rawHistory || rawHistory.length < 50) {
+    console.log(`[Backfill ${sourceName}] Histórico insuficiente (${rawHistory?.length || 0})`);
+    return { source: sourceName, signals: 0, spins: rawHistory?.length || 0 };
+  }
+
+  const spinHistory = rawHistory.map(dbRowToSpin);
+
+  // 2. Limpa dados existentes para esta source
+  await query('DELETE FROM motor_pending_signals WHERE source = $1', [sourceName]);
+  await query('DELETE FROM motor_scores WHERE source = $1', [sourceName]);
+
+  // 3. Processa cronologicamente (mais antigo → mais novo)
+  //    spinHistory[0] = newest, spinHistory[length-1] = oldest
+  //    Itera de trás pra frente simulando a chegada dos spins em tempo real
+  let pendingSignal = null;
+  let totalSignals = 0;
+  const MIN_WINDOW = 50;
+
+  for (let i = spinHistory.length - 1 - MIN_WINDOW; i >= 0; i--) {
+    const currentSpin = spinHistory[i];
+
+    // 3a. Confere spin contra sinal pendente
+    if (pendingSignal) {
+      pendingSignal.spinsAfter++;
+      pendingSignal.spinResults.push(currentSpin.number);
+
+      for (const mode of [0, 1, 2]) {
+        const mk = String(mode);
+        if (pendingSignal.resolvedModes[mk]) continue;
+        const covered = getCovered(pendingSignal.suggestedNumbers, mode);
+        if (covered.includes(currentSpin.number)) {
+          pendingSignal.resolvedModes[mk] = 'win';
+          pendingSignal.resolvedModes[`${mk}_gale`] = pendingSignal.spinsAfter;
+          pendingSignal.resolvedModes[`${mk}_hit`] = currentSpin.number;
+        }
+      }
+
+      const isTimeout = pendingSignal.spinsAfter >= LOSS_THRESHOLD;
+      const allWin = [0, 1, 2].every(m => pendingSignal.resolvedModes[String(m)] === 'win');
+
+      if (isTimeout || allWin) {
+        if (isTimeout) {
+          for (const mode of [0, 1, 2]) {
+            const mk = String(mode);
+            if (!pendingSignal.resolvedModes[mk]) {
+              pendingSignal.resolvedModes[mk] = 'loss';
+            }
+          }
+        }
+
+        // Persiste sinal resolvido no DB
+        if (hasCol) {
+          await query(
+            `INSERT INTO motor_pending_signals
+             (source, suggested_numbers, spins_after, resolved_modes, spin_results, resolved, created_at)
+             VALUES ($1, $2, $3, $4, $5, TRUE, $6)`,
+            [sourceName, pendingSignal.suggestedNumbers, pendingSignal.spinsAfter,
+             JSON.stringify(pendingSignal.resolvedModes), pendingSignal.spinResults,
+             pendingSignal.createdAt]
+          );
+        } else {
+          await query(
+            `INSERT INTO motor_pending_signals
+             (source, suggested_numbers, spins_after, resolved_modes, resolved, created_at)
+             VALUES ($1, $2, $3, $4, TRUE, $5)`,
+            [sourceName, pendingSignal.suggestedNumbers, pendingSignal.spinsAfter,
+             JSON.stringify(pendingSignal.resolvedModes),
+             pendingSignal.createdAt]
+          );
+        }
+
+        for (const mode of [0, 1, 2]) {
+          const mk = String(mode);
+          await incrementScore(sourceName, mode,
+            pendingSignal.resolvedModes[mk] === 'win' ? 'wins' : 'losses');
+        }
+
+        totalSignals++;
+        pendingSignal = null;
+      }
+    }
+
+    // 3b. Tenta criar novo sinal se nenhum pendente
+    if (!pendingSignal) {
+      const historyAtTime = spinHistory.slice(i);
+      const analysis = calculateMasterScore(historyAtTime);
+      if (analysis?.entrySignal) {
+        pendingSignal = {
+          suggestedNumbers: analysis.entrySignal.suggestedNumbers,
+          createdAt: currentSpin.date,
+          spinsAfter: 0,
+          resolvedModes: {},
+          spinResults: [],
+        };
+      }
+    }
+  }
+
+  // 4. Atualiza lastProcessedId para o engine continuar daqui
+  lastProcessedId[sourceName] = spinHistory[0].signalId;
+
+  console.log(`[Backfill ${sourceName}] Concluído: ${totalSignals} sinais de ${spinHistory.length} rodadas`);
+  return { source: sourceName, signals: totalSignals, spins: spinHistory.length };
+}

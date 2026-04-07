@@ -24,7 +24,7 @@ import {
   getSubscriptionByEmail, getSubscriptionAuditLog, getAllAuditLogs,
   ACTIVE_STATUSES,
 } from './subscriptionService.js';
-import { processSource, initMotorEngine, getLatestMotorAnalysis, computeFilteredMotorScore } from './motorScoreEngine.js';
+import { processSource, initMotorEngine, getLatestMotorAnalysis, computeFilteredMotorScore, backfillMotorScores } from './motorScoreEngine.js';
 import { processTriggerSource, initTriggerEngine, getLatestTriggerAnalysis } from './triggerScoreEngine.js';
 
 dotenv.config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.env') });
@@ -774,6 +774,27 @@ app.post('/api/trigger-score/reset', adminLimiter, requireAdminAuth, express.jso
   } catch (e) {
     Sentry.captureException(e);
     res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/admin/backfill-motor', adminLimiter, requireAdminAuth, express.json({ limit: '1kb' }), async (req, res) => {
+  const { source } = req.body;
+  try {
+    if (source) {
+      const result = await backfillMotorScores(source);
+      return res.json({ ok: true, results: [result] });
+    }
+    // Todas as sources: responde imediato, roda em background
+    res.json({ ok: true, message: 'Backfill iniciado para todas as sources' });
+    const { rows } = await query('SELECT DISTINCT source FROM signals ORDER BY source');
+    for (const r of rows) {
+      try { await backfillMotorScores(r.source); }
+      catch (err) { console.error(`[Backfill ${r.source}] Erro:`, err.message); }
+    }
+    console.log('[Backfill] Todas as sources concluídas');
+  } catch (e) {
+    Sentry.captureException(e);
+    if (!res.headersSent) res.status(500).json({ error: e.message });
   }
 });
 
