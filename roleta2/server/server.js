@@ -325,6 +325,7 @@ const requireActiveSubscription = async (req, res, next) => {
     req.subscription = subscription;
     next();
   } catch (err) {
+    console.error(`❌ [requireActiveSubscription] ${err.message}`);
     Sentry.captureException(err);
     res.status(500).json({ error: 'Erro ao verificar assinatura' });
   }

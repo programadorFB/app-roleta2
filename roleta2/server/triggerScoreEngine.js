@@ -102,7 +102,9 @@ export async function processTriggerSource(sourceName) {
         assertivity,
         allTriggersCount: getActiveTriggers(triggerMap).length,
       };
-      if (ioInstance) ioInstance.emit('trigger-analysis', latestTriggerAnalysis[sourceName]);
+      if (ioInstance) {
+        try { ioInstance.emit('trigger-analysis', latestTriggerAnalysis[sourceName]); } catch {}
+      }
     } catch (emitErr) {
       console.error(`[Trigger ${sourceName}] Erro ao emitir:`, emitErr.message);
     }

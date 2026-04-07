@@ -14,20 +14,49 @@ const LOSS_THRESHOLD = 3;
 let ioInstance = null;
 const latestAnalysis = {};
 
-export function initMotorEngine(io) { ioInstance = io; }
-export function getLatestMotorAnalysis(source) { return latestAnalysis[source] || null; }
+// Estado em memória: último signalId processado por source
+const lastProcessedId = {};
+// Último sinal registrado por source (evita duplicatas)
+const lastRegisteredKey = {};
 
 /**
- * Placar filtrado: busca os sinais RESOLVIDOS que ocorreram DENTRO das últimas `limit` rodadas.
- * Roda NO BACKEND. Chamado pelo endpoint /api/motor-score?limit=N.
- * Agora usa o timestamp da rodada N atrás como ponto de corte temporal.
+ * Inicializa o estado do motor carregando os últimos IDs do banco
+ */
+export async function loadMotorState() {
+  try {
+    const { rows } = await query(
+      `SELECT source, MAX(signalid) as last_id FROM signals GROUP BY source`
+    );
+    for (const r of rows) {
+      lastProcessedId[r.source] = r.last_id;
+      console.log(`[Motor] Estado carregado: ${r.source} -> ${r.last_id}`);
+    }
+  } catch (err) {
+    console.error('[Motor] Erro ao carregar estado inicial:', err.message);
+  }
+}
+
+export function initMotorEngine(io) { 
+  ioInstance = io;
+  loadMotorState();
+}
+
+export function getLatestMotorAnalysis(source) { return latestAnalysis[source] || null; }
+
+const emptyScores = () => ({
+  "0": { wins: 0, losses: 0 },
+  "1": { wins: 0, losses: 0 },
+  "2": { wins: 0, losses: 0 },
+});
+
+/**
+ * Placar filtrado: busca os sinais que ocorreram DENTRO das últimas `limit` rodadas.
  */
 export async function computeFilteredMotorScore(sourceName, limit) {
   const scores = emptyScores();
   const numericLimit = limit === 'all' ? 1000 : parseInt(limit, 10);
 
   try {
-    // 1. Descobre o timestamp da rodada N atrás no histórico oficial
     const { rows: cutoffRows } = await query(
       `SELECT timestamp FROM signals
        WHERE source = $1
@@ -36,23 +65,15 @@ export async function computeFilteredMotorScore(sourceName, limit) {
       [sourceName, Math.max(0, numericLimit - 1)]
     );
 
-    const cutoffTimestamp = cutoffRows.length > 0
-      ? cutoffRows[0].timestamp
-      : '1970-01-01'; // Fallback se histórico for menor que o limite
+    const cutoffTimestamp = cutoffRows.length > 0 ? cutoffRows[0].timestamp : '1970-01-01';
 
-    console.log(`[DEBUG computeFilteredMotorScore] source=${sourceName} limit=${limit} numericLimit=${numericLimit} cutoffRows=${cutoffRows.length} cutoffTimestamp=${cutoffTimestamp}`);
-
-    // 2. Busca sinais resolvidos com dados completos (inclui histórico)
-    // Tenta com spin_results; se coluna não existe ainda, busca sem ela
     let signalRows;
     let hasSpinResults = true;
     try {
       ({ rows: signalRows } = await query(
         `SELECT id, suggested_numbers, spins_after, resolved_modes, spin_results, created_at
          FROM motor_pending_signals
-         WHERE source = $1
-           AND created_at >= $2
-           AND resolved = TRUE
+         WHERE source = $1 AND created_at >= $2
          ORDER BY created_at DESC`,
         [sourceName, cutoffTimestamp]
       ));
@@ -61,20 +82,15 @@ export async function computeFilteredMotorScore(sourceName, limit) {
       ({ rows: signalRows } = await query(
         `SELECT id, suggested_numbers, spins_after, resolved_modes, created_at
          FROM motor_pending_signals
-         WHERE source = $1
-           AND created_at >= $2
-           AND resolved = TRUE
+         WHERE source = $1 AND created_at >= $2
          ORDER BY created_at DESC`,
         [sourceName, cutoffTimestamp]
       ));
     }
 
-    console.log(`[DEBUG computeFilteredMotorScore] signalRows=${signalRows.length} hasSpinResults=${hasSpinResults}`, signalRows.length > 0 ? `first_row_modes=${JSON.stringify(signalRows[0].resolved_modes)}` : '(empty)');
-
     if (signalRows.length === 0) return { ...scores, signalHistory: [], recentHistory: [] };
 
     const signalHistory = [];
-
     signalRows.forEach(row => {
       const modes = row.resolved_modes || {};
       for (const m of [0, 1, 2]) {
@@ -82,7 +98,6 @@ export async function computeFilteredMotorScore(sourceName, limit) {
         if (modes[mk] === 'win') scores[mk].wins++;
         else if (modes[mk] === 'loss') scores[mk].losses++;
       }
-
       signalHistory.push({
         id: row.id,
         suggestedNumbers: row.suggested_numbers,
@@ -131,7 +146,6 @@ function getCovered(nums, mode) {
   return [...s];
 }
 
-// Converte row do DB para o formato que masterScoring espera
 function dbRowToSpin(row) {
   const num = parseInt(row.signal, 10);
   return {
@@ -143,17 +157,6 @@ function dbRowToSpin(row) {
     date: row.timestamp,
   };
 }
-
-// Estado em memória: último signalId processado por source
-const lastProcessedId = {};
-// Último sinal registrado por source (evita duplicatas)
-const lastRegisteredKey = {};
-
-const emptyScores = () => ({
-  "0": { wins: 0, losses: 0 },
-  "1": { wins: 0, losses: 0 },
-  "2": { wins: 0, losses: 0 },
-});
 
 async function getMotorScores(source) {
   const { rows } = await query(
@@ -179,20 +182,15 @@ async function incrementScore(source, mode, field) {
 
 /**
  * Processa uma source: busca histórico, roda análise, registra sinais, confere spins.
- * Chamado após cada ciclo de fetch no server.
  */
 export async function processSource(sourceName) {
   try {
-    // 1. Busca histórico completo (até 1000, cache Redis)
     const history = await getFullHistory(sourceName);
-    if (!history || history.length < 4) return; // Mínimo de 4 para conferência de spins
+    if (!history || history.length < 4) return;
 
-    // 2. Converte para formato do masterScoring
     const spinHistory = history.map(dbRowToSpin);
-
-    // 3. Detecta spins novos comparando com último processado
     const latestId = spinHistory[0].signalId;
-    if (latestId === lastProcessedId[sourceName]) return; // sem novidades
+    if (latestId === lastProcessedId[sourceName]) return;
 
     let newSpinNumbers = [];
     const prevId = lastProcessedId[sourceName];
@@ -203,63 +201,52 @@ export async function processSource(sourceName) {
         if (spinHistory[i].signalId === prevId) break;
         newSpinNumbers.push(spinHistory[i].number);
       }
-      // Cronológico (mais antigo primeiro)
       newSpinNumbers.reverse();
     }
-    // Se prevId é null (primeira vez), só marca baseline sem checar
 
-    // 4. Confere spins novos contra sinais pendentes
     if (newSpinNumbers.length > 0) {
       await checkSpinsAgainstPending(sourceName, newSpinNumbers);
     }
 
-    // 5. Roda análise do motor
     const analysis = calculateMasterScore(spinHistory);
 
-    // 6. Se há entrySignal, registra como pendente
     if (analysis?.entrySignal) {
       const nums = analysis.entrySignal.suggestedNumbers;
-      const key = JSON.stringify([...nums].sort((a, b) => a - b));
+      const key = JSON.stringify(nums);
 
       if (key !== lastRegisteredKey[sourceName]) {
         lastRegisteredKey[sourceName] = key;
-
-        const sorted = [...nums].sort((a, b) => a - b);
         const { rows } = await query(
-          'SELECT id FROM motor_pending_signals WHERE source = $1 AND suggested_numbers = $2',
-          [sourceName, sorted]
+          'SELECT id FROM motor_pending_signals WHERE source = $1 AND suggested_numbers = $2 AND resolved = FALSE',
+          [sourceName, nums]
         );
-
         if (rows.length === 0) {
           await query(
             'INSERT INTO motor_pending_signals (source, suggested_numbers) VALUES ($1, $2)',
-            [sourceName, sorted]
+            [sourceName, nums]
           );
-          console.log(`[Motor ${sourceName}] Sinal registrado: [${sorted.join(',')}] (${analysis.entrySignal.convergence} estratégias)`);
+          console.log(`[Motor ${sourceName}] Sinal registrado: [${nums.join(',')}]`);
         }
       }
     }
 
-    // 7. Emite resultado completo via Socket.IO
     try {
       const motorScores = await getMotorScores(sourceName);
-      
-      // ✅ MELHORIA: Busca o sinal pendente real do banco de dados para garantir persistência.
-      // Isso evita que o sinal suma da tela se o alinhamento de estratégias oscilar.
       const { rows: pendingRows } = await query(
-        'SELECT suggested_numbers, created_at FROM motor_pending_signals WHERE source = $1 AND resolved = FALSE ORDER BY created_at DESC LIMIT 1',
+        'SELECT id, suggested_numbers, created_at, spins_after FROM motor_pending_signals WHERE source = $1 AND resolved = FALSE ORDER BY created_at DESC LIMIT 1',
         [sourceName]
       );
 
-      let persistentSignal = analysis.entrySignal;
+      let persistentSignal = null;
       if (pendingRows.length > 0) {
         const p = pendingRows[0];
-        // Se já temos um sinal no DB, ele tem prioridade para exibição
         persistentSignal = {
+          id: p.id,
           suggestedNumbers: p.suggested_numbers,
-          confidence: analysis.entrySignal?.confidence || 70, // Fallback de confiança
+          confidence: analysis.entrySignal?.confidence || 70,
           convergence: analysis.entrySignal?.convergence || 3,
           validFor: LOSS_THRESHOLD,
+          spinsAfter: p.spins_after,
           reason: 'Sinal persistente em análise'
         };
       }
@@ -285,11 +272,8 @@ export async function processSource(sourceName) {
   }
 }
 
-// Controla frequência da limpeza de resolvidos antigos
 const cleanupCounter = {};
 const CLEANUP_EVERY = 50;
-
-// Flag: coluna spin_results existe? Detectada uma vez, cacheada.
 let _hasSpinResultsCol = null;
 
 async function checkSpinResultsColumn() {
@@ -305,8 +289,6 @@ async function checkSpinResultsColumn() {
 
 async function checkSpinsAgainstPending(source, numbers) {
   const hasCol = await checkSpinResultsColumn();
-
-  // Só busca sinais PENDENTES (não totalmente resolvidos)
   const selectCols = hasCol
     ? 'id, suggested_numbers, spins_after, resolved_modes, spin_results'
     : 'id, suggested_numbers, spins_after, resolved_modes';
@@ -321,14 +303,11 @@ async function checkSpinsAgainstPending(source, numbers) {
 
   for (const num of numbers) {
     if (typeof num !== 'number' || num < 0 || num > 36) continue;
-
     for (const sig of pending) {
       if (fullyResolved.has(sig.id)) continue;
-
       sig.spins_after++;
       const resolved = sig.resolved_modes || {};
 
-      // Acumula os resultados reais da roleta
       if (hasCol) {
         const results = sig.spin_results || [];
         results.push(num);
@@ -341,23 +320,26 @@ async function checkSpinsAgainstPending(source, numbers) {
         const covered = getCovered(sig.suggested_numbers, mode);
         if (covered.includes(num)) {
           resolved[mk] = 'win';
-          // Registra em qual gale (spin) o win aconteceu
           resolved[`${mk}_gale`] = sig.spins_after;
           resolved[`${mk}_hit`] = num;
           await incrementScore(source, mode, 'wins');
-          console.log(`[Motor ${source}] WIN mode=${mode} gale=${sig.spins_after} num=${num} signal=[${sig.suggested_numbers.join(',')}]`);
+          console.log(`[Motor ${source}] WIN mode=${mode} gale=${sig.spins_after} num=${num}`);
         }
       }
 
       sig.resolved_modes = resolved;
+      const isTimeout = sig.spins_after >= LOSS_THRESHOLD;
+      const allWin = [0, 1, 2].every(m => resolved[String(m)] === 'win');
 
-      if (sig.spins_after >= LOSS_THRESHOLD) {
-        for (const mode of [0, 1, 2]) {
-          const mk = String(mode);
-          if (!resolved[mk]) {
-            resolved[mk] = 'loss';
-            await incrementScore(source, mode, 'losses');
-            console.log(`[Motor ${source}] LOSS mode=${mode} after ${sig.spins_after} spins signal=[${sig.suggested_numbers.join(',')}]`);
+      if (isTimeout || allWin) {
+        if (isTimeout) {
+          for (const mode of [0, 1, 2]) {
+            const mk = String(mode);
+            if (!resolved[mk]) {
+              resolved[mk] = 'loss';
+              await incrementScore(source, mode, 'losses');
+              console.log(`[Motor ${source}] LOSS mode=${mode} after ${sig.spins_after} spins`);
+            }
           }
         }
         fullyResolved.add(sig.id);
@@ -365,7 +347,6 @@ async function checkSpinsAgainstPending(source, numbers) {
     }
   }
 
-  // Atualiza TODOS os pendentes (spins_after + resolved_modes + spin_results)
   for (const sig of pending) {
     const isFullyResolved = fullyResolved.has(sig.id);
     if (hasCol) {
@@ -381,7 +362,6 @@ async function checkSpinsAgainstPending(source, numbers) {
     }
   }
 
-  // Limpa resolvidos antigos (throttled — a cada ~50 ciclos, mantém últimos 1500)
   cleanupCounter[source] = (cleanupCounter[source] || 0) + 1;
   if (cleanupCounter[source] >= CLEANUP_EVERY) {
     cleanupCounter[source] = 0;
@@ -397,4 +377,3 @@ async function checkSpinsAgainstPending(source, numbers) {
     );
   }
 }
-

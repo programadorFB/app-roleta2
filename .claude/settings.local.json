@@ -42,7 +42,10 @@
       "Bash(PGPASSWORD=1234 psql -h localhost -p 5432 -U postgres -d fuzabalta_roulette -c \":*)",
       "Bash(curl -s \"http://localhost:3001/api/trigger-score?source=aovivo&limit=100&userEmail=rogerallan4004%40gmail.com\")",
       "Bash(ssh:*)",
-      "Bash(xargs wc:*)"
+      "Bash(xargs wc:*)",
+      "Bash(docker exec postgres_principal:*)",
+      "Bash(scp roleta2/server/server.js roleta2/server/triggerScoreEngine.js roleta2/server/motorScoreEngine.js root@76.13.174.229:/srv/apps/roleta2/roleta2/server/)",
+      "Bash(scp roleta2/server/server.js root@76.13.174.229:/srv/apps/roleta2/roleta2/server/)"
     ]
   }
 }
