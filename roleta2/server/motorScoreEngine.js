@@ -210,17 +210,22 @@ export async function processSource(sourceName) {
 
     const analysis = calculateMasterScore(spinHistory);
 
+    // 6. Se há entrySignal, registra como pendente
     if (analysis?.entrySignal) {
       const nums = analysis.entrySignal.suggestedNumbers;
-      const key = JSON.stringify(nums);
 
-      if (key !== lastRegisteredKey[sourceName]) {
-        lastRegisteredKey[sourceName] = key;
-        const { rows } = await query(
-          'SELECT id FROM motor_pending_signals WHERE source = $1 AND suggested_numbers = $2 AND resolved = FALSE',
-          [sourceName, nums]
-        );
-        if (rows.length === 0) {
+      // ✅ MELHORIA: Só registra novo sinal se NÃO HOUVER sinal pendente para esta source
+      // Isso garante que os sinais venham um por um e respeitem o tempo de gale.
+      const { rows: existingPending } = await query(
+        'SELECT id FROM motor_pending_signals WHERE source = $1 AND resolved = FALSE LIMIT 1',
+        [sourceName]
+      );
+
+      if (existingPending.length === 0) {
+        const key = JSON.stringify(nums);
+        if (key !== lastRegisteredKey[sourceName]) {
+          lastRegisteredKey[sourceName] = key;
+
           await query(
             'INSERT INTO motor_pending_signals (source, suggested_numbers) VALUES ($1, $2)',
             [sourceName, nums]
