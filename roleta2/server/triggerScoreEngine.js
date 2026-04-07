@@ -27,8 +27,8 @@ function dbRowToSpin(row) {
     number: isNaN(num) ? 0 : num,
     color: getColor(isNaN(num) ? 0 : num),
     signal: row.signal,
-    signalId: row.signalId,
-    gameId: row.gameId,
+    signalId: row.signalId || row.signalid,
+    gameId: row.gameId || row.gameid,
     date: row.timestamp,
   };
 }

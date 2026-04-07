@@ -916,7 +916,7 @@ const startServer = async () => {
     await loadAllExistingSignalIds();
 
     // Inicializa engines com acesso ao Socket.IO
-    initMotorEngine(io);
+    await initMotorEngine(io);
     initTriggerEngine(io);
 
     // Em cluster mode, só o worker 0 faz fetch para evitar duplicação
