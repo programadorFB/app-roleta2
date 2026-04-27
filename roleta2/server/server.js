@@ -22,6 +22,7 @@ import {
   hasActiveAccess, processHublaWebhook, verifyHublaWebhook,
   getSubscriptionStats, getActiveSubscriptions, getWebhookLogs,
   getSubscriptionByEmail, getSubscriptionAuditLog, getAllAuditLogs,
+  sendExpirationReminders,
   ACTIVE_STATUSES,
 } from './subscriptionService.js';
 import { processSource, initMotorEngine, getLatestMotorAnalysis, computeFilteredMotorScore, backfillMotorScores } from './motorScoreEngine.js';
@@ -722,6 +723,16 @@ app.post('/api/motor-score/reset', adminLimiter, requireAdminAuth, express.json(
   }
 });
 
+// Disparo manual do aviso de vencimento.
+// Use `?dryRun=1` para listar quem seria avisado sem enviar nada.
+app.post('/api/admin/expiration-reminders/run', adminLimiter, requireAdminAuth, async (req, res) => {
+  try {
+    const dryRun = req.query.dryRun === '1' || req.query.dryRun === 'true';
+    const result = await sendExpirationReminders({ dryRun });
+    res.json({ ok: true, dryRun, ...result });
+  } catch (e) { Sentry.captureException(e); res.status(500).json({ error: e.message }); }
+});
+
 // ── Trigger Score (wins/losses persistence — PostgreSQL) ─────
 
 app.get('/api/trigger-score', requireActiveSubscription, async (req, res) => {
@@ -957,6 +968,19 @@ const startServer = async () => {
       if (isMainWorker) {
         fetchAllData();
         setInterval(fetchAllData, FETCH_INTERVAL_MS);
+
+        // Aviso de vencimento de assinatura (2 dias antes)
+        // Roda 1x ao subir + a cada 6h. Idempotente por DB.
+        const EXPIRATION_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
+        const runExpirationCheck = () => {
+          sendExpirationReminders().catch(err =>
+            console.error('❌ [REMINDER] Erro no job de vencimento:', err.message),
+          );
+        };
+        // Espera 30s após o boot para não competir com o warmup
+        setTimeout(runExpirationCheck, 30_000);
+        setInterval(runExpirationCheck, EXPIRATION_CHECK_INTERVAL_MS);
+        console.log(`📧 Aviso de vencimento: agendado a cada ${EXPIRATION_CHECK_INTERVAL_MS / 3600000}h`);
       }
     });
   } catch (err) {

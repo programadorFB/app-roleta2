@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { query } from './db.js';
 import { cacheAside, cacheDel, KEY, TTL } from './redisService.js';
-import { sendWelcomeEmail } from './emailService.js';
+import { sendWelcomeEmail, sendExpirationReminderEmail } from './emailService.js';
 
 // Status que representam acesso ativo — definido uma única vez
 export const ACTIVE_STATUSES = ['active', 'trialing', 'paid'];
@@ -388,6 +388,69 @@ export async function getActiveSubscriptions() {
   });
 }
 
+// ── Aviso de vencimento (2 dias antes) ──────────────────────────
+//
+// Janela temporal: expires_at entre NOW()+36h e NOW()+60h — captura assinaturas
+// ~2 dias de vencimento, com folga de ±12h para absorver atrasos/antecipações
+// do job sem perder ninguém nem duplicar.
+export async function sendExpirationReminders({ dryRun = false } = {}) {
+  const { rows } = await query(
+    `SELECT user_id, email, plan_name, expires_at, expiration_reminder_sent_at
+       FROM subscriptions
+      WHERE status IN ('active', 'trialing', 'paid')
+        AND expires_at IS NOT NULL
+        AND expires_at BETWEEN NOW() + INTERVAL '36 hours'
+                           AND NOW() + INTERVAL '60 hours'
+        AND (
+          expiration_reminder_sent_at IS NULL
+          OR expiration_reminder_sent_at < expires_at - INTERVAL '7 days'
+        )`
+  );
+
+  if (rows.length === 0) {
+    return { sent: 0, skipped: 0, failed: 0, total: 0 };
+  }
+
+  console.log(`📧 [REMINDER] ${rows.length} assinatura(s) candidata(s) a aviso de vencimento${dryRun ? ' (DRY-RUN)' : ''}`);
+
+  let sent = 0, failed = 0;
+
+  for (const sub of rows) {
+    const msLeft   = new Date(sub.expires_at).getTime() - Date.now();
+    const daysLeft = Math.max(1, Math.ceil(msLeft / (1000 * 60 * 60 * 24)));
+
+    if (dryRun) {
+      console.log(`  [DRY] ${sub.email} — ${daysLeft}d — vence ${new Date(sub.expires_at).toLocaleString('pt-BR')}`);
+      continue;
+    }
+
+    try {
+      const ok = await sendExpirationReminderEmail({
+        email:     sub.email,
+        planName:  sub.plan_name,
+        expiresAt: sub.expires_at,
+        daysLeft,
+      });
+      if (ok) {
+        await query(
+          `UPDATE subscriptions SET expiration_reminder_sent_at = NOW() WHERE user_id = $1`,
+          [sub.user_id],
+        );
+        await invalidateSubscriptionCaches(sub.email);
+        sent++;
+      } else {
+        failed++;
+      }
+    } catch (err) {
+      failed++;
+      console.error(`❌ [REMINDER] Falha em ${sub.email}:`, err.message);
+    }
+  }
+
+  console.log(`📧 [REMINDER] Concluído — enviados: ${sent}, falhas: ${failed}`);
+  return { sent, skipped: 0, failed, total: rows.length };
+}
+
 export async function getSubscriptionStats() {
   return cacheAside(KEY.adminStats(), TTL.ADMIN_STATS, async () => {
     const { rows } = await query(
@@ -432,5 +495,5 @@ export default {
   getSubscriptionByHublaId, hasActiveAccess, processHublaWebhook,
   verifyHublaWebhook, getActiveSubscriptions, getSubscriptionStats,
   logWebhookEvent, getWebhookLogs, logSubscriptionAudit,
-  getSubscriptionAuditLog, getAllAuditLogs,
+  getSubscriptionAuditLog, getAllAuditLogs, sendExpirationReminders,
 };
