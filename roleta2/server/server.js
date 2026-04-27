@@ -81,7 +81,8 @@ if (!CRAWLER_SECRET) console.error('❌ FATAL: CRAWLER_SECRET não definido — 
 const API_URLS = {
   immersivevip: 'https://apptemporario-production.up.railway.app/api/bd9c8298-1453-4694-8d9c-b32be9f972e7',
   immersive:    'https://apptemporario-production.up.railway.app/api/0194b479-654d-70bd-ac50-9c5a9b4d14c5',
-  brasileira:   'https://apptemporario-production.up.railway.app/api/0194b473-2ab3-778f-89ee-236e803f3c8e',
+  brasileira:          'https://apptemporario-production.up.railway.app/api/0194b473-2ab3-778f-89ee-236e803f3c8e',
+  brasileira_playtech: 'https://roleta-api.sortehub.online/api/compat/brasileira?limit=200',
   speed:        'https://apptemporario-production.up.railway.app/api/0194b473-c347-752f-9eaf-783721339479',
   xxxtreme:     'https://apptemporario-production.up.railway.app/api/0194b478-5ba0-7110-8179-d287b2301e2e',
   vipauto:      'https://apptemporario-production.up.railway.app/api/0194b473-9044-772b-a6fc-38236eb08b42',

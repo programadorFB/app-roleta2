@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { io } from 'socket.io-client';
 import { API_URL } from '../constants/roulette';
-import { convertSpinItem, getNumberColor, computePullStats, computePreviousStats } from '../lib/roulette';
+import { convertSpinItem, computePullStats, computePreviousStats } from '../lib/roulette';
 import { processErrorResponse } from '../lib/errorHandler';
 import { signedFetch } from '../lib/signedFetch';
 
@@ -99,44 +98,9 @@ export const useSpinHistory = ({
     if (!isAuthenticated || !userEmail) return;
 
     fetchHistory();
-    if (selectedRoulette === 'brasileira_playtech') return;
-
     const id = setInterval(fetchHistory, POLL_INTERVAL_MS);
     return () => clearInterval(id);
   }, [fetchHistory, isAuthenticated, userEmail, selectedRoulette]);
-
-  // Socket.IO para PlayTech
-  useEffect(() => {
-    if (selectedRoulette !== 'brasileira_playtech' || !jwtToken || !userEmail) return;
-
-    const socket = io(API_URL, {
-      transports: ['websocket'],
-      auth:       { token: jwtToken, email: userEmail },
-      forceNew:   true,
-    });
-
-    socket.on('novo-giro', (payload) => {
-      if (payload.source !== 'Brasileira PlayTech') return;
-      const newSpin = {
-        number:   parseInt(payload.data.signal, 10),
-        color:    getNumberColor(parseInt(payload.data.signal, 10)),
-        signal:   payload.data.signal,
-        gameId:   payload.data.gameId,
-        signalId: payload.data.signalId,
-        date:     payload.data.createdAt,
-      };
-      setSpinHistory(prev => {
-        if (prev.length > 0 && String(getItemId(prev[0])) === String(newSpin.signalId)) return prev;
-        latestIdRef.current = newSpin.signalId;
-        setSelectedResult(newSpin);
-        return [newSpin, ...prev].slice(0, MAX_HISTORY);
-      });
-    });
-
-    socket.on('connect_error', (err) => console.error('[Socket] erro:', err.message));
-
-    return () => socket.disconnect();
-  }, [selectedRoulette, jwtToken, userEmail]);
 
   // Computa pull stats de forma não-bloqueante
   useEffect(() => {
