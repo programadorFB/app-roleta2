@@ -3,7 +3,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Zap, Crosshair, Hash, Target, Clock, ChevronDown, ChevronUp } from 'lucide-react';
-import { checkTrigger, getActiveTriggers } from '../analysis/triggerAnalysis';
+import { getActiveTriggers } from '../analysis/triggerAnalysis';
 import { PHYSICAL_WHEEL, getRouletteColor, LOSS_THRESHOLD } from '../constants/roulette';
 import styles from './TriggerStrategiesPanel.module.css';
 
@@ -224,15 +224,14 @@ function computeAssertivity(spinHistory, triggerMap) {
 // MAIN COMPONENT
 // ══════════════════════════════════════════════════════════════
 
-const TriggerStrategiesPanel = ({ spinHistory, triggerMap: externalTriggerMap }) => {
+const TriggerStrategiesPanel = ({ spinHistory, triggerMap: externalTriggerMap, activeTrigger: backendActiveTrigger }) => {
   const [expandedType, setExpandedType] = useState(null);
 
   const triggerMap = externalTriggerMap || new Map();
 
-  const activeTrigger = useMemo(() => {
-    if (!spinHistory || spinHistory.length === 0) return null;
-    return checkTrigger(triggerMap, spinHistory[0].number);
-  }, [triggerMap, spinHistory]);
+  // activeTrigger vem do backend (fonte canônica).
+  // Sem fallback local: se backend não detectou, o card fica vazio (consistência com histórico).
+  const activeTrigger = backendActiveTrigger ?? null;
 
   const allTriggers = useMemo(() => getActiveTriggers(triggerMap), [triggerMap]);
 

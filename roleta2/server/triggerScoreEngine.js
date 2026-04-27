@@ -7,6 +7,9 @@ import { getFullHistory } from './dbService.js';
 import { query } from './db.js';
 
 const TRIGGER_LOSS_THRESHOLD = 3; // 3 spins pra resolver (igual frontend)
+// Confiança mínima para EMITIR um sinal (registrar no DB e contar no scoreboard).
+// Deve casar com MIN_CONFIDENCE em src/pages/TriggersPage.jsx (frontend filtra novamente como defesa).
+const MIN_CONFIDENCE = 50;
 const RED_NUMBERS = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
 
 // ── Socket.IO + cache de análise ────────────────────────────
@@ -170,7 +173,7 @@ async function checkAndRegisterTriggers(source, numbers, triggerMap) {
 
     // 1b. Checa se ESTE num é um trigger -> registra novo sinal pendente
     const profile = triggerMap.get(num);
-    if (profile?.bestPattern) {
+    if (profile?.bestPattern && profile.bestPattern.confidence >= MIN_CONFIDENCE) {
       // ✅ MELHORIA: Verifica se já existe um sinal PENDENTE para este gatilho
       // Evita emitir 2 sinais para o mesmo número ao mesmo tempo.
       const isAlreadyPending = pending.some(p => p.trigger_number === num);
@@ -200,7 +203,9 @@ async function checkAndRegisterTriggers(source, numbers, triggerMap) {
     }
   }
 
-  // 2. Atualiza pendentes não resolvidos
+  // 2. Atualiza spins_after de TODOS os sinais processados (pendentes E resolvidos)
+  // ✅ FIX: Antes só atualizava pendentes — resolvidos ficavam com spins_after=0 no DB
+  //         → frontend mostrava G0 em vez de G1/G2/G3
   const resolvedIds = new Set(toResolve.map(r => r.id));
   for (const sig of pending) {
     if (!resolvedIds.has(sig.id)) {
@@ -211,11 +216,13 @@ async function checkAndRegisterTriggers(source, numbers, triggerMap) {
     }
   }
 
-  // 3. Marca resolvidos COM resultado (win/loss)
+  // 3. Marca resolvidos COM resultado E spins_after correto
+  const pendingById = new Map(pending.map(s => [s.id, s]));
   for (const r of toResolve) {
+    const sig = pendingById.get(r.id);
     await query(
-      'UPDATE trigger_pending_signals SET resolved = TRUE, result = $1 WHERE id = $2',
-      [r.result, r.id]
+      'UPDATE trigger_pending_signals SET resolved = TRUE, result = $1, spins_after = $2 WHERE id = $3',
+      [r.result, sig ? sig.spins_after : 0, r.id]
     );
   }
 
@@ -237,42 +244,28 @@ async function checkAndRegisterTriggers(source, numbers, triggerMap) {
 }
 
 /**
- * Busca sinais ativos do DB — estáveis, não dependem do triggerMap volátil.
- * Retorna pendentes + wins/losses recentes (últimos 3 minutos) para exibição.
+ * Busca histórico recente de gatilhos do DB.
+ * Cada disparo é um evento independente — sem dedup por trigger_number.
+ * Frontend filtra por confiança e corta para N eventos mais recentes.
  */
 async function getActiveSignalsFromDB(source, triggerMap) {
   const { rows } = await query(
-    `(SELECT id, trigger_number, covered_numbers, spins_after, resolved, result,
-             pattern_label, confidence, lift, created_at
-      FROM trigger_pending_signals
-      WHERE source = $1 AND resolved = FALSE)
-     UNION ALL
-     (SELECT id, trigger_number, covered_numbers, spins_after, resolved, result,
-             pattern_label, confidence, lift, created_at
-      FROM trigger_pending_signals
-      WHERE source = $1 AND resolved = TRUE
-      ORDER BY created_at DESC
-      LIMIT 6)
-     ORDER BY created_at DESC`,
+    `SELECT id, trigger_number, covered_numbers, spins_after, resolved, result,
+            pattern_label, confidence, lift, created_at
+     FROM trigger_pending_signals
+     WHERE source = $1
+     ORDER BY created_at DESC
+     LIMIT 30`,
     [source]
   );
 
-  // ✅ FIX: Dedup por trigger_number — pendente tem prioridade sobre resolvido.
-  // Antes: mesmo trigger_number podia ter 2+ rows (uma pending + uma resolved recente)
-  // → frontend mostrava o mesmo gatilho duplicado.
-  const seen = new Map(); // trigger_number → mapped signal
-  for (const row of rows) {
-    // Se já vimos esse trigger, só substitui se o novo é pending e o velho não
-    if (seen.has(row.trigger_number)) {
-      const existing = seen.get(row.trigger_number);
-      if (existing._resolved === false) continue; // pending já registrado, mantém
-      if (row.resolved) continue; // ambos resolvidos, mantém o mais recente (já no map)
-    }
-
+  return rows.map((row) => {
     const remaining = TRIGGER_LOSS_THRESHOLD - row.spins_after;
     const profile = triggerMap.get(row.trigger_number);
     const label = row.pattern_label || profile?.bestPattern?.label || `Trigger ${row.trigger_number}`;
-    const conf = row.confidence ?? profile?.bestPattern?.confidence ?? 0;
+    // Live primeiro: confidence é hits/appearances*100 recalculado a cada ciclo.
+    // row.confidence (snapshot do disparo) só serve de fallback se o profile sumiu.
+    const conf = profile?.bestPattern?.confidence ?? row.confidence ?? 0;
     const lft = row.lift ?? profile?.bestPattern?.lift ?? 0;
 
     let status;
@@ -282,7 +275,9 @@ async function getActiveSignalsFromDB(source, triggerMap) {
       status = 'pending';
     }
 
-    seen.set(row.trigger_number, {
+    return {
+      id: row.id,
+      timestamp: row.created_at,
       triggerNumber: row.trigger_number,
       action: label,
       confidence: conf,
@@ -292,12 +287,8 @@ async function getActiveSignalsFromDB(source, triggerMap) {
       remaining: Math.max(0, remaining),
       status,
       winAttempt: status === 'win' ? row.spins_after : undefined,
-      _resolved: row.resolved, // usado internamente pra priorização
-    });
-  }
-
-  // Remove campo interno antes de retornar
-  return Array.from(seen.values()).map(({ _resolved, ...sig }) => sig);
+    };
+  });
 }
 
 // ── Assertividade por tipo (equivalente ao frontend TriggerStrategiesPanel) ──

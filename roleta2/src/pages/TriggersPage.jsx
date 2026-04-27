@@ -1,9 +1,9 @@
 // pages/TriggersPage.jsx — v5 BACKEND-DRIVEN SIGNALS + expand history
 
-import React, { useMemo, useState, useCallback, useRef, useEffect, Suspense, lazy } from 'react';
+import React, { useMemo, useState, useCallback, useEffect, Suspense, lazy } from 'react';
 import { Zap, Clock, ChevronDown, Crosshair } from 'lucide-react';
 import TriggerStrategiesPanel from '../components/TriggerStrategiesPanel';
-import { buildTriggerMap, getActiveTriggers, getActiveSignals as getActiveSignalsFn, checkTrigger } from '../analysis/triggerAnalysis';
+import { buildTriggerMap, getActiveTriggers, getActiveSignals as getActiveSignalsFn } from '../analysis/triggerAnalysis';
 import { getRouletteColor, LOSS_THRESHOLD, API_URL } from '../constants/roulette';
 import { signedFetch } from '../lib/signedFetch';
 import TriggerRadar from '../components/TriggerRadar';
@@ -12,15 +12,19 @@ import styles from './TriggersPage.module.css';
 const RacingTrack = lazy(() => import('../components/RacingTrack.jsx'));
 const ResultsGrid = lazy(() => import('../components/ResultGrid.jsx'));
 
-// ── Historico individual de um gatilho ─────────────────────────
-// ✅ FIX: Aceita fallback do sinal backend quando triggerMap volátil não tem mais o trigger
+// Confiança mínima para entrar no histórico de gatilhos (regra de negócio)
+const MIN_CONFIDENCE = 50;
+// Quantos gatilhos manter no histórico
+const HISTORY_LIMIT = 6;
+
+// ── Histórico individual de um gatilho (apenas contagens, sem taxa) ──────
+// A confiança canônica vem do backend via sig.confidence — não recalcula aqui.
 function buildTriggerHistory(triggerNumber, spinHistory, triggerMap, fallbackSignal) {
   const profile = triggerMap.get(triggerNumber);
   const covered = profile?.bestPattern?.coveredNumbers || fallbackSignal?.coveredNumbers;
   if (!covered) return null;
 
   const action = profile?.bestPattern?.label || fallbackSignal?.action || '';
-  const confidence = profile?.bestPattern?.confidence || fallbackSignal?.confidence || 0;
 
   const results = [];
 
@@ -45,9 +49,8 @@ function buildTriggerHistory(triggerNumber, spinHistory, triggerMap, fallbackSig
   const wins = g1 + g2 + g3;
 
   return {
-    triggerNumber, action, covered, confidence,
+    triggerNumber, action, covered,
     g1, g2, g3, red, total, wins,
-    pct: total > 0 ? Math.round((wins / total) * 100) : 0,
     recentResults: results.slice(0, 20).map(r => r.label),
   };
 }
@@ -82,42 +85,49 @@ const TriggerScoreboard = ({ wins, losses }) => {
   );
 };
 
-// ── Sinais em Progresso (com historico expandivel) ─────────────
-const ActiveSignalsPanel = ({ signals, spinHistory, triggerMap }) => {
-  const [expanded, setExpanded] = useState(null);
-  const [historyData, setHistoryData] = useState(null);
+// Chave única por evento (id do DB; fallback p/ análise local sem id)
+const signalKey = (sig) => sig.id ?? `${sig.triggerNumber}-${sig.timestamp ?? sig.spinsAgo}`;
 
-  // ✅ FIX: Passa o sinal inteiro como fallback para quando triggerMap não tem mais o trigger
+// ── Histórico de Gatilhos (com detalhe expandível) ─────────────
+const TriggerHistoryPanel = ({ signals, spinHistory, triggerMap }) => {
+  const [expandedId, setExpandedId] = useState(null);
+
+  const expandedSignal = useMemo(
+    () => expandedId != null ? signals.find(s => signalKey(s) === expandedId) : null,
+    [expandedId, signals]
+  );
+
+  const historyData = useMemo(() => {
+    if (!expandedSignal) return null;
+    return buildTriggerHistory(expandedSignal.triggerNumber, spinHistory, triggerMap, expandedSignal);
+  }, [expandedSignal, spinHistory, triggerMap]);
+
   const handleClick = useCallback((sig) => {
-    if (expanded === sig.triggerNumber) {
-      setExpanded(null);
-      setHistoryData(null);
-    } else {
-      setExpanded(sig.triggerNumber);
-      setHistoryData(buildTriggerHistory(sig.triggerNumber, spinHistory, triggerMap, sig));
-    }
-  }, [expanded, spinHistory, triggerMap]);
+    const k = signalKey(sig);
+    setExpandedId(prev => prev === k ? null : k);
+  }, []);
 
   return (
     <div className={styles.signalsPanel}>
       <div className={styles.signalsPanelHeader}>
         <Zap size={13} className={styles.signalsPanelIcon} />
-        <span>Sinais em Progresso</span>
+        <span>Histórico de Gatilhos</span>
       </div>
       {(!signals || signals.length === 0) ? (
         <div className={styles.noSignals}>
           <Clock size={14} style={{ opacity: 0.25 }} />
-          <span>Nenhum sinal ativo</span>
+          <span>Sem gatilhos recentes</span>
         </div>
       ) : (
         <div className={styles.signalsList}>
           {signals.map((sig) => {
             const col = getRouletteColor(sig.triggerNumber);
-            const isExpanded = expanded === sig.triggerNumber;
+            const k = signalKey(sig);
+            const isExpanded = expandedId === k;
             const pctColor = sig.confidence >= 60 ? '#34d399' : sig.confidence >= 40 ? '#c9a052' : '#ef4444';
 
             return (
-              <div key={sig.triggerNumber} className={styles.signalItem}>
+              <div key={k} className={styles.signalItem}>
                 <div
                   className={`${styles.signalRow} ${styles[`signalRow--${sig.status}`]} ${isExpanded ? styles['signalRow--active'] : ''}`}
                   onClick={() => handleClick(sig)}
@@ -164,10 +174,10 @@ const ActiveSignalsPanel = ({ signals, spinHistory, triggerMap }) => {
                       </div>
                       <div className={styles.shStatDivider} />
                       <div className={styles.shStat}>
-                        <span className={styles.shStatVal} style={{ color: historyData.pct >= 60 ? '#34d399' : historyData.pct >= 40 ? '#c9a052' : '#ef4444' }}>
-                          {historyData.pct}%
+                        <span className={styles.shStatVal} style={{ color: 'rgba(255,255,255,0.85)' }}>
+                          {historyData.wins}/{historyData.total}
                         </span>
-                        <span className={styles.shStatLbl}>{historyData.wins}/{historyData.total}</span>
+                        <span className={styles.shStatLbl}>Janela</span>
                       </div>
                     </div>
 
@@ -195,7 +205,6 @@ const ActiveSignalsPanel = ({ signals, spinHistory, triggerMap }) => {
 
                     <div className={styles.shFooter}>
                       <Crosshair size={10} style={{ opacity: 0.4 }} />
-                      <span>Confianca: {historyData.confidence}%</span>
                       <span style={{ marginLeft: 'auto', opacity: 0.3 }}>{historyData.total} disparos</span>
                     </div>
                   </div>
@@ -227,10 +236,6 @@ const TriggersPage = ({
   userEmail,
 }) => {
   const latestNumbers = filteredSpinHistory;
-  // ✅ Cache: sinais nunca somem abruptamente.
-  const signalCacheRef = useRef([]);
-  const emptyCyclesRef = useRef(0);
-  const MAX_EMPTY_CYCLES = 5; // após 5 renders vazios, limpa cache
 
   // TriggerMap do filtro (para sinais, radar, etc.)
   const triggerMap = useMemo(
@@ -252,8 +257,8 @@ const TriggersPage = ({
       .catch(() => {});
   }, [selectedRoulette, historyFilter, userEmail, backendTriggerAnalysis?.timestamp]);
 
-  // ✅ FIX: Cache + dedup + filtro de resolvidos fantasmas.
-  // Sinal resolvido (win/loss) só aparece se o usuário já viu como pending.
+  // Histórico: últimos N gatilhos qualificados (≥ MIN_CONFIDENCE),
+  // ordenados do mais recente para o mais antigo.
   const activeSignals = useMemo(() => {
     let raw;
     if (backendTriggerAnalysis?.timestamp > 0) {
@@ -262,34 +267,11 @@ const TriggersPage = ({
       raw = getActiveSignalsFn(filteredSpinHistory, triggerMap, LOSS_THRESHOLD);
     }
 
-    // Dedup por triggerNumber (pendente tem prioridade sobre win/loss)
-    const seen = new Map();
-    for (const sig of raw) {
-      const existing = seen.get(sig.triggerNumber);
-      if (!existing || (sig.status === 'pending' && existing.status !== 'pending')) {
-        seen.set(sig.triggerNumber, sig);
-      }
-    }
+    const qualified = raw.filter(s => (s.confidence || 0) >= MIN_CONFIDENCE);
 
-    // Filtra resolvidos que nunca foram vistos como pending
-    const prevTriggers = new Set(signalCacheRef.current.map(s => s.triggerNumber));
-    const filtered = Array.from(seen.values()).filter(sig => {
-      if (sig.status === 'pending') return true; // pending sempre mostra
-      return prevTriggers.has(sig.triggerNumber);  // win/loss só se já estava no cache
-    });
-
-    // Cache: atualiza com sinais filtrados, mantém por até N ciclos se vazio.
-    if (filtered.length > 0) {
-      signalCacheRef.current = filtered;
-      emptyCyclesRef.current = 0;
-    } else {
-      emptyCyclesRef.current++;
-      if (emptyCyclesRef.current >= MAX_EMPTY_CYCLES) {
-        signalCacheRef.current = [];
-      }
-    }
-
-    return signalCacheRef.current;
+    // Sem dedup: cada disparo é um evento independente (mesmo triggerNumber
+    // pode aparecer 2+ vezes se disparou repetido).
+    return qualified.slice(0, HISTORY_LIMIT);
   }, [filteredSpinHistory, triggerMap, backendTriggerAnalysis]);
 
   const topTriggers = useMemo(
@@ -297,21 +279,28 @@ const TriggersPage = ({
     [triggerMap]
   );
 
-  const activeTrigger = useMemo(
-    () => filteredSpinHistory?.length > 0 ? checkTrigger(triggerMap, filteredSpinHistory[0].number) : null,
-    [triggerMap, filteredSpinHistory]
-  );
+  // activeTrigger vem do backend (fonte canônica) — sem cálculo local.
+  // Gate ≥ MIN_CONFIDENCE: só é "gatilho ativo" se atingir o threshold.
+  const activeTrigger = useMemo(() => {
+    const t = backendTriggerAnalysis?.activeTrigger;
+    if (!t || (t.confidence ?? 0) < MIN_CONFIDENCE) return null;
+    return t;
+  }, [backendTriggerAnalysis]);
 
   const allTriggersCount = useMemo(
     () => getActiveTriggers(triggerMap).length,
     [triggerMap]
   );
 
-  // Números a destacar na RacingTrack
+  // Números a destacar na RacingTrack:
+  // 1) gatilho pending no histórico tem prioridade (já registrado no DB)
+  // 2) fallback: activeTrigger do backend (mesmo número que acabou de virar pending)
   const racingTargets = useMemo(() => {
-    const sig = activeSignals.find(s => s.status === 'pending' || s.status === 'win');
-    return sig ? sig.coveredNumbers : [];
-  }, [activeSignals]);
+    const pending = activeSignals.find(s => s.status === 'pending');
+    if (pending) return pending.coveredNumbers;
+    if (activeTrigger?.coveredNumbers) return activeTrigger.coveredNumbers;
+    return [];
+  }, [activeSignals, activeTrigger]);
 
   // --- Renderização condicional para evitar tela escura ---
   if (!backendTriggerAnalysis || backendTriggerAnalysis.source !== selectedRoulette) {
@@ -363,7 +352,7 @@ const TriggersPage = ({
         <aside className={styles.rightCol}>
           <div className={styles.rightContent}>
             <TriggerScoreboard wins={backendScoreboard.wins} losses={backendScoreboard.losses} />
-            <ActiveSignalsPanel
+            <TriggerHistoryPanel
               signals={activeSignals}
               spinHistory={filteredSpinHistory}
               triggerMap={triggerMap}
@@ -371,6 +360,7 @@ const TriggersPage = ({
             <TriggerStrategiesPanel
               spinHistory={filteredSpinHistory}
               triggerMap={triggerMap}
+              activeTrigger={activeTrigger}
             />
           </div>
         </aside>
