@@ -179,7 +179,9 @@ export function buildTriggerMap(spinHistory, lookback = DEFAULT_LOOKBACK) {
       }
 
       // Terminal + vizinhos expandidos (pré-computados)
-      for (let vizRadius = 1; vizRadius <= 2; vizRadius++) {
+      // Política: terminais 0..6 limitados a 1 vizinho; 7..9 mantêm até 2.
+      const maxViz = t <= 6 ? 1 : 2;
+      for (let vizRadius = 1; vizRadius <= maxViz; vizRadius++) {
         const expandedArr = TERMINAL_EXPANDED_CACHE.get(`${t}:${vizRadius}`);
 
         let hitsE = 0;
