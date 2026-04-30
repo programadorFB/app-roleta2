@@ -139,5 +139,9 @@ CREATE TABLE IF NOT EXISTS trigger_pending_signals (
 );
 
 CREATE INDEX IF NOT EXISTS idx_trigger_pending_source ON trigger_pending_signals (source);
+-- Partial unique index: 1 sinal pendente por (source, trigger_number) por vez.
+-- Usado pelo ON CONFLICT (source, trigger_number) WHERE resolved = FALSE em triggerScoreEngine.js
+CREATE UNIQUE INDEX IF NOT EXISTS idx_trigger_pending_source_trigger_unresolved
+  ON trigger_pending_signals (source, trigger_number) WHERE resolved = FALSE;
 
 COMMIT;

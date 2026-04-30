@@ -101,8 +101,18 @@ CREATE TABLE IF NOT EXISTS motor_pending_signals (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
+-- Colunas adicionadas por migrations posteriores (idempotente)
+ALTER TABLE motor_pending_signals ADD COLUMN IF NOT EXISTS resolved BOOLEAN DEFAULT FALSE;
+ALTER TABLE motor_pending_signals ADD COLUMN IF NOT EXISTS spin_results INT[] DEFAULT '{}';
+
 CREATE INDEX IF NOT EXISTS idx_motor_pending_source ON motor_pending_signals (source);
+CREATE INDEX IF NOT EXISTS idx_motor_pending_resolved ON motor_pending_signals (source, resolved);
 CREATE INDEX IF NOT EXISTS idx_motor_scores_source ON motor_scores (source);
+
+-- Partial unique index: garante no máximo 1 sinal pendente (resolved=FALSE) por source.
+-- Usado pelo ON CONFLICT (source) WHERE resolved = FALSE em motorScoreEngine.js
+CREATE UNIQUE INDEX IF NOT EXISTS idx_motor_pending_source_unresolved
+  ON motor_pending_signals (source) WHERE resolved = FALSE;
 
 -- 6) Trigger scores — placar de acertos/erros dos gatilhos por roleta
 CREATE TABLE IF NOT EXISTS trigger_scores (
@@ -123,5 +133,16 @@ CREATE TABLE IF NOT EXISTS trigger_pending_signals (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
+-- Colunas adicionadas por migrations posteriores (idempotente)
+ALTER TABLE trigger_pending_signals ADD COLUMN IF NOT EXISTS result VARCHAR(4) DEFAULT NULL;
+ALTER TABLE trigger_pending_signals ADD COLUMN IF NOT EXISTS pattern_label VARCHAR(64) DEFAULT NULL;
+ALTER TABLE trigger_pending_signals ADD COLUMN IF NOT EXISTS confidence REAL DEFAULT NULL;
+ALTER TABLE trigger_pending_signals ADD COLUMN IF NOT EXISTS lift REAL DEFAULT NULL;
+
 CREATE INDEX IF NOT EXISTS idx_trigger_pending_source ON trigger_pending_signals (source);
 CREATE INDEX IF NOT EXISTS idx_trigger_scores_source ON trigger_scores (source);
+
+-- Partial unique index: 1 sinal pendente por (source, trigger_number) por vez.
+-- Usado pelo ON CONFLICT (source, trigger_number) WHERE resolved = FALSE em triggerScoreEngine.js
+CREATE UNIQUE INDEX IF NOT EXISTS idx_trigger_pending_source_trigger_unresolved
+  ON trigger_pending_signals (source, trigger_number) WHERE resolved = FALSE;

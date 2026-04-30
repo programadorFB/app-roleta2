@@ -40,11 +40,17 @@ function dbRowToSpin(row) {
 const lastProcessedId = {};
 // Cache do triggerMap por source (reconstruído quando novos dados chegam)
 const triggerMapCache = {};
+// Lock por source: impede processamento concorrente (igual motorScoreEngine).
+// Em PM2 cluster cada worker tem seu próprio lock — a defesa atômica entre
+// workers vem do partial unique index idx_trigger_pending_source_trigger_unresolved.
+const processingLock = {};
 
 /**
  * Processa triggers de uma source: detecta gatilhos, checa pendentes, persiste placar.
  */
 export async function processTriggerSource(sourceName) {
+  if (processingLock[sourceName]) return;
+  processingLock[sourceName] = true;
   try {
     const history = await getFullHistory(sourceName);
     if (!history || history.length < 10) return; // Mínimo para gatilhos básicos
@@ -113,6 +119,8 @@ export async function processTriggerSource(sourceName) {
     }
   } catch (err) {
     console.error(`[Trigger ${sourceName}] Erro:`, err.message);
+  } finally {
+    processingLock[sourceName] = false;
   }
 }
 
@@ -174,23 +182,28 @@ async function checkAndRegisterTriggers(source, numbers, triggerMap) {
     // 1b. Checa se ESTE num é um trigger -> registra novo sinal pendente
     const profile = triggerMap.get(num);
     if (profile?.bestPattern && profile.bestPattern.confidence >= MIN_CONFIDENCE) {
-      // ✅ MELHORIA: Verifica se já existe um sinal PENDENTE para este gatilho
-      // Evita emitir 2 sinais para o mesmo número ao mesmo tempo.
+      // Fast-path: skip se já existe pendente em memória pra este gatilho.
+      // O ON CONFLICT abaixo é a garantia atômica entre workers PM2.
       const isAlreadyPending = pending.some(p => p.trigger_number === num);
       if (isAlreadyPending) continue;
 
       const covered = profile.bestPattern.coveredNumbers;
       const bp = profile.bestPattern;
+      // INSERT atômico: partial unique index idx_trigger_pending_source_trigger_unresolved
+      // impede 2 pendentes para mesmo (source, trigger_number). ON CONFLICT DO NOTHING
+      // elimina race condition entre workers do PM2 cluster.
       const { rows: insertedRows } = await query(
         `INSERT INTO trigger_pending_signals
          (source, trigger_number, covered_numbers, pattern_label, confidence, lift)
          VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (source, trigger_number) WHERE resolved = FALSE DO NOTHING
          RETURNING id`,
         [source, num, covered, bp.label, bp.confidence, bp.lift]
       );
 
-      // ✅ FIX: Adiciona o novo sinal ao array pending para que spins
-      //         subsequentes do mesmo batch o detectem (antes era ignorado)
+      // Adiciona o novo sinal ao array pending para que spins subsequentes
+      // do mesmo batch o detectem (antes era ignorado).
+      // Quando há ON CONFLICT, insertedRows fica vazio — sem registro novo.
       if (insertedRows[0]) {
         pending.push({
           id: insertedRows[0].id,
@@ -198,8 +211,8 @@ async function checkAndRegisterTriggers(source, numbers, triggerMap) {
           covered_numbers: covered,
           spins_after: 0,
         });
+        console.log(`[Trigger ${source}] Sinal registrado: trigger=${num} covered=[${covered.join(',')}] (${bp.label})`);
       }
-      console.log(`[Trigger ${source}] Sinal registrado: trigger=${num} covered=[${covered.join(',')}] (${bp.label})`);
     }
   }
 
