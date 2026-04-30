@@ -10,8 +10,8 @@ export default defineConfig({
     testTimeout: 15000,
     hookTimeout: 10000,
 
-    // Carrega .env.test automaticamente
-    envFile: '.env.test',
+    // Carrega .env.test antes de cada arquivo de teste
+    setupFiles: ['./tests/setup.js'],
 
     // Cada suíte em processo isolado
     pool: 'forks',

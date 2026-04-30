@@ -9,7 +9,7 @@ import { io } from 'socket.io-client';
 import { API_URL } from '../constants/roulette';
 import { signedFetch } from '../lib/signedFetch';
 
-const POLL_INTERVAL = 15000; // 15s — backup quando socket cai
+const POLL_INTERVAL = 8000; // 8s — backup quando socket cai (era 15s — gap muito longo)
 
 export const useAnalysisSocket = ({
   selectedRoulette,

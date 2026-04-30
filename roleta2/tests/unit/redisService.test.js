@@ -45,17 +45,18 @@ describe('TTL values', () => {
 // ══════════════════════════════════════════════════════════════
 
 describe('KEY generators', () => {
+  // .env.test define REDIS_PREFIX=test — chaves saem como `test:<scope>:<id>`
   it('sub() gera chave com prefixo sub:', () => {
-    expect(KEY.sub('user@test.com')).toBe('sub:user@test.com');
+    expect(KEY.sub('user@test.com')).toBe('test:sub:user@test.com');
   });
 
   it('history() gera chave com prefixo hist:', () => {
-    expect(KEY.history('aovivo')).toBe('hist:aovivo');
+    expect(KEY.history('aovivo')).toBe('test:hist:aovivo');
   });
 
   it('latest() gera chave com source e limit', () => {
-    expect(KEY.latest('aovivo', 100)).toBe('latest:aovivo:100');
-    expect(KEY.latest('immersive', 50)).toBe('latest:immersive:50');
+    expect(KEY.latest('aovivo', 100)).toBe('test:latest:aovivo:100');
+    expect(KEY.latest('immersive', 50)).toBe('test:latest:immersive:50');
   });
 
   it('latest() com limits diferentes gera chaves diferentes', () => {
@@ -65,16 +66,16 @@ describe('KEY generators', () => {
   });
 
   it('adminStats() retorna chave fixa', () => {
-    expect(KEY.adminStats()).toBe('admin:stats');
+    expect(KEY.adminStats()).toBe('test:admin:stats');
   });
 
   it('activeSubs() retorna chave fixa', () => {
-    expect(KEY.activeSubs()).toBe('admin:active');
+    expect(KEY.activeSubs()).toBe('test:admin:active');
   });
 
   it('sub() lida com emails com caracteres especiais', () => {
-    expect(KEY.sub('user+tag@test.com')).toBe('sub:user+tag@test.com');
-    expect(KEY.sub('user.name@test.co.uk')).toBe('sub:user.name@test.co.uk');
+    expect(KEY.sub('user+tag@test.com')).toBe('test:sub:user+tag@test.com');
+    expect(KEY.sub('user.name@test.co.uk')).toBe('test:sub:user.name@test.co.uk');
   });
 });
 

@@ -27,7 +27,6 @@ function getColor(n) {
 }
 
 function getCovered(nums, mode) {
-  if (mode === 0) return nums;
   const s = new Set();
   nums.forEach(n => {
     s.add(n);
@@ -42,7 +41,6 @@ function getCovered(nums, mode) {
 
 function emptyScores() {
   return {
-    "0": { wins: 0, losses: 0 },
     "1": { wins: 0, losses: 0 },
     "2": { wins: 0, losses: 0 },
   };
@@ -61,7 +59,7 @@ function checkSpinsAgainstPending(pendingSignals, numbers, scores) {
       sig.spins_after++;
       const resolved = sig.resolved_modes || {};
 
-      for (const mode of [0, 1, 2]) {
+      for (const mode of [1, 2]) {
         const mk = String(mode);
         if (resolved[mk]) continue;
         const covered = getCovered(sig.suggested_numbers, mode);
@@ -74,7 +72,7 @@ function checkSpinsAgainstPending(pendingSignals, numbers, scores) {
       sig.resolved_modes = resolved;
 
       if (sig.spins_after >= LOSS_THRESHOLD) {
-        for (const mode of [0, 1, 2]) {
+        for (const mode of [1, 2]) {
           const mk = String(mode);
           if (!resolved[mk]) {
             resolved[mk] = 'loss';
@@ -104,10 +102,10 @@ describe('LOSS_THRESHOLD (motor)', () => {
 // ══════════════════════════════════════════════════════════════
 
 describe('emptyScores', () => {
-  it('retorna 3 modos com wins/losses zerados', () => {
+  it('retorna 2 modos (1, 2) com wins/losses zerados', () => {
     const scores = emptyScores();
-    expect(Object.keys(scores)).toHaveLength(3);
-    for (const mode of ['0', '1', '2']) {
+    expect(Object.keys(scores)).toHaveLength(2);
+    for (const mode of ['1', '2']) {
       expect(scores[mode]).toEqual({ wins: 0, losses: 0 });
     }
   });
@@ -115,8 +113,8 @@ describe('emptyScores', () => {
   it('retorna novo objeto a cada chamada (sem referência compartilhada)', () => {
     const a = emptyScores();
     const b = emptyScores();
-    a['0'].wins = 5;
-    expect(b['0'].wins).toBe(0); // não afetou b
+    a['1'].wins = 5;
+    expect(b['1'].wins).toBe(0); // não afetou b
   });
 });
 
@@ -125,7 +123,7 @@ describe('emptyScores', () => {
 // ══════════════════════════════════════════════════════════════
 
 describe('checkSpinsAgainstPending — WIN', () => {
-  it('WIN mode 0: hit direto no número sugerido', () => {
+  it('WIN: hit direto no número sugerido também conta para mode 1 (que cobre o próprio número)', () => {
     const scores = emptyScores();
     const pending = [{
       id: 1,
@@ -136,15 +134,14 @@ describe('checkSpinsAgainstPending — WIN', () => {
 
     checkSpinsAgainstPending(pending, [7], scores);
 
-    expect(scores['0'].wins).toBe(1);
-    expect(pending[0].resolved_modes['0']).toBe('win');
+    expect(scores['1'].wins).toBe(1);
+    expect(pending[0].resolved_modes['1']).toBe('win');
   });
 
   it('WIN mode 1: hit no vizinho (não no número direto)', () => {
     const scores = emptyScores();
     // Número 7 está na posição 31 do WHEEL
     // Vizinho +1 = WHEEL[32] = 28
-    // Se sugerimos [7] e cai 28, mode 1 ganha mas mode 0 não
     const pending = [{
       id: 1,
       suggested_numbers: [7],
@@ -154,7 +151,6 @@ describe('checkSpinsAgainstPending — WIN', () => {
 
     checkSpinsAgainstPending(pending, [28], scores); // vizinho de 7
 
-    expect(scores['0'].wins).toBe(0); // 28 não está em [7]
     expect(scores['1'].wins).toBe(1); // 28 é vizinho-1 de 7
     expect(scores['2'].wins).toBe(1); // vizinho-2 também cobre
   });
@@ -173,7 +169,6 @@ describe('checkSpinsAgainstPending — WIN', () => {
 
     checkSpinsAgainstPending(pending, [18], scores);
 
-    expect(scores['0'].wins).toBe(0); // 18 não está em [7]
     expect(scores['1'].wins).toBe(0); // 18 não é vizinho-1 de 7
     expect(scores['2'].wins).toBe(1); // 18 É vizinho-2 de 7
   });
@@ -190,7 +185,7 @@ describe('checkSpinsAgainstPending — WIN', () => {
     // Primeiro spin não acerta, segundo acerta
     checkSpinsAgainstPending(pending, [0, 17], scores);
 
-    expect(scores['0'].wins).toBe(1);
+    expect(scores['1'].wins).toBe(1);
     expect(pending[0].spins_after).toBe(2);
   });
 
@@ -206,9 +201,8 @@ describe('checkSpinsAgainstPending — WIN', () => {
     // 3 spins: 0, 0, 10 (acerto no terceiro)
     checkSpinsAgainstPending(pending, [0, 0, 10], scores);
 
-    expect(scores['0'].wins).toBe(1);
-    // Mas como spins_after=3 >= LOSS_THRESHOLD, modes não acertados são LOSS
-    expect(pending[0].resolved_modes['0']).toBe('win');
+    expect(scores['1'].wins).toBe(1);
+    expect(pending[0].resolved_modes['1']).toBe('win');
   });
 });
 
@@ -232,12 +226,11 @@ describe('checkSpinsAgainstPending — LOSS', () => {
     // Escolhemos números distantes
     checkSpinsAgainstPending(pending, [18, 22, 9], scores);
 
-    expect(scores['0'].losses).toBe(1); // nenhum dos 3 é 0
     expect(scores['1'].losses).toBe(1); // nenhum é vizinho-1 [26,0,32]
     expect(scores['2'].losses).toBe(1); // nenhum é vizinho-2 [3,26,0,32,15]
   });
 
-  it('LOSS parcial: mode 0 perde mas mode 1/2 ganham', () => {
+  it('mode 1 perde mas mode 2 ganha (vizinho-2 mais largo)', () => {
     const scores = emptyScores();
     // 0 está na posição 0: vizinho-1 = [26, 0, 32], vizinho-2 = [3, 26, 0, 32, 15]
     const pending = [{
@@ -247,12 +240,11 @@ describe('checkSpinsAgainstPending — LOSS', () => {
       resolved_modes: {},
     }];
 
-    // 32 é vizinho-1 de 0
-    checkSpinsAgainstPending(pending, [32, 18, 22], scores);
+    // 15 é vizinho-2 mas NÃO vizinho-1 de 0; depois 18, 22 que estão fora
+    checkSpinsAgainstPending(pending, [15, 18, 22], scores);
 
-    expect(scores['0'].losses).toBe(1); // 32 não é 0
-    expect(scores['1'].wins).toBe(1);   // 32 É vizinho-1
-    expect(scores['2'].wins).toBe(1);   // também é vizinho-2
+    expect(scores['1'].losses).toBe(1); // 15 não é vizinho-1 de 0
+    expect(scores['2'].wins).toBe(1);   // 15 É vizinho-2 de 0
   });
 
   it('sinal é marcado para deleção após LOSS_THRESHOLD', () => {
@@ -298,13 +290,12 @@ describe('checkSpinsAgainstPending — Batch dedup', () => {
       resolved_modes: {},
     }];
 
-    // Primeiro acerta mode 0, segundo spin não deve incrementar de novo
+    // 7 acerta no primeiro spin (mode 1 e 2 resolvidos como win)
+    // Spins seguintes não devem incrementar wins de novo (resolved → skip)
     checkSpinsAgainstPending(pending, [7, 12, 35], scores);
 
-    // 7 acerta mode 0 no primeiro spin
-    // Mas o sinal continua processando até LOSS_THRESHOLD
-    // Contudo, mode 0 já resolvido → skip
-    expect(scores['0'].wins).toBe(1); // apenas 1 win, não 3
+    expect(scores['1'].wins).toBe(1); // apenas 1 win, não 3
+    expect(scores['2'].wins).toBe(1);
   });
 
   it('múltiplos sinais pendentes processados independentemente', () => {
@@ -314,10 +305,10 @@ describe('checkSpinsAgainstPending — Batch dedup', () => {
       { id: 2, suggested_numbers: [17], spins_after: 0, resolved_modes: {} },
     ];
 
-    // 7 acerta sinal 1, 17 acerta sinal 2
+    // 7 acerta sinal 1 (mode 1 e 2), 17 acerta sinal 2 (mode 1 e 2)
     checkSpinsAgainstPending(pending, [7, 17, 0], scores);
 
-    expect(scores['0'].wins).toBe(2); // ambos acertaram mode 0
+    expect(scores['1'].wins).toBe(2); // ambos sinais hit no mode 1
   });
 
   it('sinal deletado (id no toDelete) não processa mais spins', () => {
@@ -334,9 +325,8 @@ describe('checkSpinsAgainstPending — Batch dedup', () => {
 
     expect(toDelete).toContain(99);
     // O 4o spin (0) chegou DEPOIS da resolução
-    // Na implementação real, o sinal já estaria deletado
-    // Na nossa simulação, verificamos que losses não excedem 1
-    expect(scores['0'].losses).toBe(1); // não 2
+    // Na nossa simulação, verificamos que losses não excedem 1 por mode
+    expect(scores['1'].losses).toBe(1); // não 2
   });
 });
 
@@ -358,8 +348,8 @@ describe('checkSpinsAgainstPending — Edge cases', () => {
 
     // Nenhum número válido processado
     expect(pending[0].spins_after).toBe(0);
-    expect(scores['0'].wins).toBe(0);
-    expect(scores['0'].losses).toBe(0);
+    expect(scores['1'].wins).toBe(0);
+    expect(scores['1'].losses).toBe(0);
   });
 
   it('NaN passa o guard typeof mas falha na comparação — edge case documentado', () => {
@@ -376,7 +366,7 @@ describe('checkSpinsAgainstPending — Edge cases', () => {
     checkSpinsAgainstPending(pending, [NaN], scores);
 
     expect(pending[0].spins_after).toBe(1);
-    expect(scores['0'].wins).toBe(0); // NaN nunca está em includes()
+    expect(scores['1'].wins).toBe(0); // NaN nunca está em includes()
   });
 
   it('array vazio de números não altera estado', () => {
@@ -391,16 +381,16 @@ describe('checkSpinsAgainstPending — Edge cases', () => {
     checkSpinsAgainstPending(pending, [], scores);
 
     expect(pending[0].spins_after).toBe(0);
-    expect(scores['0'].wins).toBe(0);
-    expect(scores['0'].losses).toBe(0);
+    expect(scores['1'].wins).toBe(0);
+    expect(scores['1'].losses).toBe(0);
   });
 
   it('sem sinais pendentes não altera scores', () => {
     const scores = emptyScores();
     checkSpinsAgainstPending([], [7, 17, 0], scores);
 
-    expect(scores['0'].wins).toBe(0);
-    expect(scores['0'].losses).toBe(0);
+    expect(scores['1'].wins).toBe(0);
+    expect(scores['1'].losses).toBe(0);
   });
 
   it('número 0 é válido e processado', () => {
@@ -413,7 +403,7 @@ describe('checkSpinsAgainstPending — Edge cases', () => {
     }];
 
     checkSpinsAgainstPending(pending, [0], scores);
-    expect(scores['0'].wins).toBe(1);
+    expect(scores['1'].wins).toBe(1);
   });
 
   it('número 36 é válido e processado', () => {
@@ -426,7 +416,7 @@ describe('checkSpinsAgainstPending — Edge cases', () => {
     }];
 
     checkSpinsAgainstPending(pending, [36], scores);
-    expect(scores['0'].wins).toBe(1);
+    expect(scores['1'].wins).toBe(1);
   });
 });
 
@@ -435,13 +425,6 @@ describe('checkSpinsAgainstPending — Edge cases', () => {
 // ══════════════════════════════════════════════════════════════
 
 describe('Cobertura por modo integrada com scoring', () => {
-  it('5 números com mode 0 = exatamente 5 cobertos', () => {
-    const nums = [7, 28, 12, 35, 3];
-    const covered = getCovered(nums, 0);
-    expect(covered).toHaveLength(5);
-    expect(covered).toEqual(nums);
-  });
-
   it('5 números com mode 1 = até 15 cobertos (com overlap)', () => {
     const nums = [7, 28, 12, 35, 3];
     const covered = getCovered(nums, 1);
@@ -458,16 +441,14 @@ describe('Cobertura por modo integrada com scoring', () => {
 
   it('mode crescente → cobertura crescente', () => {
     const nums = [17, 34, 6];
-    const c0 = getCovered(nums, 0).length;
     const c1 = getCovered(nums, 1).length;
     const c2 = getCovered(nums, 2).length;
-    expect(c1).toBeGreaterThanOrEqual(c0);
     expect(c2).toBeGreaterThanOrEqual(c1);
   });
 
   it('WIN mais provável em modes maiores', () => {
-    // Executa 100 cenários aleatórios e verifica que mode 2 ganha mais que mode 0
-    let wins = { '0': 0, '1': 0, '2': 0 };
+    // Executa 100 cenários aleatórios e verifica que mode 2 ganha mais que mode 1
+    let wins = { '1': 0, '2': 0 };
     const rng = { val: 42 };
     const next = () => {
       rng.val = (rng.val * 1103515245 + 12345) & 0x7fffffff;
@@ -477,14 +458,13 @@ describe('Cobertura por modo integrada com scoring', () => {
     for (let trial = 0; trial < 100; trial++) {
       const suggested = Array.from({ length: 5 }, () => next());
       const spin = next();
-      for (const mode of [0, 1, 2]) {
+      for (const mode of [1, 2]) {
         if (getCovered(suggested, mode).includes(spin)) {
           wins[String(mode)]++;
         }
       }
     }
 
-    expect(wins['1']).toBeGreaterThanOrEqual(wins['0']);
     expect(wins['2']).toBeGreaterThanOrEqual(wins['1']);
   });
 });
@@ -494,10 +474,8 @@ describe('Cobertura por modo integrada com scoring', () => {
 // ══════════════════════════════════════════════════════════════
 
 describe('Motor Scores structure', () => {
-  it('placar completo tem 3 modes × 2 campos = 6 valores', () => {
+  it('placar completo tem 2 modes × 2 campos = 4 valores', () => {
     const scores = emptyScores();
-    scores['0'].wins = 10;
-    scores['0'].losses = 5;
     scores['1'].wins = 15;
     scores['1'].losses = 3;
     scores['2'].wins = 20;
@@ -505,29 +483,23 @@ describe('Motor Scores structure', () => {
 
     // Assertividade por modo
     const assertividades = {};
-    for (const mode of ['0', '1', '2']) {
+    for (const mode of ['1', '2']) {
       const total = scores[mode].wins + scores[mode].losses;
       assertividades[mode] = total > 0 ? (scores[mode].wins / total * 100) : 0;
     }
 
-    expect(assertividades['0']).toBeCloseTo(66.67, 0);
     expect(assertividades['1']).toBeCloseTo(83.33, 0);
     expect(assertividades['2']).toBeCloseTo(90.91, 0);
   });
 
-  it('mode 0 é sempre mais difícil que mode 1 e mode 2', () => {
-    // Em teoria, mode 0 (5/37 ≈ 13.5%) < mode 1 (~15/37 ≈ 40%) < mode 2 (~25/37 ≈ 67%)
+  it('mode 1 cobre menos números que mode 2', () => {
+    // Mode 1: ~3 cobertos por sugerido; mode 2: ~5 cobertos por sugerido.
     const singleNumber = [17];
-    const c0 = getCovered(singleNumber, 0).length; // 1
     const c1 = getCovered(singleNumber, 1).length; // 3
     const c2 = getCovered(singleNumber, 2).length; // 5
 
-    expect(c0).toBe(1);
     expect(c1).toBe(3);
     expect(c2).toBe(5);
-
-    // Probabilidade de acerto = cobertos / 37
-    expect(c0 / 37).toBeLessThan(c1 / 37);
     expect(c1 / 37).toBeLessThan(c2 / 37);
   });
 });
@@ -571,23 +543,19 @@ describe('Full motor scoring simulation', () => {
       resolved_modes: {},
     }];
 
-    // 2. Spin 1: cai 28 (hit mode 0, 1, 2)
+    // 2. Spin 1: cai 28 (hit mode 1 e 2)
     checkSpinsAgainstPending(pending, [28], scores);
-    expect(scores['0'].wins).toBe(1);
     expect(scores['1'].wins).toBe(1);
     expect(scores['2'].wins).toBe(1);
 
-    // Todos os modes resolvidos como win no 1o spin
-    expect(pending[0].resolved_modes['0']).toBe('win');
     expect(pending[0].resolved_modes['1']).toBe('win');
     expect(pending[0].resolved_modes['2']).toBe('win');
   });
 
-  it('cenário: win tardio no spin 3 com modes mistos', () => {
+  it('cenário: win tardio com modes mistos', () => {
     const scores = emptyScores();
 
     // Sugerimos [0] (posição 0 no WHEEL)
-    // Mode 0: [0]
     // Mode 1: [26, 0, 32]
     // Mode 2: [3, 26, 0, 32, 15]
     const pending = [{
@@ -597,9 +565,8 @@ describe('Full motor scoring simulation', () => {
       resolved_modes: {},
     }];
 
-    // Spin 1: 15 (vizinho-2 de 0)
+    // Spin 1: 15 (vizinho-2 de 0, mas não vizinho-1)
     checkSpinsAgainstPending(pending, [15], scores);
-    expect(scores['0'].wins).toBe(0);  // 15 ≠ 0
     expect(scores['1'].wins).toBe(0);  // 15 não é vizinho-1 de 0
     expect(scores['2'].wins).toBe(1);  // 15 É vizinho-2
 
@@ -607,12 +574,7 @@ describe('Full motor scoring simulation', () => {
     checkSpinsAgainstPending(pending, [32], scores);
     expect(scores['1'].wins).toBe(1);
 
-    // Spin 3: 0 (hit direto) + resolve LOSS para modes restantes
-    checkSpinsAgainstPending(pending, [0], scores);
-    expect(scores['0'].wins).toBe(1);
-
-    // Verificar que nenhum mode ficou como loss
-    expect(scores['0'].losses).toBe(0);
+    // Nenhum mode virou loss
     expect(scores['1'].losses).toBe(0);
     expect(scores['2'].losses).toBe(0);
   });
@@ -630,7 +592,6 @@ describe('Full motor scoring simulation', () => {
     // 3 spins distantes do 0 no cilindro
     checkSpinsAgainstPending(pending, [18, 22, 9], scores);
 
-    expect(scores['0'].losses).toBe(1);
     expect(scores['1'].losses).toBe(1);
     expect(scores['2'].losses).toBe(1);
 
@@ -641,7 +602,7 @@ describe('Full motor scoring simulation', () => {
   it('múltiplos sinais em sequência acumulam placar', () => {
     const scores = emptyScores();
 
-    // Sinal 1: WIN
+    // Sinal 1: WIN (7 hit direto cobre mode 1 e 2)
     const pending1 = [{
       id: 1,
       suggested_numbers: [7],
@@ -650,7 +611,7 @@ describe('Full motor scoring simulation', () => {
     }];
     checkSpinsAgainstPending(pending1, [7, 0, 0], scores);
 
-    // Sinal 2: LOSS
+    // Sinal 2: LOSS (números distantes do 0)
     const pending2 = [{
       id: 2,
       suggested_numbers: [0],
@@ -659,7 +620,7 @@ describe('Full motor scoring simulation', () => {
     }];
     checkSpinsAgainstPending(pending2, [18, 22, 9], scores);
 
-    expect(scores['0'].wins).toBe(1);
-    expect(scores['0'].losses).toBe(1);
+    expect(scores['1'].wins).toBe(1);
+    expect(scores['1'].losses).toBe(1);
   });
 });

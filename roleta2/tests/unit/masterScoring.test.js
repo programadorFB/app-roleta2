@@ -29,8 +29,9 @@ describe('calculateMasterScore — edge cases', () => {
     expect(result.entrySignal).toBeNull();
   });
 
-  it('retorna resultado vazio para < 50 spins', () => {
-    const history = generateSpinHistory(49);
+  it('retorna resultado vazio para < 4 spins', () => {
+    // Threshold mínimo é 4 (masterScoring.js:189) — 1 estratégia pode rodar com pouquíssimos dados.
+    const history = generateSpinHistory(3);
     const result = calculateMasterScore(history);
     expect(result.strategyScores).toEqual([]);
     expect(result.entrySignal).toBeNull();
@@ -58,7 +59,8 @@ describe('calculateMasterScore — output format', () => {
   });
 
   it('cada estratégia tem name, score, status, signal, numbers', () => {
-    const requiredNames = ['Cavalos', 'Setores', 'Vizinhos', 'Ocultos', 'Croupier'];
+    // Estratégia 'Croupier' do CLAUDE.md foi renomeada para 'Gatilhos' (analyzeTriggers).
+    const requiredNames = ['Cavalos', 'Setores', 'Vizinhos', 'Ocultos', 'Gatilhos'];
     const names = result.strategyScores.map(s => s.name);
     for (const name of requiredNames) {
       expect(names).toContain(name);

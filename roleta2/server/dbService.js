@@ -60,7 +60,8 @@ export const getFullHistory = async (sourceName) => {
 
   return cacheAside(KEY.history(sourceName), TTL.FULL_HISTORY, async () => {
     const { rows } = await query(
-      `SELECT timestamp,
+      `SELECT id,
+              timestamp,
               signalid AS "signalId",
               gameid   AS "gameId",
               signal

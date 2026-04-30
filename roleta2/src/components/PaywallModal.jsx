@@ -115,7 +115,7 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
                 </div>
               )}
               <div className="paywall-email-warning-top">
-                <Info size={78} /> 
+                <Info size={16} />
                 <span>Importante: A compra deve ser realizada com o <strong>mesmo e-mail</strong> de acesso da plataforma.</span>
               </div>
               {/* Features Section */}
@@ -236,7 +236,7 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
 
               {/* --- NOVO AVISO DE E-MAIL --- */}
               <div className="paywall-email-warning">
-                <Info size={78} /> 
+                <Info size={16} />
                 <span>Importante: A compra deve ser realizada com o <strong>mesmo e-mail</strong> de acesso da plataforma.</span>
               </div>
               {/* --- FIM DO NOVO AVISO --- */}

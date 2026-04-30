@@ -1,0 +1,54 @@
+server {
+    listen ${NGINX_PORT};
+    server_name localhost;
+
+    # ── Security headers ────────────────────────────
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' ${BACKEND_PUBLIC_URL} ${BACKEND_PUBLIC_WSS_URL}; font-src 'self' data:; frame-src 'self' ${AUTH_PROXY_TARGET};" always;
+
+    # ── Ocultar versão do nginx ─────────────────────
+    server_tokens off;
+
+    # ── Anti-clone: bloquear bots/scrapers ──────────
+    if ($http_user_agent ~* (wget|curl|scrapy|python-requests|httpclient|crawler|spider|bot|headless|phantomjs|selenium)) {
+        return 403;
+    }
+
+    # ── Bloquear acesso a arquivos sensíveis ────────
+    location ~* \.(env|git|md|yml|yaml|toml|lock|log|sql)$ {
+        deny all;
+        return 404;
+    }
+
+    location ~ /\. {
+        deny all;
+        return 404;
+    }
+
+    # ── Assets estáticos com cache longo ────────────
+    location /assets/ {
+        root /usr/share/nginx/html;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        access_log off;
+    }
+
+    # ── SPA fallback ────────────────────────────────
+    location / {
+        root /usr/share/nginx/html;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+
+        # Cache curto para o index.html (para deploys)
+        location = /index.html {
+            add_header Cache-Control "no-cache, no-store, must-revalidate";
+            add_header Pragma "no-cache";
+            add_header Expires "0";
+        }
+    }
+}

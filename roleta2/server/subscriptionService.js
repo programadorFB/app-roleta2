@@ -388,7 +388,15 @@ export async function getActiveSubscriptions() {
   });
 }
 
-// ── Aviso de vencimento (2 dias antes) ──────────────────────────
+// ── Aviso de vencimento (2 dias antes) ────────────────────────
+//
+// Roda periodicamente (agendado em server.js, apenas worker 0).
+// Envia 1 email por assinatura quando faltam ~2 dias para vencer.
+//
+// Idempotência: `expiration_reminder_sent_at` guarda o timestamp do último envio.
+//   - Se IS NULL  → envia
+//   - Se < expires_at - INTERVAL '7 days' → envia (indica que houve renovação
+//     empurrando a data pra frente, então libera novo aviso)
 //
 // Janela temporal: expires_at entre NOW()+36h e NOW()+60h — captura assinaturas
 // ~2 dias de vencimento, com folga de ±12h para absorver atrasos/antecipações
@@ -495,5 +503,6 @@ export default {
   getSubscriptionByHublaId, hasActiveAccess, processHublaWebhook,
   verifyHublaWebhook, getActiveSubscriptions, getSubscriptionStats,
   logWebhookEvent, getWebhookLogs, logSubscriptionAudit,
-  getSubscriptionAuditLog, getAllAuditLogs, sendExpirationReminders,
+  getSubscriptionAuditLog, getAllAuditLogs,
+  sendExpirationReminders,
 };

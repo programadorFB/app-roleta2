@@ -76,7 +76,10 @@ function buildWelcomeEmail({ name, email, planName, expiresAt, amount }) {
       : null;
 
   const amountStr = amount ? `R$ ${(amount / 100).toFixed(2).replace('.', ',')}` : null;
-  const appUrl = process.env.FRONTEND_URL || 'https://tool.smartanalise.com.br';
+  const appUrl             = process.env.FRONTEND_URL;
+  const brandGerenciamento = process.env.BRAND_GERENCIAMENTO_URL;
+  const brandLaboratorio   = process.env.BRAND_LABORATORIO_URL;
+  const brandAcademy       = process.env.BRAND_ACADEMY_URL;
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -220,7 +223,7 @@ function buildWelcomeEmail({ name, email, planName, expiresAt, amount }) {
 
   <!-- CTA BUTTON -->
   <tr><td align="center" style="padding:16px 44px 6px;">
-    <a href="https://tool.smartanalise.com.br" target="_blank"
+    <a href="${appUrl}" target="_blank"
        style="display:inline-block;padding:15px 52px;background:linear-gradient(135deg,#c9a052,#a07830);color:#0d0b08;font-size:12px;font-weight:800;letter-spacing:3px;text-transform:uppercase;text-decoration:none;border:1px solid rgba(255,220,130,0.2);">
       &#9830;&ensp;ACESSAR AGORA&ensp;&#8594;
     </a>
@@ -230,19 +233,19 @@ function buildWelcomeEmail({ name, email, planName, expiresAt, amount }) {
   <tr><td align="center" style="padding:14px 44px 24px;">
     <table role="presentation" cellpadding="0" cellspacing="0"><tr>
       <td style="padding:0 6px;">
-        <a href="https://tool.smartanalise.com.br" target="_blank" style="font-size:10px;color:rgba(201,160,82,0.45);text-decoration:none;letter-spacing:0.5px;">Ferramenta</a>
+        <a href="${appUrl}" target="_blank" style="font-size:10px;color:rgba(201,160,82,0.45);text-decoration:none;letter-spacing:0.5px;">Ferramenta</a>
       </td>
       <td style="color:rgba(201,160,82,0.12);font-size:10px;">&#9830;</td>
       <td style="padding:0 6px;">
-        <a href="https://appgerenciamento.smartanalise.com.br" target="_blank" style="font-size:10px;color:rgba(201,160,82,0.45);text-decoration:none;letter-spacing:0.5px;">Gerenciamento</a>
+        <a href="${brandGerenciamento}" target="_blank" style="font-size:10px;color:rgba(201,160,82,0.45);text-decoration:none;letter-spacing:0.5px;">Gerenciamento</a>
       </td>
       <td style="color:rgba(201,160,82,0.12);font-size:10px;">&#9830;</td>
       <td style="padding:0 6px;">
-        <a href="https://laboratorio.smartanalise.com.br" target="_blank" style="font-size:10px;color:rgba(201,160,82,0.45);text-decoration:none;letter-spacing:0.5px;">Laborat&oacute;rio</a>
+        <a href="${brandLaboratorio}" target="_blank" style="font-size:10px;color:rgba(201,160,82,0.45);text-decoration:none;letter-spacing:0.5px;">Laborat&oacute;rio</a>
       </td>
       <td style="color:rgba(201,160,82,0.12);font-size:10px;">&#9830;</td>
       <td style="padding:0 6px;">
-        <a href="https://members.smartanalise.com.br" target="_blank" style="font-size:10px;color:rgba(201,160,82,0.45);text-decoration:none;letter-spacing:0.5px;">Academy</a>
+        <a href="${brandAcademy}" target="_blank" style="font-size:10px;color:rgba(201,160,82,0.45);text-decoration:none;letter-spacing:0.5px;">Academy</a>
       </td>
     </tr></table>
   </td></tr>
@@ -556,9 +559,7 @@ export async function sendExpirationReminderEmail({ name, email, planName, expir
 
   const senderName  = process.env.SMTP_SENDER_NAME || 'Smart Analise';
   const senderEmail = process.env.SMTP_USER;
-  const checkoutUrl = process.env.HUBLA_CHECKOUT_URL
-    || process.env.FRONTEND_URL
-    || 'https://tool.smartanalise.com.br';
+  const checkoutUrl = process.env.HUBLA_CHECKOUT_URL || process.env.FRONTEND_URL;
 
   const html = buildExpirationReminderEmail({ name, email, planName, expiresAt, daysLeft, checkoutUrl });
   const daysLabel = daysLeft === 1 ? '1 dia' : `${daysLeft} dias`;

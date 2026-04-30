@@ -17,7 +17,7 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 import { loadAllExistingSignalIds, saveNewSignals, getFullHistory, getLatestSpins, getNewSignalsSince } from './dbService.js';
 import { SOURCES } from './constants.js';
 import { testConnection, poolStats, query } from './db.js';
-import { initRedis, redisHealthCheck, closeRedis, cacheSet, cacheDel, KEY, TTL, getPubSubClients } from './redisService.js';
+import { initRedis, redisHealthCheck, closeRedis, cacheSet, cacheDel, KEY, TTL, getPubSubClients, publishSignals } from './redisService.js';
 import {
   hasActiveAccess, processHublaWebhook, verifyHublaWebhook,
   getSubscriptionStats, getActiveSubscriptions, getWebhookLogs,
@@ -25,7 +25,7 @@ import {
   sendExpirationReminders,
   ACTIVE_STATUSES,
 } from './subscriptionService.js';
-import { processSource, initMotorEngine, getLatestMotorAnalysis, computeFilteredMotorScore, backfillMotorScores } from './motorScoreEngine.js';
+import { processSource, initMotorEngine, getLatestMotorAnalysis, computeMotorAnalysisOnDemand, computeFilteredMotorScore, backfillMotorScores } from './motorScoreEngine.js';
 import { processTriggerSource, initTriggerEngine, getLatestTriggerAnalysis } from './triggerScoreEngine.js';
 
 dotenv.config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.env') });
@@ -38,20 +38,14 @@ const app    = express();
 if (IS_PROD) app.set('trust proxy', 1);
 const server = http.createServer(app);
 
-const allowedOrigins = [
-  'https://fuza.onrender.com',
-  'https://roleta3-1.onrender.com',
-  'http://localhost:5173',
-  'http://localhost:3001',
-  'https://tool.smartanalise.com.br',
-  'https://testes123.smartanalise.com.br',
-  'https://ferramenta1.smartanalise.com.br',
-  'https://ferramenta2.smartanalise.com.br',
-  'https://free.smartanalise.com.br',
-  'https://sortenabet.smartanalise.com.br',
-  'http://76.13.174.229',
-  'https://76.13.174.229',
-];
+const allowedOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+
+if (allowedOrigins.length === 0) {
+  console.error('❌ FATAL: CORS_ORIGINS não definido — nenhuma origem permitida');
+}
 
 const io = new Server(server, {
   cors: { origin: allowedOrigins, methods: ['GET', 'POST'] },
@@ -71,30 +65,33 @@ Sentry.init({
 
 const CRAWLER_SECRET      = process.env.CRAWLER_SECRET;
 const FRONTEND_URL        = process.env.FRONTEND_URL;
+const BACKEND_PUBLIC_URL  = process.env.BACKEND_PUBLIC_URL;
 const HUBLA_WEBHOOK_TOKEN = process.env.HUBLA_WEBHOOK_TOKEN;
 const HUBLA_CHECKOUT_URL  = process.env.HUBLA_CHECKOUT_URL;
 const ADMIN_SECRET        = process.env.ADMIN_SECRET;
-const AUTH_PROXY_TARGET   = process.env.AUTH_PROXY_TARGET || 'https://api.appbackend.tech';
+const AUTH_PROXY_TARGET   = process.env.AUTH_PROXY_TARGET;
 const FETCH_INTERVAL_MS   = 1000;
 
-if (!CRAWLER_SECRET) console.error('❌ FATAL: CRAWLER_SECRET não definido — /api/report-spin bloqueado');
+if (!CRAWLER_SECRET)     console.error('❌ FATAL: CRAWLER_SECRET não definido — /api/report-spin bloqueado');
+if (!BACKEND_PUBLIC_URL) console.error('❌ FATAL: BACKEND_PUBLIC_URL não definido — CSP rejeitará conexões');
+if (!AUTH_PROXY_TARGET)  console.error('❌ FATAL: AUTH_PROXY_TARGET não definido');
 
 const API_URLS = {
-  immersivevip: 'https://apptemporario-production.up.railway.app/api/bd9c8298-1453-4694-8d9c-b32be9f972e7',
-  immersive:    'https://apptemporario-production.up.railway.app/api/0194b479-654d-70bd-ac50-9c5a9b4d14c5',
-  brasileira:          'https://apptemporario-production.up.railway.app/api/0194b473-2ab3-778f-89ee-236e803f3c8e',
-  brasileira_playtech: 'https://roleta-api.sortehub.online/api/compat/brasileira?limit=200',
-  speed:        'https://apptemporario-production.up.railway.app/api/0194b473-c347-752f-9eaf-783721339479',
-  xxxtreme:     'https://apptemporario-production.up.railway.app/api/0194b478-5ba0-7110-8179-d287b2301e2e',
-  vipauto:      'https://apptemporario-production.up.railway.app/api/0194b473-9044-772b-a6fc-38236eb08b42',
-  auto:         'https://apptemporario-production.up.railway.app/api/0194b471-1645-749e-9214-be0342035f6f',
-  vip:          'https://apptemporario-production.up.railway.app/api/0194b472-6b93-74be-9260-7e407f5f1103',
-  lightning:    'https://apptemporario-production.up.railway.app/api/0194b472-7d68-75ea-b249-1422258f4d4c',
-  aovivo:       'https://apptemporario-production.up.railway.app/api/0194b473-1738-70dd-84a9-f1ddd4f00678',
-  speedauto:    'https://apptemporario-production.up.railway.app/api/0194b473-3139-770c-841f-d026ce7ed01f',
-  viproulette:  'https://apptemporario-production.up.railway.app/api/0194b474-bb9a-7451-b430-c451b14de1de',
-  relampago:    'https://apptemporario-production.up.railway.app/api/0194b474-d82f-76e0-9242-70f601984069',
-  malta:        'https://apptemporario-production.up.railway.app/api/0194b476-6091-730c-b971-7e66d9d8c44a',
+  immersivevip: process.env.API_URL_IMMERSIVEVIP,
+  immersive:    process.env.API_URL_IMMERSIVE,
+  brasileira:   process.env.API_URL_BRASILEIRA,
+  brasilPlay:   process.env.API_URL_BRASILPLAY,
+  speed:        process.env.API_URL_SPEED,
+  xxxtreme:     process.env.API_URL_XXXTREME,
+  vipauto:      process.env.API_URL_VIPAUTO,
+  auto:         process.env.API_URL_AUTO,
+  vip:          process.env.API_URL_VIP,
+  lightning:    process.env.API_URL_LIGHTNING,
+  aovivo:       process.env.API_URL_AOVIVO,
+  speedauto:    process.env.API_URL_SPEEDAUTO,
+  viproulette:  process.env.API_URL_VIPROULETTE,
+  relampago:    process.env.API_URL_RELAMPAGO,
+  malta:        process.env.API_URL_MALTA,
 };
 
 // ── Helpers de segurança ──────────────────────────────────────
@@ -168,7 +165,7 @@ app.use(helmet({
       scriptSrc:  ["'self'", "'unsafe-inline'"],
       styleSrc:   ["'self'", "'unsafe-inline'"],
       imgSrc:     ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://tool-api.smartanalise.com.br", "wss://tool-api.smartanalise.com.br"],
+      connectSrc: ["'self'", BACKEND_PUBLIC_URL, BACKEND_PUBLIC_URL?.replace(/^https:/, 'wss:')].filter(Boolean),
       fontSrc:    ["'self'", "data:"],
       frameSrc:   ["'self'", "https://api.appbackend.tech"],
     },
@@ -658,6 +655,16 @@ app.get('/api/admin/webhooks/logs', adminLimiter, requireAdminAuth, async (req, 
   catch (e) { Sentry.captureException(e); res.status(500).json({ error: e.message }); }
 });
 
+// Disparo manual do aviso de vencimento.
+// Use `?dryRun=1` para listar quem seria avisado sem enviar nada.
+app.post('/api/admin/expiration-reminders/run', adminLimiter, requireAdminAuth, async (req, res) => {
+  try {
+    const dryRun = req.query.dryRun === '1' || req.query.dryRun === 'true';
+    const result = await sendExpirationReminders({ dryRun });
+    res.json({ ok: true, dryRun, ...result });
+  } catch (e) { Sentry.captureException(e); res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/admin/audit', adminLimiter, requireAdminAuth, async (req, res) => {
   try {
     const { email, limit } = req.query;
@@ -721,16 +728,6 @@ app.post('/api/motor-score/reset', adminLimiter, requireAdminAuth, express.json(
     Sentry.captureException(e);
     res.status(500).json({ error: e.message });
   }
-});
-
-// Disparo manual do aviso de vencimento.
-// Use `?dryRun=1` para listar quem seria avisado sem enviar nada.
-app.post('/api/admin/expiration-reminders/run', adminLimiter, requireAdminAuth, async (req, res) => {
-  try {
-    const dryRun = req.query.dryRun === '1' || req.query.dryRun === 'true';
-    const result = await sendExpirationReminders({ dryRun });
-    res.json({ ok: true, dryRun, ...result });
-  } catch (e) { Sentry.captureException(e); res.status(500).json({ error: e.message }); }
 });
 
 // ── Trigger Score (wins/losses persistence — PostgreSQL) ─────
@@ -815,7 +812,7 @@ app.post('/api/admin/backfill-motor', adminLimiter, requireAdminAuth, express.js
 app.get('/api/motor-analysis', requireActiveSubscription, async (req, res) => {
   const source = req.query.source;
   if (!source) return res.status(400).json({ error: 'source required' });
-  const data = getLatestMotorAnalysis(source);
+  const data = getLatestMotorAnalysis(source) || await computeMotorAnalysisOnDemand(source);
   res.json(data || { source, timestamp: 0, globalAssertiveness: 0, totalSignals: 0, strategyScores: [], entrySignal: null, motorScores: emptyScores() });
 });
 
@@ -880,7 +877,17 @@ async function fetchAndSaveFromSource(url, sourceName) {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data       = await response.json();
     const normalized = normalizeData(data);
-    if (normalized.length > 0) await saveNewSignals(normalized, sourceName);
+    if (normalized.length > 0) {
+      // brasilPlay (Playtech) retorna recente→antigo. Inserir nessa ordem
+      // faz o id PK do PG ficar inverso da cronologia, e o delta `ORDER BY
+      // id DESC` entrega lotes de recovery invertidos pro frontend. Reverter
+      // antes do INSERT garante id crescente == cronologia crescente.
+      const toSave = sourceName === 'brasilPlay'
+        ? normalized.slice().reverse()
+        : normalized;
+      await saveNewSignals(toSave, sourceName);
+      await publishSignals(sourceName, normalized);
+    }
     // Engines passivos: analisa e pontua automaticamente após cada fetch
     await processSource(sourceName);
     await processTriggerSource(sourceName);
@@ -938,7 +945,7 @@ const startServer = async () => {
       const { createAdapter } = await import('@socket.io/redis-adapter');
       const { pubClient, subClient } = getPubSubClients();
       if (pubClient && subClient) {
-        io.adapter(createAdapter(pubClient, subClient));
+        io.adapter(createAdapter(pubClient, subClient, { key: process.env.REDIS_PREFIX }));
         console.log('🔌 [Socket.IO] Redis adapter ativo — cluster mode OK');
       }
     } catch (err) {

@@ -4,11 +4,11 @@ export const API_URL = (typeof import.meta !== 'undefined' && import.meta.env?.V
 export const SOCKET_URL = "https://roleta-fuza.sortehub.online";
 
 export const ROULETTE_SOURCES = {
+  immersivevip:   '🌟 Immersive Vip - Evolution',
+  brasilPlay:     '🎲 Roleta Brasileira - Playtech',
   aovivo:         '🔴 Roleta ao Vivo - Evolution',
   immersive:      '🌟 Immersive Roulette - Evolution',
-  immersivevip:   '🌟 Immersive Vip - Evolution',
-  brasileira:          '🇧🇷 Roleta Brasileira - Pragmatic',
-  brasileira_playtech: '🎲 Brasileira - Playtech',
+  brasileira:     '🇧🇷 Roleta Brasileira - Pragmatic',
   speed:          '💨 Speed Roulette - Evolution',
   xxxtreme:       '⚡ XXXtreme Lightning - Evolution',
   vipauto:        '🚘 Auto Roulette Vip - Evolution',
@@ -32,7 +32,7 @@ export const ROULETTE_GAME_IDS = {
   lightning: 33,
   reddoor: 35,
   aovivo: 34,
-  brasileira_playtech: 102,
+  brasilPlay: 102,
   brasileira: 101,
   relampago: 81,
   speedauto: 82,

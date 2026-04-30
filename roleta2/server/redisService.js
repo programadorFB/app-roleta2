@@ -9,12 +9,15 @@ export const TTL = {
   ACTIVE_SUBS:  60,
 };
 
+const PREFIX = process.env.REDIS_PREFIX;
+if (!PREFIX) console.error('❌ FATAL: REDIS_PREFIX não definido — chaves Redis sem namespace');
+
 export const KEY = {
-  sub:        (email)         => `sub:${email}`,
-  history:    (source)        => `hist:${source}`,
-  latest:     (source, limit) => `latest:${source}:${limit}`,
-  adminStats: ()              => 'admin:stats',
-  activeSubs: ()              => 'admin:active',
+  sub:        (email)         => `${PREFIX}:sub:${email}`,
+  history:    (source)        => `${PREFIX}:hist:${source}`,
+  latest:     (source, limit) => `${PREFIX}:latest:${source}:${limit}`,
+  adminStats: ()              => `${PREFIX}:admin:stats`,
+  activeSubs: ()              => `${PREFIX}:admin:active`,
 };
 
 let client      = null;
@@ -123,4 +126,64 @@ export async function redisHealthCheck() {
 export async function closeRedis() {
   const clients = [subClient, pubClient, client].filter(Boolean);
   await Promise.allSettled(clients.map(c => c.quit().catch(() => {})));
+}
+
+// ── Centralized Fetch: pub/sub de sinais entre instâncias ────
+
+const SIGNALS_CHANNEL = 'roulette:signals';
+
+export async function publishSignals(sourceName, data) {
+  if (!pubClient || !isConnected) return;
+  try {
+    await pubClient.publish(SIGNALS_CHANNEL, JSON.stringify({ source: sourceName, data }));
+  } catch (err) {
+    console.warn('⚠️ [REDIS] Falha ao publicar sinais:', err.message);
+  }
+}
+
+export async function subscribeSignals(handler) {
+  if (!subClient) {
+    console.warn('⚠️ [REDIS] subClient indisponível — subscribe ignorado');
+    return;
+  }
+
+  const url = process.env.REDIS_URL || 'redis://localhost:6379';
+
+  async function connectAndSubscribe() {
+    const { createClient } = await import('redis');
+    const signalSub = createClient({
+      url,
+      socket: {
+        connectTimeout: 5000,
+        reconnectStrategy: (retries) => Math.min(retries * 500, 30000),
+      },
+    });
+
+    signalSub.on('error', (err) => {
+      console.warn('⚠️ [REDIS-SIGNALS] Erro:', err.message);
+    });
+
+    signalSub.on('reconnecting', () => {
+      console.log('🔄 [REDIS-SIGNALS] Reconectando ao canal de sinais...');
+    });
+
+    await signalSub.connect();
+    await signalSub.subscribe(SIGNALS_CHANNEL, (message) => {
+      try {
+        const { source, data } = JSON.parse(message);
+        handler(source, data);
+      } catch (err) {
+        console.warn('⚠️ [REDIS-SIGNALS] Erro ao processar sinal:', err.message);
+      }
+    });
+    console.log('📡 [REDIS] Subscrito ao canal de sinais centralizados');
+  }
+
+  try {
+    await connectAndSubscribe();
+  } catch (err) {
+    console.warn('⚠️ [REDIS] Falha ao subscrever sinais:', err.message);
+    console.log('🔄 [REDIS-SIGNALS] Retentando em 5s...');
+    setTimeout(() => subscribeSignals(handler), 5000);
+  }
 }

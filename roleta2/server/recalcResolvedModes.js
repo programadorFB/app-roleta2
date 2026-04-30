@@ -30,8 +30,8 @@ async function main() {
   const pool = new Pool({
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 5432,
-    database: process.env.DB_NAME || 'phantom-roleta',
-    user: process.env.DB_USER || 'postgres',
+    database: process.env.DB_NAME || 'fuzabalta_roulette',
+    user: process.env.DB_USER || 'fuzabalta',
     password: process.env.DB_PASSWORD || '',
   });
 
@@ -52,7 +52,7 @@ async function main() {
     let spinIdx = 0;
     for (const spinNum of spins) {
       spinIdx++;
-      for (const mode of [0, 1, 2]) {
+      for (const mode of [1, 2]) {
         const mk = String(mode);
         if (modes[mk]) continue; // já resolvido
         const covered = getCovered(nums, mode);
@@ -65,7 +65,7 @@ async function main() {
     }
 
     // Marca loss para modos não resolvidos após todos os spins
-    for (const mode of [0, 1, 2]) {
+    for (const mode of [1, 2]) {
       const mk = String(mode);
       if (!modes[mk]) modes[mk] = 'loss';
     }
@@ -90,17 +90,17 @@ async function main() {
       [source]
     );
 
-    const scores = { 0: { wins: 0, losses: 0 }, 1: { wins: 0, losses: 0 }, 2: { wins: 0, losses: 0 } };
+    const scores = { 1: { wins: 0, losses: 0 }, 2: { wins: 0, losses: 0 } };
     for (const sig of signals) {
       const m = sig.resolved_modes || {};
-      for (const mode of [0, 1, 2]) {
+      for (const mode of [1, 2]) {
         const mk = String(mode);
         if (m[mk] === 'win') scores[mode].wins++;
         else if (m[mk] === 'loss') scores[mode].losses++;
       }
     }
 
-    for (const mode of [0, 1, 2]) {
+    for (const mode of [1, 2]) {
       await pool.query(
         `INSERT INTO motor_scores (source, neighbor_mode, wins, losses)
          VALUES ($1, $2, $3, $4)
@@ -109,7 +109,7 @@ async function main() {
         [source, mode, scores[mode].wins, scores[mode].losses]
       );
     }
-    console.log(`[${source}] mode0: ${scores[0].wins}W/${scores[0].losses}L | mode1: ${scores[1].wins}W/${scores[1].losses}L | mode2: ${scores[2].wins}W/${scores[2].losses}L`);
+    console.log(`[${source}] mode1: ${scores[1].wins}W/${scores[1].losses}L | mode2: ${scores[2].wins}W/${scores[2].losses}L`);
   }
 
   console.log('✅ motor_scores recalculados.');

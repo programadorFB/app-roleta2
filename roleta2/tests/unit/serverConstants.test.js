@@ -40,9 +40,9 @@ describe('SOURCES', () => {
     expect(SOURCES).toContain('vipauto');
   });
 
-  it('todos os nomes são lowercase', () => {
+  it('todos os nomes são identificadores alfanuméricos válidos', () => {
     for (const source of SOURCES) {
-      expect(source).toBe(source.toLowerCase());
+      expect(source).toMatch(/^[a-zA-Z][a-zA-Z0-9]*$/);
     }
   });
 

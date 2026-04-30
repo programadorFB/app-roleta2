@@ -67,6 +67,16 @@ tmp/
 *.tar.gz
 *.map
 
+# CLAUDE CODE
+# =========================================================
+.claude/
+CLAUDE.md
+
+# SCRIPTS DE DEBUG / BACKUP
+# =========================================================
+*.bak
+check_*.js
+
 # TESTE LOCAL
 # =========================================================
 docker-compose.local.yml

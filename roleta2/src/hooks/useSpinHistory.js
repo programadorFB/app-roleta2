@@ -12,7 +12,6 @@ const getItemId = (item) => item?.signalId || item?.signalid || null;
 export const useSpinHistory = ({
   selectedRoulette,
   userEmail,
-  jwtToken,
   isAuthenticated,
   historyFilter,
   onPaywallRequired,

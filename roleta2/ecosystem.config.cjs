@@ -1,7 +1,7 @@
 // ecosystem.config.cjs — PM2 cluster config para 1000+ usuários
 module.exports = {
   apps: [{
-    name: 'roleta3',
+    name: process.env.APP_NAME || 'app',
     script: 'server/server.js',
     instances: process.env.PM2_INSTANCES || 'max',
     exec_mode: 'cluster',

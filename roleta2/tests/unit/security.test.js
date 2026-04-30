@@ -225,10 +225,11 @@ describe('Source whitelist — anti parameter tampering', () => {
     expect(SOURCES.includes('')).toBe(false);
   });
 
-  it('todos são strings alfanuméricas minúsculas', () => {
+  it('todos são strings alfanuméricas (camelCase permitido)', () => {
+    // 'brasilPlay' (PlayTech) tem 'P' maiúsculo — convenção camelCase aceita.
     for (const s of SOURCES) {
       expect(typeof s).toBe('string');
-      expect(s).toMatch(/^[a-z0-9]+$/);
+      expect(s).toMatch(/^[a-zA-Z0-9]+$/);
     }
   });
 
@@ -410,9 +411,9 @@ describe('Subscription — only valid statuses grant access', () => {
 // ══════════════════════════════════════════════════════════════
 
 describe('Nginx — security hardening', () => {
-  const conf = readFile('nginx.conf');
+  const conf = readFile('nginx.conf.template');
 
-  it('nginx.conf existe', () => {
+  it('nginx.conf.template existe', () => {
     expect(conf.length).toBeGreaterThan(0);
   });
 

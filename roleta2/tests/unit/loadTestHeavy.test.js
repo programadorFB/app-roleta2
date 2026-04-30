@@ -48,7 +48,7 @@ function simulateProcessSource(spinHistory) {
   // 2. Se há signal, verifica cobertura por mode (como checkSpinsAgainstPending)
   if (analysis?.entrySignal) {
     const nums = analysis.entrySignal.suggestedNumbers;
-    for (const mode of [0, 1, 2]) {
+    for (const mode of [1, 2]) {
       getCovered(nums, mode);
     }
   }

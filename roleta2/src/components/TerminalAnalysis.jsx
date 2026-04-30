@@ -240,9 +240,7 @@ const TerminalAnalysis = ({ spinHistory }) => {
 
       {/* --- Cards de Métricas Principais --- */}
       <div className={styles['stats-grid']}>
-        {/* ================================================================== */}
-        {/* [MODIFICADO] Card "Mais Ausente" agora mostra sua média */}
-        {/* ================================================================== */}
+        {/* Card 1: Mais Ausente — maior ausência absoluta em rodadas */}
         <StatCard title="Cavalo Mais Ausente" icon={<AlertOctagon size={24} className={styles.dangerIcon} />}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
             <span style={{ fontSize: '2.0rem', fontWeight: 'bold', color: '#fde047' }}>
@@ -255,15 +253,33 @@ const TerminalAnalysis = ({ spinHistory }) => {
               </div>
             </div>
           </div>
-                        {/* [MODIFICADO] Usa o novo componente visual */}
-                        <VisualDebtMeter 
-                            absence={analysis.bestCandidate.absence}
-                            averageInterval={analysis.bestCandidate.averageInterval}
-                            debtRatio={analysis.bestCandidate.debtRatio}
-                        />
-                    </StatCard>
-       
+          <VisualDebtMeter
+            absence={analysis.mostDue.absence}
+            averageInterval={analysis.mostDue.averageInterval}
+            debtRatio={analysis.mostDue.debtRatio}
+          />
+        </StatCard>
+
+        {/* Card 2: Mais Atrasado — maior dívida em relação à própria média */}
+        <StatCard title="Cavalo Mais Atrasado" icon={<Flame size={24} className={styles.dangerIcon} />}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
+            <span style={{ fontSize: '2.0rem', fontWeight: 'bold', color: '#fde047' }}>
+              Cavalo {analysis.bestCandidate.terminal}
+            </span>
+            <div style={{ fontSize: '1.2rem', textAlign: 'left' }}>
+              Dívida: {analysis.bestCandidate.debtRatio.toFixed(0)}%
+              <div style={{ fontSize: '0.9rem', color: '#9ca3af' }}>
+                ({analysis.bestCandidate.absence}r / Média {analysis.bestCandidate.averageInterval.toFixed(0)}r)
+              </div>
             </div>
+          </div>
+          <VisualDebtMeter
+            absence={analysis.bestCandidate.absence}
+            averageInterval={analysis.bestCandidate.averageInterval}
+            debtRatio={analysis.bestCandidate.debtRatio}
+          />
+        </StatCard>
+      </div>
 
             {/* --- Status dos Terminais (com Barras) --- */}
             <StatCard title="Status dos Cavalos" icon={<Target size={24} className={styles.infoIcon} />}>
@@ -376,25 +392,27 @@ const TerminalAnalysis = ({ spinHistory }) => {
                     </table>
                 </div>
             </StatCard>
-                                              <strong style={{color: '#fde047', fontSize: '0.9rem'}}>Legenda da Dívida:</strong>
-                                              <ul style={{margin: '0.5rem 0 0 0', paddingLeft: '0', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.25rem'}}>
-                                                  <li>
-                                                      <span style={{color: '#ef4444', marginRight: '0.5rem', fontSize: '1.2rem', verticalAlign: 'middle', lineHeight: '1'}}>■</span>
-                                                      <strong>NÚMERO (QUENTE):</strong> Dívida ≥ 90% (Atrasado).
-                                                  </li>
-                                                  <li>
-                                                      <span style={{color: '#f59e0b', marginRight: '0.5rem', fontSize: '1.2rem', verticalAlign: 'middle', lineHeight: '1'}}>■</span>
-                                                      <strong>NÚMERO (NORMAL):</strong> Dívida 70-90% (Próximo).
-                                                  </li>
-                                                  <li>
-                                                      <span style={{color: '#10b981', marginRight: '0.5rem', fontSize: '1.2rem', verticalAlign: 'middle', lineHeight: '1'}}>■</span>
-                                                      <strong>NÚMERO (FRIO):</strong> Dívida &lt; 70% (Longe da média).
-                                                  </li>
-                                                  <li>
-                                                      <span style={{color: '#9ca3af', marginRight: '0.5rem', fontSize: '1.2rem', verticalAlign: 'middle', lineHeight: '1'}}>■</span>
-                                                      <strong>BARRA:</strong> (Ausência Atual / Média de Intervalo).
-                                                  </li>
-                                              </ul>
+            {/* --- Legenda --- */}
+            <StatCard title="Legenda da Dívida" icon={<TrendingUp size={24} className={styles.infoIcon} />}>
+                <ul style={{ margin: 0, paddingLeft: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <li>
+                        <span style={{ color: '#ef4444', marginRight: '0.5rem', fontSize: '1.2rem', verticalAlign: 'middle', lineHeight: '1' }}>■</span>
+                        <strong>QUENTE:</strong> Dívida ≥ 90% (Atrasado).
+                    </li>
+                    <li>
+                        <span style={{ color: '#f59e0b', marginRight: '0.5rem', fontSize: '1.2rem', verticalAlign: 'middle', lineHeight: '1' }}>■</span>
+                        <strong>NORMAL:</strong> Dívida 70-90% (Próximo).
+                    </li>
+                    <li>
+                        <span style={{ color: '#10b981', marginRight: '0.5rem', fontSize: '1.2rem', verticalAlign: 'middle', lineHeight: '1' }}>■</span>
+                        <strong>FRIO:</strong> Dívida &lt; 70% (Longe da média).
+                    </li>
+                    <li>
+                        <span style={{ color: '#9ca3af', marginRight: '0.5rem', fontSize: '1.2rem', verticalAlign: 'middle', lineHeight: '1' }}>■</span>
+                        <strong>BARRA:</strong> Ausência Atual ÷ Média de Intervalo.
+                    </li>
+                </ul>
+            </StatCard>
         </>
     );
 };

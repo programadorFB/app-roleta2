@@ -1,34 +1,23 @@
-# Segredos — NUNCA commitar
+# Regras específicas do subprojeto.
+# As regras gerais também estão no .gitignore raiz.
+
+# Secrets / env
 .env
 .env.local
 .env.production
-env.test
+.env.*
+!.env.example
+!.env.test
 
-# Dependências
+# Node
 node_modules/
-
-# Build
-dist/
-
-# Logs
-*.log
 logs/
+*.log
 
-# Sistema
-.DS_Store
-Thumbs.db
-
-# Editor
-.vscode/
-.idea/
-
-# Temporários
-tmp/
-*.tmp
-
-# Runtime state
+# Runtime state gerado pelo servidor
 motor-score.json
+trigger-score.json
 
-# Claude Code
-.claude/
-CLAUDE.md
+# Builds e caches locais
+.vite/
+dist/

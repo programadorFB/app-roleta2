@@ -12,7 +12,6 @@ import SignalHistory from '../components/SignalHistory.jsx';
 import styles from './MasterDashboard.module.css';
 
 const getCoveredNumbers = (targetNumbers, neighborMode) => {
-  if (neighborMode === 0) return targetNumbers;
   const covered = new Set();
   targetNumbers.forEach(num => {
     covered.add(num);
@@ -25,7 +24,7 @@ const getCoveredNumbers = (targetNumbers, neighborMode) => {
   return Array.from(covered);
 };
 
-const emptyScoreState = { "0": { wins: 0, losses: 0 }, "1": { wins: 0, losses: 0 }, "2": { wins: 0, losses: 0 } };
+const emptyScoreState = { "1": { wins: 0, losses: 0 }, "2": { wins: 0, losses: 0 } };
 
 // --- COLOR HELPER ---
 const getScoreColor = (s) => s >= 70 ? '#34d399' : s >= 40 ? '#fbbf24' : '#ef4444';
@@ -102,11 +101,11 @@ const HeroScoreboard = ({ wins, losses, neighborMode, setNeighborMode, entrySign
       <div className={styles.heroShine} />
 
       <div className={styles.modeSelector}>
-        {[0, 1, 2].map(v => (
+        {[1, 2].map(v => (
           <button key={v} onClick={() => setNeighborMode(v)}
             className={`${styles.modeBtn} ${neighborMode === v ? styles.modeBtnActive : ''}`}
           >
-            {v === 0 ? 'Seco' : `${v} Viz`}
+            {`${v} Viz`}
           </button>
         ))}
         {entrySignal && signalRound > 0 && (
@@ -146,35 +145,6 @@ const HeroScoreboard = ({ wins, losses, neighborMode, setNeighborMode, entrySign
         </div>
       )}
 
-      {entrySignal && (
-        <div className={styles.signalBar}>
-          <div className={styles.signalItem}>
-            <Layers size={13} className={styles.signalIconSvg} />
-            <span className={styles.signalVal}>{totalUnits}</span>
-            <span className={styles.signalLbl}>unids</span>
-          </div>
-          <div className={styles.signalDivider} />
-          <div className={styles.signalItem}>
-            <Crosshair size={13} className={styles.signalIconSvg} />
-            <span className={styles.signalVal}>{coveredCount}</span>
-            <span className={styles.signalLbl}>nums</span>
-          </div>
-          <div className={styles.signalDivider} />
-          <div className={styles.signalItem}>
-            <BarChart3 size={13} className={styles.signalIconSvg} />
-            <span className={styles.signalVal}>{entrySignal.confidence.toFixed(0)}%</span>
-            <span className={styles.signalLbl}>conf.</span>
-          </div>
-          <div className={styles.signalDivider} />
-          <div className={styles.signalItem}>
-            <Clock size={13} className={styles.signalIconSvg} />
-            <span className={styles.signalVal} style={{ color: timeStatusColor, textShadow: `0 0 8px ${timeStatusColor}44` }}>
-              {timeText}
-            </span>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 };
@@ -187,7 +157,7 @@ const HeroScoreboard = ({ wins, losses, neighborMode, setNeighborMode, entrySign
 const SIGNAL_HOLD_SPINS = 2; // Sinal segura por N resultados antes de mudar
 
 const MasterDashboard = ({ spinHistory, onSignalUpdate, backendMotorAnalysis, historyFilter, selectedRoulette, userEmail }) => {
-  const [neighborMode, setNeighborMode] = useState(0);
+  const [neighborMode, setNeighborMode] = useState(1);
   const [isSignalAccepted, setIsSignalAccepted] = useState(false);
   const lockedSignalRef = useRef(null);
   const lockSpinIdRef = useRef(null);
@@ -216,7 +186,7 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate, backendMotorAnalysis, hi
             signalHistoryLength: data.signalHistory?.length ?? 'MISSING',
             signalHistorySample: data.signalHistory?.slice(0, 2),
             recentHistoryLength: data.recentHistory?.length ?? 'MISSING',
-            scores: { '0': data['0'], '1': data['1'], '2': data['2'] },
+            scores: { '1': data['1'], '2': data['2'] },
           });
           setFilteredScores(data);
         } else {

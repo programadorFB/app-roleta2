@@ -15,6 +15,6 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
 
 USER appuser
 
-EXPOSE 3001
+EXPOSE 3002
 
 CMD ["pm2-runtime", "ecosystem.config.cjs"]

@@ -7,26 +7,73 @@ services:
     ports:
       - "3001:3001"
     environment:
+      # ── Node ────────────────────────────────────
       - NODE_ENV=production
       - PORT=3001
-      - REDIS_URL=redis://redis:6379
+
+      # ── Identidade ──────────────────────────────
+      - APP_NAME=roleta2
+      - REDIS_PREFIX=roleta2
+
+      # ── URLs ────────────────────────────────────
+      - FRONTEND_URL=https://tool.smartanalise.com.br
+      - BACKEND_PUBLIC_URL=https://tool-api.smartanalise.com.br
+      - BACKEND_PUBLIC_WSS_URL=wss://tool-api.smartanalise.com.br
+
+      # ── CORS ────────────────────────────────────
+      - CORS_ORIGINS=https://tool.smartanalise.com.br,http://localhost:5173,http://localhost:3001
+
+      # ── Database ────────────────────────────────
       - DB_HOST=postgres_principal
       - DB_PORT=5432
       - DB_NAME=phantom-roleta
       - DB_USER=postgres
       - DB_PASSWORD=1234
+      - DB_POOL_MAX=50
+
+      # ── Redis ───────────────────────────────────
+      - REDIS_URL=redis://redis:6379
+
+      # ── Segurança / Auth ────────────────────────
       - CRAWLER_SECRET=cr4wl3r-s3cr3t-local-dev
       - ADMIN_SECRET=JrI9EK_ja8ZrJae7diAV3fawPzSYtWuy-lbbuYZ2H0_orgO1ko0_aLe_8t04pkaGAJjtPeVZCCCLGQCbv0pwOg
       - HUBLA_WEBHOOK_TOKEN=x11H8dJDrNRQBZTxicwFObMkk3LG6gSMBwAi5CxGYlRp1JuwRZZsxWm81NSZEgEJ
       - HUBLA_CHECKOUT_URL=https://pay.hub.la/N7JdmojxORlRpaafFEyl
-      - FRONTEND_URL=https://tool.smartanalise.com.br
       - AUTH_PROXY_TARGET=https://api.appbackend.tech
-      - SENTRY_DSN=https://1524b8f488f4292a3be4380d2a608b18@o4510381163675648.ingest.us.sentry.io/4510381187334144
+
+      # ── Marca (links cross-app no rodapé do email) ──
+      - BRAND_GERENCIAMENTO_URL=https://appgerenciamento.smartanalise.com.br
+      - BRAND_LABORATORIO_URL=https://laboratorio.smartanalise.com.br
+      - BRAND_ACADEMY_URL=https://members.smartanalise.com.br
+
+      # ── APIs externas (fontes de dados) ─────────
+      - API_URL_IMMERSIVEVIP=https://apptemporario-production.up.railway.app/api/bd9c8298-1453-4694-8d9c-b32be9f972e7
+      - API_URL_IMMERSIVE=https://apptemporario-production.up.railway.app/api/0194b479-654d-70bd-ac50-9c5a9b4d14c5
+      - API_URL_BRASILEIRA=https://apptemporario-production.up.railway.app/api/0194b473-2ab3-778f-89ee-236e803f3c8e
+      - API_URL_BRASILPLAY=https://roleta-api.sortehub.online/api/compat/brasileira?limit=200
+      - API_URL_SPEED=https://apptemporario-production.up.railway.app/api/0194b473-c347-752f-9eaf-783721339479
+      - API_URL_XXXTREME=https://apptemporario-production.up.railway.app/api/0194b478-5ba0-7110-8179-d287b2301e2e
+      - API_URL_VIPAUTO=https://apptemporario-production.up.railway.app/api/0194b473-9044-772b-a6fc-38236eb08b42
+      - API_URL_AUTO=https://apptemporario-production.up.railway.app/api/0194b471-1645-749e-9214-be0342035f6f
+      - API_URL_VIP=https://apptemporario-production.up.railway.app/api/0194b472-6b93-74be-9260-7e407f5f1103
+      - API_URL_LIGHTNING=https://apptemporario-production.up.railway.app/api/0194b472-7d68-75ea-b249-1422258f4d4c
+      - API_URL_AOVIVO=https://apptemporario-production.up.railway.app/api/0194b473-1738-70dd-84a9-f1ddd4f00678
+      - API_URL_SPEEDAUTO=https://apptemporario-production.up.railway.app/api/0194b473-3139-770c-841f-d026ce7ed01f
+      - API_URL_VIPROULETTE=https://apptemporario-production.up.railway.app/api/0194b474-bb9a-7451-b430-c451b14de1de
+      - API_URL_RELAMPAGO=https://apptemporario-production.up.railway.app/api/0194b474-d82f-76e0-9242-70f601984069
+      - API_URL_MALTA=https://apptemporario-production.up.railway.app/api/0194b476-6091-730c-b971-7e66d9d8c44a
+
+      # ── Email (SMTP) ────────────────────────────
       - SMTP_HOST=smtp.gmail.com
       - SMTP_PORT=587
       - SMTP_USER=devfuzabalta@gmail.com
       - SMTP_PASS=ipnhawzakasewcxu
       - SMTP_SENDER_NAME=Smart Analise
+
+      # ── Monitoramento ───────────────────────────
+      - SENTRY_DSN=https://1524b8f488f4292a3be4380d2a608b18@o4510381163675648.ingest.us.sentry.io/4510381187334144
+
+      # ── PM2 cluster ─────────────────────────────
       - PM2_INSTANCES=2
     restart: unless-stopped
     networks:
@@ -39,8 +86,14 @@ services:
       dockerfile: ./src/Dockerfile
       args:
         VITE_API_URL: https://tool-api.smartanalise.com.br
+        VITE_AFFILIATE_URL: https://go.aff.betou.bet.br/tgml0e19?utm_medium=appcmd
     ports:
       - "81:81"
+    environment:
+      - NGINX_PORT=81
+      - BACKEND_PUBLIC_URL=https://tool-api.smartanalise.com.br
+      - BACKEND_PUBLIC_WSS_URL=wss://tool-api.smartanalise.com.br
+      - AUTH_PROXY_TARGET=https://api.appbackend.tech
     depends_on:
       - roleta2_backend
     restart: unless-stopped

@@ -203,7 +203,7 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
               <p>
                 Clique em{' '}
                 <a 
-                  href="https://go.aff.betou.bet.br/tgml0e19?utm_medium=appcmd"
+                  href={import.meta.env.VITE_AFFILIATE_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="login-split__link"

@@ -25,7 +25,7 @@ describe('computeFilteredMotorScore', () => {
           id: 101,
           suggested_numbers: [1, 2, 3],
           spins_after: 1,
-          resolved_modes: { "0": "win", "1": "win", "2": "win" },
+          resolved_modes: { "1": "win", "2": "win" },
           spin_results: [1],
           created_at: '2024-01-01T10:05:00Z'
         },
@@ -33,14 +33,14 @@ describe('computeFilteredMotorScore', () => {
           id: 102,
           suggested_numbers: [10, 11, 12],
           spins_after: 3,
-          resolved_modes: { "0": "loss", "1": "loss", "2": "win" },
+          resolved_modes: { "1": "loss", "2": "win" },
           spin_results: [5, 6, 11],
           created_at: '2024-01-01T10:02:00Z'
         }
       ]
     });
 
-    const result = await computeFilteredMotorScore('brasileira_playtech', 10);
+    const result = await computeFilteredMotorScore('brasilPlay', 10);
 
     expect(result.signalHistory).toHaveLength(2);
     expect(result.recentHistory).toHaveLength(2);
@@ -48,12 +48,11 @@ describe('computeFilteredMotorScore', () => {
     // Verifica formato do recentHistory
     expect(result.recentHistory[0]).toEqual({
       id: 101,
-      modes: { "0": "win", "1": "win", "2": "win" }
+      modes: { "1": "win", "2": "win" }
     });
 
-    // Verifica acumulado de wins/losses
-    expect(result["0"].wins).toBe(1);
-    expect(result["0"].losses).toBe(1);
+    // Backend agrega apenas modes 1 e 2 (mode 0 não é tracked no DB).
+    // Sinal 101 → modes 1,2 = win.  Sinal 102 → mode 1 = loss, mode 2 = win.
     expect(result["1"].wins).toBe(1);
     expect(result["1"].losses).toBe(1);
     expect(result["2"].wins).toBe(2);
@@ -64,7 +63,7 @@ describe('computeFilteredMotorScore', () => {
     db.query.mockResolvedValueOnce({ rows: [] }); // cutoff
     db.query.mockResolvedValueOnce({ rows: [] }); // signals
 
-    const result = await computeFilteredMotorScore('brasileira_playtech', 10);
+    const result = await computeFilteredMotorScore('brasilPlay', 10);
     expect(result.signalHistory).toEqual([]);
     expect(result.recentHistory).toEqual([]);
   });

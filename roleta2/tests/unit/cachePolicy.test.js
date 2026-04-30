@@ -91,24 +91,24 @@ describe('Invalidação de cache — cobertura', () => {
     // Verificação conceitual: subscriptionService.js chama cacheDel(KEY.sub(email))
     // Não podemos testar integração aqui, mas confirmamos que a KEY existe
     const key = KEY.sub('user@test.com');
-    expect(key).toBe('sub:user@test.com');
+    expect(key).toBe('test:sub:user@test.com');
   });
 
   it('history cache é invalidada em saveNewSignals (scraper)', () => {
     // dbService.js chama cacheDel(KEY.history(sourceName))
     const key = KEY.history('aovivo');
-    expect(key).toBe('hist:aovivo');
+    expect(key).toBe('test:hist:aovivo');
   });
 
   it('latest cache é invalidada por pattern em saveNewSignals', () => {
     // dbService.js chama cacheDelPattern(`latest:${sourceName}:*`)
     const key = KEY.latest('aovivo', 100);
-    expect(key).toMatch(/^latest:aovivo:\d+$/);
+    expect(key).toMatch(/^test:latest:aovivo:\d+$/);
   });
 
   it('admin caches são invalidados em upsertSubscription', () => {
-    expect(KEY.adminStats()).toBe('admin:stats');
-    expect(KEY.activeSubs()).toBe('admin:active');
+    expect(KEY.adminStats()).toBe('test:admin:stats');
+    expect(KEY.activeSubs()).toBe('test:admin:active');
   });
 });
 
