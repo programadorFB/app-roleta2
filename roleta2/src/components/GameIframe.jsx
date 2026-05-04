@@ -14,11 +14,48 @@ import React, { useRef, useState, useCallback, useEffect } from 'react';
 // 🔧 FIX: Timeout de carregamento do iframe (30 segundos)
 const IFRAME_LOAD_TIMEOUT = 30000;
 
+// Força viewport mobile real dentro do iframe — APENAS em telas mobile (<=1024px).
+// Em desktop o iframe volta ao 100%×100% do wrapper (layout padrão).
+// Em mobile o jogo internamente verá `window.innerWidth = 414` (iPhone Plus/Pro Max)
+// e renderiza o layout mobile de verdade.
+const MOBILE_VIEWPORT_W = 414;
+const MOBILE_VIEWPORT_H = 736;
+const MAX_SCALE = 0.95; // ~393×699 (mobile compacto, leve folga lateral)
+const MOBILE_BREAKPOINT = 1024;
+
 const GameIframe = React.memo(({ url, onError, onRetry }) => {
   const wrapperRef = useRef(null);
   const timeoutRef = useRef(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasTimedOut, setHasTimedOut] = useState(false);
+  const [scale, setScale] = useState(1);
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' ? window.innerWidth <= MOBILE_BREAKPOINT : false,
+  );
+
+  // Detecta mobile via viewport width
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= MOBILE_BREAKPOINT);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  // Mede a largura do wrapper e calcula o scale (só relevante em mobile)
+  useEffect(() => {
+    if (!wrapperRef.current || !isMobile) return;
+    const compute = (w) => {
+      if (w > 0) setScale(Math.min(w / MOBILE_VIEWPORT_W, MAX_SCALE));
+    };
+    const ro = new ResizeObserver(entries => {
+      compute(entries[0].contentRect.width);
+    });
+    ro.observe(wrapperRef.current);
+    compute(wrapperRef.current.clientWidth);
+    return () => ro.disconnect();
+  }, [isMobile]);
+
+  const scaledHeight = MOBILE_VIEWPORT_H * scale;
+  const scaledWidth = MOBILE_VIEWPORT_W * scale;
 
   // 🔧 FIX: Reset de estado quando URL muda
   useEffect(() => {
@@ -91,7 +128,16 @@ const GameIframe = React.memo(({ url, onError, onRetry }) => {
     <div
       ref={wrapperRef}
       className={`game-iframe-wrapper ${isLoaded ? 'loaded' : ''}`}
-      style={{ position: 'relative' }}
+      style={
+        isMobile
+          ? {
+              position: 'relative',
+              // Em mobile sobrescreve o padding-bottom (16:9) pelo aspecto mobile escalado
+              paddingBottom: 0,
+              height: scaledHeight > 0 ? `${scaledHeight}px` : undefined,
+            }
+          : { position: 'relative' }
+      }
     >
       {/* 🔧 FIX: Loading indicator enquanto carrega */}
       {!isLoaded && !hasTimedOut && url && (
@@ -162,7 +208,8 @@ const GameIframe = React.memo(({ url, onError, onRetry }) => {
         </div>
       )}
 
-      {/* Iframe */}
+      {/* Iframe — em mobile força viewport 414×736 com scale CSS pro layout mobile real
+          do jogo ativar. Em desktop volta ao 100%×100% padrão. */}
       {url && (
         <iframe
           src={url}
@@ -173,6 +220,27 @@ const GameIframe = React.memo(({ url, onError, onRetry }) => {
           loading="lazy"
           onLoad={handleLoad}
           onError={handleError}
+          style={
+            isMobile
+              ? {
+                  position: 'absolute',
+                  top: 0,
+                  left: `calc(50% - ${scaledWidth / 2}px)`,
+                  width: `${MOBILE_VIEWPORT_W}px`,
+                  height: `${MOBILE_VIEWPORT_H}px`,
+                  border: 'none',
+                  transform: `scale(${scale})`,
+                  transformOrigin: 'top left',
+                }
+              : {
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                }
+          }
         />
       )}
     </div>

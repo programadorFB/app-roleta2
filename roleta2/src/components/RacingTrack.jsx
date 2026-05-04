@@ -14,9 +14,14 @@ const WHEEL = PHYSICAL_WHEEL;
 const HALF = Math.floor(WHEEL.length / 2) + 2;
 const WHEEL_ROTATED = [...WHEEL.slice(HALF), ...WHEEL.slice(0, HALF)];
 
+const MOBILE_BREAKPOINT = 1024;
+
 const RacingTrack = ({ selectedResult, onNumberClick, entrySignals = [], targetSignals = [] }) => {
   const [activeNumber, setActiveNumber] = useState(null);
   const [isFlipped, setIsFlipped] = useState(true);
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' ? window.innerWidth <= MOBILE_BREAKPOINT : false,
+  );
 
   useEffect(() => {
     if (selectedResult) {
@@ -26,6 +31,12 @@ const RacingTrack = ({ selectedResult, onNumberClick, entrySignals = [], targetS
     }
   }, [selectedResult]);
 
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= MOBILE_BREAKPOINT);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   const isActive = (n) => activeNumber === n;
   const isTarget = (n) => targetSignals.includes(n);
   const isNeighbor = (n) => entrySignals.includes(n) && !targetSignals.includes(n);
@@ -33,8 +44,24 @@ const RacingTrack = ({ selectedResult, onNumberClick, entrySignals = [], targetS
   const wheel = isFlipped ? WHEEL_ROTATED : WHEEL;
 
   // === STADIUM GEOMETRY ===
-  const W = 700, H = 108;
-  const pad = 16;
+  // Mobile: aspecto mais "alto" (~2.75:1) pra ganhar verticalidade ao caber na largura.
+  // Desktop: aspecto wide original (~6.5:1).
+  const W = isMobile ? 550 : 700;
+  const H = isMobile ? 200 : 108;
+  const pad = isMobile ? 14 : 16;
+  const cellR = isMobile ? 16 : 13;
+  const numberFontSize = isMobile ? 18 : 9.5;
+  const labelFontSize = isMobile ? 13 : 8;
+  const zeroFontSize = isMobile ? 12 : 7;
+  const flipBtnR = isMobile ? 14 : 10;
+
+  // Anéis de sinal/vizinho — em mobile ficam mais discretos (offset e stroke menores)
+  const ringOffset = isMobile ? 1.5 : 3;
+  const activeRingOffset = isMobile ? 2.5 : 5;
+  const targetStroke = isMobile ? 1.2 : 2;
+  const neighborStroke = isMobile ? 1 : 1.5;
+  const activeStroke = isMobile ? 1.4 : 2;
+
   const R = (H - pad * 2) / 2;
   const straightLen = W - pad * 2 - R * 2;
   const totalPerimeter = 2 * straightLen + 2 * Math.PI * R;
@@ -100,7 +127,6 @@ const RacingTrack = ({ selectedResult, onNumberClick, entrySignals = [], targetS
   ];
 
   const zeroLabelX = isFlipped ? W - pad - 2 : pad + 2;
-  const cellR = 13;
 
   return (
     <div className="racetrack-oval-container">
@@ -117,28 +143,28 @@ const RacingTrack = ({ selectedResult, onNumberClick, entrySignals = [], targetS
         {/* Section labels */}
         {labels.map(l => (
           <text key={l.text} x={l.x} y={cy} textAnchor="middle" dominantBaseline="central"
-            fill="rgba(201,160,82,0.22)" fontSize="8" fontWeight="700"
+            fill="rgba(201,160,82,0.22)" fontSize={labelFontSize} fontWeight="700"
             fontFamily="'Outfit',sans-serif" letterSpacing="0.15em"
           >{l.text}</text>
         ))}
 
         {/* ZERO label */}
         <text x={zeroLabelX} y={cy} textAnchor="middle" dominantBaseline="central"
-          fill="rgba(201,160,82,0.22)" fontSize="7" fontWeight="700"
+          fill="rgba(201,160,82,0.22)" fontSize={zeroFontSize} fontWeight="700"
           fontFamily="'Outfit',sans-serif" letterSpacing="0.1em"
           transform={`rotate(-90, ${zeroLabelX}, ${cy})`}
         >ZERO</text>
 
         {/* Flip button */}
         <g onClick={() => setIsFlipped(f => !f)} style={{ cursor: 'pointer' }} className="rt-flip-btn">
-          <circle cx={W / 2} cy={cy} r="10"
+          <circle cx={W / 2} cy={cy} r={flipBtnR}
             fill="rgba(180,120,50,0.06)" stroke="rgba(201,160,82,0.2)" strokeWidth="0.5" />
           <path
-            d={`M ${W/2 - 4} ${cy - 1} A 4 4 0 1 1 ${W/2 + 4} ${cy - 1}`}
+            d={`M ${W/2 - flipBtnR*0.4} ${cy - flipBtnR*0.1} A ${flipBtnR*0.4} ${flipBtnR*0.4} 0 1 1 ${W/2 + flipBtnR*0.4} ${cy - flipBtnR*0.1}`}
             fill="none" stroke="rgba(201,160,82,0.5)" strokeWidth="1" strokeLinecap="round"
           />
           <path
-            d={`M ${W/2 + 2} ${cy - 4} L ${W/2 + 4.5} ${cy - 1} L ${W/2 + 1.5} ${cy - 0.5}`}
+            d={`M ${W/2 + flipBtnR*0.2} ${cy - flipBtnR*0.4} L ${W/2 + flipBtnR*0.45} ${cy - flipBtnR*0.1} L ${W/2 + flipBtnR*0.15} ${cy - flipBtnR*0.05}`}
             fill="rgba(201,160,82,0.5)" stroke="none"
           />
         </g>
@@ -166,14 +192,14 @@ const RacingTrack = ({ selectedResult, onNumberClick, entrySignals = [], targetS
             <g key={num} onClick={() => onNumberClick(num)} style={{ cursor: 'pointer' }} className="rt-cell">
               {/* Entry/Target ring */}
               {(tgt || nbr) && !act && (
-                <circle cx={x} cy={y} r={cellR + 3} fill="none"
-                  stroke={ringColor} strokeWidth={tgt ? 2 : 1.5}
+                <circle cx={x} cy={y} r={cellR + ringOffset} fill="none"
+                  stroke={ringColor} strokeWidth={tgt ? targetStroke : neighborStroke}
                   className={ringClass} />
               )}
               {/* Active ring */}
               {act && (
-                <circle cx={x} cy={y} r={cellR + 5} fill="none"
-                  stroke="rgba(253,224,71,0.65)" strokeWidth="2" className="rt-active-ring" />
+                <circle cx={x} cy={y} r={cellR + activeRingOffset} fill="none"
+                  stroke="rgba(253,224,71,0.65)" strokeWidth={activeStroke} className="rt-active-ring" />
               )}
               {/* Circle bg */}
               <circle cx={x} cy={y} r={cellR}
@@ -184,7 +210,7 @@ const RacingTrack = ({ selectedResult, onNumberClick, entrySignals = [], targetS
               {/* Number text */}
               <text x={x} y={y} textAnchor="middle" dominantBaseline="central"
                 fill={act ? '#fde047' : tgt ? '#34d399' : col}
-                fontSize="9.5" fontWeight="700" fontFamily="'Outfit',sans-serif"
+                fontSize={numberFontSize} fontWeight="700" fontFamily="'Outfit',sans-serif"
                 style={act ? { filter: 'drop-shadow(0 0 4px rgba(253,224,71,0.6))' }
                   : tgt ? { filter: 'drop-shadow(0 0 4px rgba(52,211,153,0.4))' }
                   : {}}

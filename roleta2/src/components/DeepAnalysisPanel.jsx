@@ -203,9 +203,8 @@ const DeepAnalysisPanel = ({ spinHistory }) => {
                 <div
                     className={`${styles['progress-bar-fill']} ${styles[colorClass]}`}
                     style={{ width: `${percentage}%` }}
-                >
-                    {percentage}%
-                </div>
+                />
+                <span className={styles['progress-bar-text']}>{percentage}%</span>
             </div>
         );
     };

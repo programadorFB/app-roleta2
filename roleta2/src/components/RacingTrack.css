@@ -60,23 +60,16 @@
   fill: rgba(201,160,82,0.8) !important;
 }
 
+/* Mobile (<=768px): comprime a pista pra caber 100% da tela sem scroll horizontal.
+   O viewBox do SVG (700x108) com preserveAspectRatio escala mantendo as proporções. */
 @media (max-width: 768px) {
-  .racetrack-oval-container { padding: 0.15rem 0; }
-}
-
-@media (max-width: 480px) {
   .racetrack-oval-container {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 0.1rem 0;
+    padding: 0.15rem 0;
+    overflow: hidden;
   }
-  .racetrack-oval-svg { width: 100%; max-width: 100%; }
-}
-@media (max-width: 380px) {
-  .racetrack-oval-container {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 0.1rem 0;
+  .racetrack-oval-svg {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
   }
-  .racetrack-oval-svg { width: 100%; max-width: 100%; }
 }
