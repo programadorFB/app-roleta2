@@ -238,48 +238,7 @@ const TerminalAnalysis = ({ spinHistory }) => {
         Análise de Cavalos ({analysis.totalSpins} Sinais)
       </h3>
 
-      {/* --- Cards de Métricas Principais --- */}
-      <div className={styles['stats-grid']}>
-        {/* Card 1: Mais Ausente — maior ausência absoluta em rodadas */}
-        <StatCard title="Cavalo Mais Ausente" icon={<AlertOctagon size={24} className={styles.dangerIcon} />}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
-            <span style={{ fontSize: '2.0rem', fontWeight: 'bold', color: '#fde047' }}>
-              Cavalo {analysis.mostDue.terminal}
-            </span>
-            <div style={{ fontSize: '1.2rem', textAlign: 'left' }}>
-              {analysis.mostDue.absence} Rodadas
-              <div style={{ fontSize: '0.9rem', color: '#9ca3af' }}>
-                (Média: {analysis.mostDue.averageInterval.toFixed(0)} r.)
-              </div>
-            </div>
-          </div>
-          <VisualDebtMeter
-            absence={analysis.mostDue.absence}
-            averageInterval={analysis.mostDue.averageInterval}
-            debtRatio={analysis.mostDue.debtRatio}
-          />
-        </StatCard>
-
-        {/* Card 2: Mais Atrasado — maior dívida em relação à própria média */}
-        <StatCard title="Cavalo Mais Atrasado" icon={<Flame size={24} className={styles.dangerIcon} />}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
-            <span style={{ fontSize: '2.0rem', fontWeight: 'bold', color: '#fde047' }}>
-              Cavalo {analysis.bestCandidate.terminal}
-            </span>
-            <div style={{ fontSize: '1.2rem', textAlign: 'left' }}>
-              Dívida: {analysis.bestCandidate.debtRatio.toFixed(0)}%
-              <div style={{ fontSize: '0.9rem', color: '#9ca3af' }}>
-                ({analysis.bestCandidate.absence}r / Média {analysis.bestCandidate.averageInterval.toFixed(0)}r)
-              </div>
-            </div>
-          </div>
-          <VisualDebtMeter
-            absence={analysis.bestCandidate.absence}
-            averageInterval={analysis.bestCandidate.averageInterval}
-            debtRatio={analysis.bestCandidate.debtRatio}
-          />
-        </StatCard>
-      </div>
+      {/* Cards "Cavalo Mais Ausente" e "Cavalo Mais Atrasado" removidos a pedido */}
 
             {/* --- Status dos Terminais (com Barras) --- */}
             <StatCard title="Status dos Cavalos" icon={<Target size={24} className={styles.infoIcon} />}>

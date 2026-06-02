@@ -83,18 +83,28 @@ function analyzeSectors(spinHistory) {
   };
 }
 
-// Lógica de 'AdvancedPatternsAnalysis' (Ocultos)
-function analyzeHidden(spinHistory) {
-  const totalSpins = spinHistory.length;
-  let topOculto = { number: -1, absence: 0, level: { level: 0 } };
+// Lógica de 'AdvancedPatternsAnalysis' (Ausentes — números há mais tempo sem sair)
+// Janela de análise dos Ausentes. Os HIDDEN_LEVELS vão até 100 giros de ausência,
+// então a lógica foi desenhada para uma janela recente (~150 giros), não o histórico
+// inteiro (que cravaria o score em 100).
+const HIDDEN_WINDOW = 150;
 
+function analyzeHidden(spinHistory) {
+  const window = spinHistory.slice(0, HIDDEN_WINDOW);
+  const totalSpins = window.length;
+
+  // Ausência de cada número 0-36 dentro da janela
+  const absences = [];
   for (let num = 0; num <= 36; num++) {
-    const lastAppearance = spinHistory.findIndex(s => s.number === num);
+    const lastAppearance = window.findIndex(s => s.number === num);
     const absence = lastAppearance === -1 ? totalSpins : lastAppearance;
-    if (absence > topOculto.absence) {
-      topOculto = { number: num, absence };
-    }
+    absences.push({ number: num, absence });
   }
+
+  // Mais ausentes primeiro; Top 5 entra na convergência (antes era só 1)
+  absences.sort((a, b) => b.absence - a.absence);
+  const topNumbers = absences.slice(0, 5).map(a => a.number);
+  const topOculto = { number: absences[0].number, absence: absences[0].absence };
 
   let level = { label: 'Nível 0', color: '#6b7280', level: 0 };
   for (const lvl of HIDDEN_LEVELS) {
@@ -106,20 +116,21 @@ function analyzeHidden(spinHistory) {
   topOculto.level = level;
 
   const rawScore = (topOculto.level.level / HIDDEN_LEVELS.length) * 100;
-  // Score visual logarítmico (não afeta status)
-  const ratio = topOculto.absence / 37;
-  const score = Math.min(100, Math.max(0, 50 * Math.log2(Math.max(1, ratio))));
+  // Score visual (não afeta status): sigmoide centrada na ausência ESPERADA (~37 giros,
+  // 1 volta). 50% = tão atrasado quanto o esperado; sobe suave e satura ~95 (não crava 100).
+  const z = (topOculto.absence - 37) / 37;
+  const score = 100 / (1 + Math.exp(-z));
 
   let status = '🟠';
   if (rawScore > 80) status = '🟢';
   if (rawScore > 50 && rawScore <= 80) status = '🟡';
 
   return {
-    name: 'Ocultos',
+    name: 'Ausentes',
     score,
     status,
     signal: `Nível ${topOculto.level.level} (${topOculto.number})`,
-    numbers: [topOculto.number]
+    numbers: topNumbers
   };
 }
 

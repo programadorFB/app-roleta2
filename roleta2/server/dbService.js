@@ -4,6 +4,16 @@ import { cacheAside, cacheDel, KEY, TTL } from './redisService.js';
 
 export const loadAllExistingSignalIds = async () => {};
 
+// Janela de dedup por CONTEÚDO: o mesmo número, na mesma fonte, dentro deste
+// intervalo é tratado como o MESMO giro físico reenviado. Necessário porque o
+// signalId é gerado a cada fetch (signal:<ts>:<random>), então o ON CONFLICT por
+// signalId não pega o caso de duplicação. Numa roleta real os giros ficam a
+// ~30-60s, então um número repetido em <20s é praticamente sempre duplicata.
+// Configurável via env (0 desliga o dedup por conteúdo).
+const DEDUP_WINDOW_SEC = Number.isFinite(Number(process.env.SIGNAL_DEDUP_WINDOW_SEC))
+  ? Number(process.env.SIGNAL_DEDUP_WINDOW_SEC)
+  : 20;
+
 export const saveNewSignals = async (dataArray, sourceName) => {
   if (!SOURCES.includes(sourceName)) {
     console.error(`❌ Fonte desconhecida "${sourceName}".`);
@@ -15,29 +25,34 @@ export const saveNewSignals = async (dataArray, sourceName) => {
   if (validItems.length === 0) return 0;
 
   try {
-    const values = [];
-    const placeholders = [];
-    let p = 1;
+    let saved = 0;
 
     for (const item of validItems) {
-      placeholders.push(`($${p}, $${p + 1}, $${p + 2}, $${p + 3})`);
-      values.push(
-        String(item.signalId).trim(),
-        String(item.gameId  || '').trim(),
-        String(item.signal  || '').trim(),
-        sourceName,
+      // Insere SÓ se não existir, na mesma fonte, o MESMO número dentro da janela
+      // de dedup — descarta o mesmo giro físico reenviado com signalId novo.
+      // (Statement autocommit → o item anterior do lote já conta para o NOT EXISTS.)
+      const result = await query(
+        `INSERT INTO signals (signalId, gameId, signal, source)
+         SELECT $1::varchar, $2::varchar, $3::varchar, $4::varchar
+         WHERE $5::int <= 0 OR NOT EXISTS (
+           SELECT 1 FROM signals
+           WHERE source = $4::varchar
+             AND signal = $3::varchar
+             AND signal <> ''
+             AND timestamp > (NOW()::timestamp - make_interval(secs => $5::int))
+         )
+         ON CONFLICT (signalId, source) DO NOTHING`,
+        [
+          String(item.signalId).trim(),
+          String(item.gameId  || '').trim(),
+          String(item.signal  || '').trim(),
+          sourceName,
+          DEDUP_WINDOW_SEC,
+        ],
       );
-      p += 4;
+      saved += result.rowCount || 0;
     }
 
-    const result = await query(
-      `INSERT INTO signals (signalId, gameId, signal, source)
-       VALUES ${placeholders.join(', ')}
-       ON CONFLICT (signalId, source) DO NOTHING`,
-      values,
-    );
-
-    const saved = result.rowCount || 0;
     if (saved > 0) {
       await Promise.all([
         cacheDel(KEY.history(sourceName)),
