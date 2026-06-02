@@ -8,7 +8,9 @@
 
 import axios from 'axios';
 
-const API_BASE_URL = '/api/gerenciamento';
+// Usa a MESMA base absoluta do tool (VITE_API_URL = dominio do backend), porque
+// o nginx do frontend nao proxia /api. Fallback relativo p/ dev (nginx proxiando).
+const API_BASE_URL = (import.meta.env.VITE_API_URL || '') + '/api/gerenciamento';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
