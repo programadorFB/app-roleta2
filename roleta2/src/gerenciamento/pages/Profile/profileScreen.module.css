@@ -1,0 +1,421 @@
+/* ========================================
+   Tema XP (Branco, Azul, Cinza)
+   ======================================== */
+
+.container {
+  background-color: #D6D3CE; /* Fundo Cinza XP */
+  color: #000000; /* Texto Preto */
+  min-height: 100vh;
+  min-width: 100vw;
+  font-family: 'Tahoma', 'Trebuchet MS', sans-serif;
+}
+
+/* --- Header (Barra de Título XP) --- */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  border-bottom: none;
+  background: linear-gradient(180deg, #0054E3 0%, #0040B0 100%);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.3) inset;
+}
+
+.backButton {
+  /* Botão Cinza Padrão */
+  background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
+  border: 1px solid #7F9DB9;
+  border-radius: 3px;
+  color: #000;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.backButton:hover {
+  background: linear-gradient(180deg, #FFFEF9 0%, #F5F3E8 100%);
+}
+
+.title {
+  font-size: 11px;
+  font-weight: bold;
+  color: #FFFFFF;
+  margin: 0;
+  text-align: center;
+  flex: 1;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.headerSpacer {
+  width: 40px; 
+}
+
+/* --- Seções (Estilo Group Box) --- */
+.imageSection,
+.section {
+  padding: 20px;
+  margin-left: 150px;
+  max-width: 1800px;
+  background: #ECE9D8;
+  border: 1px solid #7F9DB9;
+}
+
+.imageSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-bottom: 1px solid #7F9DB9; /* Mantido para separar da seção de avatar */
+}
+
+.imageContainer {
+  margin-bottom: 20px;
+}
+
+.profileImage {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 2px solid #7F9DB9; /* Borda Cinza */
+  object-fit: cover;
+}
+
+.profileImagePlaceholder {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background-color: #7F9DB9; /* Fundo Cinza-Azul */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.profileImagePlaceholder span {
+  font-size: 48px;
+  font-weight: bold;
+  color: #FFFFFF; /* Texto Branco */
+}
+
+.imageButtons {
+  display: flex;
+  gap: 10px;
+}
+
+/* Botão Cinza XP */
+.imageButton,
+.removeButton {
+  background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
+  border: 1px solid #7F9DB9;
+  border-radius: 3px;
+  padding: 6px 16px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 11px;
+  color: #000;
+  transition: none;
+}
+.imageButton:hover,
+.removeButton:hover {
+  background: linear-gradient(180deg, #FFFEF9 0%, #F5F3E8 100%);
+}
+/* REMOVIDO: .removeButton (vermelho), agora usa o estilo cinza padrão */
+
+
+/* --- Avatar Selector (Nested Group Box) --- */
+.avatarSelector {
+  margin-top: 30px;
+  width: 100%;
+  max-width: 400px;
+  padding: 15px;
+  background-color: #FFFFFF; /* Fundo branco */
+  border-radius: 0;
+  border: 1px solid #C0C0C0; /* Borda cinza mais clara */
+}
+
+.avatarSelectorTitle {
+  font-size: 14px;
+  color: #003399; /* Azul escuro */
+  margin-top: 0;
+  margin-bottom: 15px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.avatarGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  gap: 10px;
+  justify-items: center;
+}
+
+.avatarOption {
+  background: none;
+  border: 2px solid #C0C0C0; /* Borda cinza */
+  padding: 0;
+  cursor: pointer;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  position: relative;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+  overflow: hidden;
+  display: block;
+}
+
+.avatarOption:hover {
+  transform: scale(1.05);
+}
+
+.avatarOptionSelected {
+  border-color: #0054E3; /* Borda Azul */
+  box-shadow: none;
+}
+
+.avatarOptionImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+.avatarCheckmark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #0054E3; /* Azul */
+  color: #FFFFFF; /* Branco */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+/* --- End Avatar Selector Styles --- */
+
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: bold;
+  color: #003399; /* Azul escuro */
+  margin-bottom: 20px;
+}
+
+.inputContainer {
+  margin-bottom: 20px;
+}
+
+.label {
+  display: block;
+  font-size: 11px;
+  color: #000000; /* Preto */
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+/* Input Padrão XP */
+.input {
+  width: 100%;
+  background: #FFFFFF;
+  border: 1px solid #7F9DB9;
+  border-radius: 0;
+  padding: 4px 6px;
+  font-size: 11px;
+  color: #000000;
+  box-sizing: border-box;
+  box-shadow: 
+      -1px -1px 0px rgba(255,255,255,0.8) inset,
+      1px 1px 2px rgba(0,0,0,0.1) inset;
+}
+
+.input:focus {
+  outline: 1px solid #0054E3;
+  outline-offset: -1px;
+  background: #FFFEF9;
+}
+
+.input:disabled,
+.disabledInput {
+  background-color: #ECE9D8;
+  color: #7F9DB9;
+  cursor: not-allowed;
+  border-color: #C0C0C0;
+}
+
+.helperText {
+  font-size: 11px;
+  color: #333333;
+  margin-top: 5px;
+}
+
+.buttonSection {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.button {
+  padding: 8px 16px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+  width: 100%;
+  transition: none;
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.button:not(:disabled):hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Botão Salvar (Azul) */
+.saveButton {
+  border: 1px solid #003C74;
+  background: linear-gradient(180deg, #0078D7 0%, #0054E3 50%, #0040B0 100%);
+  color: #FFFFFF;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  box-shadow: 1px 1px 0px rgba(255,255,255,0.8) inset;
+}
+.saveButton:not(:disabled):hover {
+  background: linear-gradient(180deg, #008FE5 0%, #0065F0 50%, #0050C5 100%);
+}
+.saveButton:disabled {
+  background: linear-gradient(180deg, #999999 0%, #808080 100%);
+  color: #CCCCCC;
+}
+
+/* Botão Logout (Cinza) */
+.logoutButton {
+  background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
+  border: 1px solid #7F9DB9;
+  color: #000;
+}
+.logoutButton:not(:disabled):hover {
+  background: linear-gradient(180deg, #FFFEF9 0%, #F5F3E8 100%);
+}
+
+/* ========================================
+   CAMPO DE BANCA INICIAL (CURRENCY INPUT)
+   ======================================== */
+
+.labelIcon {
+  margin-right: 6px;
+  vertical-align: middle;
+  color: #0054E3; /* Azul */
+}
+
+.currencyInputWrapper {
+  display: flex;
+  align-items: center;
+  background-color: #FFFFFF;
+  border: 1px solid #7F9DB9;
+  border-radius: 0;
+  padding: 0;
+  transition: none;
+  overflow: hidden;
+  box-shadow: 
+      -1px -1px 0px rgba(255,255,255,0.8) inset,
+      1px 1px 2px rgba(0,0,0,0.1) inset;
+}
+
+.currencyInputWrapper:focus-within {
+  border-color: #7F9DB9;
+  box-shadow: -1px -1px 0px rgba(255,255,255,0.8) inset,
+              1px 1px 2px rgba(0,0,0,0.1) inset;
+}
+/* O foco será no input interno */
+.currencyInput:focus {
+  outline: 1px solid #0054E3;
+  outline-offset: -1px;
+}
+
+.currencySymbol {
+  padding: 4px 8px;
+  font-size: 11px;
+  color: #003399; /* Azul escuro */
+  font-weight: 700;
+  background-color: #ECE9D8; /* Fundo cinza */
+  border-right: 1px solid #7F9DB9;
+}
+
+.currencyInput {
+  flex: 1;
+  background-color: transparent;
+  border: none;
+  padding: 4px 6px;
+  font-size: 11px;
+  color: #000;
+  font-weight: 600;
+  outline: none;
+}
+
+.currencyInput::placeholder {
+  color: #666;
+  font-weight: 400;
+}
+
+.currencyInput:disabled {
+  color: #888;
+  cursor: not-allowed;
+}
+
+/* Warning Text (Estilo Info Azul) */
+.warningText {
+  font-size: 11px;
+  color: #003399; /* Azul escuro */
+  margin-top: 8px;
+  padding: 8px 12px;
+  background-color: #E0E8F5; /* Azul claro */
+  border: 1px solid #0054E3; /* Borda Azul */
+  border-radius: 4px;
+  line-height: 1.4;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .imageButtons {
+    flex-direction: column;
+    width: 100%;
+    max-width: 200px;
+  }
+  
+  .imageButton {
+    width: 100%;
+  }
+  
+  .header {
+    padding: 6px 10px;
+  }
+  
+  .title {
+    font-size: 11px;
+  }
+  
+  .avatarGrid {
+    grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+    gap: 8px;
+  }
+  .imageSection{
+    margin-left: 0px;
+  }
+  .section {
+  /* padding: 20px; */
+  margin-left: 0px;
+  max-width: 450px;
+  background: #ECE9D8;
+  border: 1px solid #7F9DB9;
+}
+  .avatarOption {
+    width: 60px;
+    height: 60px;
+  }
+}

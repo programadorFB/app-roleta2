@@ -2,7 +2,7 @@ import React, {
   useState, useMemo, useCallback, useEffect, lazy, Suspense,
 } from 'react';
 import {
-  X, BarChart3, Clock, Hash, Percent, LogOut, PlayCircle, Crosshair, BookOpen, Headset, Wrench,
+  X, BarChart3, Clock, Hash, Percent, LogOut, PlayCircle, Crosshair, BookOpen, Headset, Wrench, Wallet,
 } from 'lucide-react';
 
 import Login        from './components/Login.jsx';
@@ -30,6 +30,7 @@ const GameIframe        = lazy(() => import('./components/GameIframe.jsx'));
 const TriggersPage      = lazy(() => import('./pages/TriggersPage.jsx'));
 const TutorialPage      = lazy(() => import('./pages/TutorialPage.jsx'));
 const ToolsPage         = lazy(() => import('./pages/ToolsPage.jsx'));
+const GerenciamentoApp  = lazy(() => import('./gerenciamento/GerenciamentoApp.jsx'));
 
 const Spinner = () => <div className="loading-screen"><div className="loading-spinner-large" /></div>;
 
@@ -190,6 +191,7 @@ const App = () => {
   const setTriggers  = useCallback(() => setActiveView('triggers'),  []);
   const setTutorial  = useCallback(() => setActiveView('tutorial'),  []);
   const setTools     = useCallback(() => setActiveView('tools'),     []);
+  const setGerenciamento = useCallback(() => setActiveView('gerenciamento'), []);
 
   // ── Computed ──────────────────────────────────────────────
 
@@ -278,6 +280,12 @@ const App = () => {
             onClick={setTutorial}
           >
             <BookOpen size={16} /><span className="navbar-tab-text">Tutorial</span>
+          </button>
+          <button
+            className={`navbar-tab ${activeView === 'gerenciamento' ? 'navbar-tab--active' : ''}`}
+            onClick={setGerenciamento}
+          >
+            <Wallet size={16} /><span className="navbar-tab-text">Gerenciamento</span>
           </button>
           {/* <button
             className={`navbar-tab ${activeView === 'tools' ? 'navbar-tab--active' : ''}`}
@@ -463,6 +471,16 @@ const App = () => {
       {activeView === 'tools' && (
         <Suspense fallback={<Spinner />}>
           <ToolsPage />
+        </Suspense>
+      )}
+
+      {activeView === 'gerenciamento' && (
+        <Suspense fallback={<Spinner />}>
+          <GerenciamentoApp
+            userInfo={userInfo}
+            jwtToken={jwtToken}
+            onLogout={handleLogout}
+          />
         </Suspense>
       )}
 

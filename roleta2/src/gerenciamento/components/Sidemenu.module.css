@@ -1,0 +1,281 @@
+/* ============================================================
+   Sidemenu.module.css — Side menu do Gerenciamento
+   Paleta: azul XP modernizado (#0054E3), fundo cinza/branco
+   ============================================================ */
+
+/* ── Overlay ─────────────────────────────────────────────── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 999;
+  backdrop-filter: blur(2px);
+}
+
+/* ── Container principal ──────────────────────────────────── */
+.container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 260px;
+  background: #f0efe8;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(-100%);
+  transition: transform 0.28s ease, width 0.28s ease;
+  border-right: 1px solid #aab8cc;
+  box-shadow: 3px 0 16px rgba(0, 0, 0, 0.22);
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+}
+
+.container.visible {
+  transform: translateX(0);
+}
+
+.container.collapsed {
+  width: 56px;
+}
+
+/* ── Botão fechar ─────────────────────────────────────────── */
+.closeButton {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  background: linear-gradient(180deg, #fff 0%, #d0daea 100%);
+  border: 1px solid #5580a0;
+  border-radius: 3px;
+  color: #333;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  z-index: 10;
+  transition: background 0.15s;
+}
+.closeButton:hover {
+  background: linear-gradient(180deg, #fffadc 0%, #bad0ec 100%);
+}
+
+/* ── Seção de perfil ──────────────────────────────────────── */
+.profileSection {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 16px 16px;
+  background: linear-gradient(160deg, #1565d8 0%, #0040b0 100%);
+  border-bottom: 2px solid #0035a0;
+  min-height: 72px;
+  flex-shrink: 0;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4a90e2 0%, #fff 100%);
+  border: 2px solid rgba(255,255,255,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 15px;
+  color: #003399;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+
+.container.collapsed .profileSection {
+  padding: 16px 8px;
+  justify-content: center;
+}
+.container.collapsed .profileInfo {
+  display: none;
+}
+
+.profileInfo {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.userName {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  margin-bottom: 2px;
+}
+
+.userEmail {
+  font-size: 11px;
+  color: rgba(255,255,255,0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Navegação ────────────────────────────────────────────── */
+.nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+  scrollbar-width: thin;
+  scrollbar-color: #aab8cc transparent;
+}
+.nav::-webkit-scrollbar { width: 4px; }
+.nav::-webkit-scrollbar-thumb { background: #aab8cc; border-radius: 2px; }
+
+/* ── Seções ───────────────────────────────────────────────── */
+.menuSection {
+  margin-bottom: 4px;
+}
+
+.menuSectionLabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6680a0;
+  padding: 8px 18px 4px;
+}
+
+.container.collapsed .menuSectionLabel {
+  display: none;
+}
+
+/* ── Itens de menu ────────────────────────────────────────── */
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: calc(100% - 16px);
+  margin: 1px 8px;
+  padding: 9px 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #1a1a2e;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  white-space: nowrap;
+}
+
+.menuItem:hover {
+  background: #d8e6f8;
+  border-color: #90b8e0;
+  color: #003399;
+}
+
+.menuItemActive {
+  background: linear-gradient(90deg, #c8ddf8 0%, #dce9f8 100%);
+  border-color: #7aace0;
+  color: #003399;
+}
+.menuItemActive .menuItemIcon {
+  color: #0054e3;
+}
+.menuItemActive .menuItemMark {
+  display: block;
+}
+
+.menuItemDanger {
+  color: #990000;
+}
+.menuItemDanger .menuItemIcon {
+  color: #cc0000;
+}
+.menuItemDanger:hover {
+  background: #fce8e8;
+  border-color: #e0aaaa;
+  color: #880000;
+}
+
+.menuItemIcon {
+  width: 22px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4060a0;
+}
+
+.menuItemText {
+  flex: 1;
+}
+
+.menuItemMark {
+  display: none;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #0054e3;
+  flex-shrink: 0;
+}
+
+/* collapsed: esconde texto */
+.container.collapsed .menuItemText,
+.container.collapsed .menuItemMark {
+  display: none;
+}
+.container.collapsed .menuItem {
+  justify-content: center;
+  padding: 10px 0;
+  margin: 1px 4px;
+  width: calc(100% - 8px);
+  gap: 0;
+}
+.container.collapsed .menuItemIcon {
+  width: auto;
+}
+
+/* ── Footer ───────────────────────────────────────────────── */
+.footer {
+  padding: 10px 8px 8px;
+  border-top: 1px solid #aab8cc;
+  background: #e8e6de;
+}
+
+.collapseButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  background: linear-gradient(180deg, #fff 0%, #e0ddd4 100%);
+  border: 1px solid #aab8cc;
+  border-radius: 3px;
+  color: #333;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  margin-bottom: 6px;
+}
+.collapseButton:hover {
+  background: linear-gradient(180deg, #fffef5 0%, #ece9d8 100%);
+}
+.container.collapsed .menuItemText {
+  display: none;
+}
+.container.collapsed .collapseButton {
+  justify-content: center;
+  padding: 7px 0;
+}
+
+.footerText {
+  font-size: 10px;
+  color: #8090a8;
+  text-align: center;
+  margin: 0;
+}

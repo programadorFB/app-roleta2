@@ -27,6 +27,7 @@ import {
 } from './subscriptionService.js';
 import { processSource, initMotorEngine, getLatestMotorAnalysis, computeMotorAnalysisOnDemand, computeFilteredMotorScore, backfillMotorScores } from './motorScoreEngine.js';
 import { processTriggerSource, initTriggerEngine, getLatestTriggerAnalysis } from './triggerScoreEngine.js';
+import { gerenciamentoAuthMiddleware, gerenciamentoProxy } from './gerenciamentoGateway.js';
 
 dotenv.config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.env') });
 
@@ -498,6 +499,9 @@ app.use('/start-game', async (req, res, next) => {
 
   logLevel: 'warn',
 }));
+
+// ── Proxy: /api/gerenciamento/* (gateway HMAC -> gerenciamento_backend Flask) ──
+app.use('/api/gerenciamento', gerenciamentoAuthMiddleware, gerenciamentoProxy);
 
 app.use(express.static(path.join(__dirname, '..', 'dist')));
 

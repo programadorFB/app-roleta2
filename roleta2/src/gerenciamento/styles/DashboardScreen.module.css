@@ -1,0 +1,461 @@
+/* ========================================
+   Tema XP (Branco, Azul, Cinza)
+   DashboardScreen.module.css - Mobile First
+   ======================================== */
+
+/* --- RESET & GERAL --- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Tahoma', 'Trebuchet MS', sans-serif;
+  background: #D6D3CE;
+  color: #000;
+}
+
+/* Container Principal */
+.dashboardContainer {
+  min-height: 100vh;
+  width: 100%;
+  background: #D6D3CE;
+  position: relative;
+  overflow-x: hidden;
+  padding-bottom: 20px; /* Espaço extra no final */
+}
+
+/* --- HEADER (Barra de Título XP) --- */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: linear-gradient(180deg, #0054E3 0%, #0040B0 100%);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.3) inset;
+  position: sticky; /* Fixa no topo em mobile */
+  top: 0;
+  z-index: 100;
+}
+
+.menuButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+}
+
+/* Botão único de reset no header (abre o ResetModal) */
+.headerResetButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 3px;
+  color: #FFFFFF;
+  cursor: pointer;
+}
+
+.headerResetButton:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.menuIcon {
+  width: 20px;
+  height: 2px;
+  background: #FFFFFF;
+  display: block;
+  position: relative;
+}
+.menuIcon::before, .menuIcon::after {
+  content: ''; position: absolute; width: 20px; height: 2px; background: #FFFFFF; left: 0;
+}
+.menuIcon::before { top: -6px; }
+.menuIcon::after { top: 6px; }
+
+.greetingContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 8px;
+}
+
+.greeting {
+  font-size: 14px;
+  font-weight: bold;
+  color: #FFFFFF;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px; /* Limita largura no mobile */
+}
+
+.logoImg {
+  width: 20px;
+  height: 20px;
+  filter: brightness(0) invert(1);
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.profileWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.profileAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #7F9DB9;
+  border: 2px solid #FFFFFF;
+  object-fit: cover;
+}
+
+.profileAvatarPlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFF;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.profileIconBadge {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  background: #0054E3;
+  border-radius: 50%;
+  border: 1px solid #FFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  color: #FFF;
+}
+
+/* --- SCROLL VIEW --- */
+.scrollView {
+  padding: 10px; /* Padding geral para o conteúdo */
+  max-width: 1200px; /* Limite máximo para telas gigantes */
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px; /* Espaço entre seções */
+}
+
+/* --- SEÇÃO DE SALDO --- */
+.balanceSection {
+  display: grid;
+  grid-template-columns: 1fr; /* Mobile: 1 por linha */
+  gap: 10px;
+}
+
+.balanceCard {
+  background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
+  border: 1px solid #7F9DB9;
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+  box-shadow: 1px 1px 0px rgba(255,255,255,0.8) inset, 2px 2px 5px rgba(0,0,0,0.2);
+}
+
+.balanceCard.main {
+  border: 2px solid #0054E3;
+  order: -1; /* Joga o saldo principal para o topo no mobile */
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.cardHeader svg { color: #0054E3 !important; }
+
+.balanceAmount {
+  font-size: 20px;
+  font-weight: bold;
+  color: #000;
+}
+.balanceAmount.main { font-size: 26px; color: #003399; }
+.balanceAmount.initial { color: #0054E3; }
+.balanceAmount.positive { color: #006400; } /* Verde escuro para leitura */
+.balanceAmount.negative { color: #BF0000; }
+
+.performance {
+  font-size: 11px;
+  font-weight: bold;
+  margin-top: 4px;
+}
+.performance.positive { color: #006400; }
+.performance.negative { color: #BF0000; }
+
+/* --- AÇÕES RÁPIDAS --- */
+.quickActions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Mobile: 2 colunas */
+  gap: 8px;
+}
+
+.actionButton {
+  padding: 10px;
+  background: linear-gradient(180deg, #0078D7 0%, #0054E3 50%, #0040B0 100%);
+  border: 1px solid #003C74;
+  border-radius: 3px;
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+.actionButton:active { background: #003399; }
+
+/* --- SEÇÕES GERAIS --- */
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: bold;
+  color: #003399;
+}
+
+.seeAllButton {
+  background: none;
+  border: none;
+  color: #0054E3;
+  font-size: 11px;
+  font-weight: bold;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* --- GESTÃO DE RISCO --- */
+.riskManagementSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.riskCardsContainer {
+  display: grid;
+  grid-template-columns: 1fr; /* Mobile: 1 por linha */
+  gap: 16px;
+}
+
+.riskCard {
+  background: #FFFFFF;
+  border: 2px solid #0054E3;
+  border-radius: 6px;
+  overflow: hidden; /* Garante bordas arredondadas */
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+}
+
+.riskCardHeader {
+  background: linear-gradient(180deg, #0054E3 0%, #0040B0 100%);
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #FFF;
+}
+
+.riskCardTitle {
+  font-size: 12px;
+  font-weight: bold;
+  text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+}
+
+.riskCardBody {
+  padding: 12px;
+}
+
+.riskCardValue {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.riskMainValue {
+  font-size: 18px;
+  font-weight: bold;
+  color: #000;
+}
+
+.riskPercentage {
+  font-size: 11px;
+  color: #666;
+}
+
+.progressBarContainer { margin-top: 8px; }
+
+.progressBar {
+  height: 14px;
+  background: #FFF;
+  border: 1px solid #7F9DB9;
+  padding: 1px;
+}
+
+.progressBarFill {
+  height: 100%;
+  background: #0054E3;
+  width: 0; /* Animado via JS */
+  transition: width 0.3s;
+}
+
+.progressInfo {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  margin-top: 2px;
+  color: #333;
+}
+
+.riskCardEmpty {
+  text-align: center;
+  padding: 10px;
+  font-size: 11px;
+  color: #666;
+}
+
+.configureButton {
+  margin-top: 8px;
+  padding: 4px 10px;
+  background: #0054E3;
+  color: #FFF;
+  border: 1px solid #003C74;
+  border-radius: 3px;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+/* Alertas */
+.alertBanner, .successBanner {
+  margin-top: 10px;
+  padding: 6px;
+  font-size: 11px;
+  font-weight: bold;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.alertBanner { background: #FFE5E5; color: #BF0000; border: 1px solid #BF0000; }
+.successBanner { background: #E5FFE5; color: #006400; border: 1px solid #006400; }
+.stopLossTriggered { border-color: #BF0000 !important; }
+
+/* --- RESUMO FINANCEIRO --- */
+.summaryCardUnified {
+  background: #FFFFFF;
+  border: 1px solid #7F9DB9;
+  border-radius: 4px;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  border-bottom: 1px solid #ECE9D8;
+}
+.summaryRow:last-child { border-bottom: none; }
+
+.summaryLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #333;
+}
+.summaryLabel svg { color: #0054E3 !important; }
+
+.summaryValue {
+  font-weight: bold;
+  font-size: 12px;
+}
+.summaryValue.positive { color: #006400; }
+.summaryValue.negative { color: #BF0000; }
+
+/* --- CALENDÁRIO --- */
+.calendarSection {
+  /* Garante que o calendário não estoure a tela */
+  width: 100%;
+  overflow: hidden;
+  background: #ECE9D8;
+  border: 1px solid #7F9DB9;
+  padding: 4px;
+}
+.calendarSection .sectionHeader {
+  padding: 4px;
+  margin-bottom: 4px;
+}
+
+/* --- ESTADO VAZIO --- */
+.emptyState {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+  font-size: 12px;
+  background: #FFF;
+  border: 1px dashed #7F9DB9;
+  border-radius: 4px;
+}
+
+/* ========================================
+   MEDIA QUERIES (TABLET & DESKTOP)
+   ======================================== */
+
+@media (min-width: 600px) {
+  .balanceSection {
+    grid-template-columns: repeat(3, 1fr); /* 3 colunas em telas médias+ */
+  }
+  .balanceCard.main { order: 0; } /* Volta para o meio/ordem normal */
+
+  .quickActions {
+    grid-template-columns: repeat(4, 1fr); /* 4 botões em linha */
+  }
+
+  .riskCardsContainer {
+    grid-template-columns: repeat(2, 1fr); /* 2 cards lado a lado */
+  }
+}
+
+@media (min-width: 1024px) {
+  /* Ajustes finos para telas grandes */
+  .scrollView {
+    padding: 20px;
+    gap: 24px;
+  }
+  
+  .greeting { font-size: 16px; max-width: none; }
+  
+  .balanceAmount { font-size: 24px; }
+  .balanceAmount.main { font-size: 32px; }
+}

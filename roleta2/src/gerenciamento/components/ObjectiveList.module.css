@@ -1,0 +1,461 @@
+/* Estilo Windows XP (Branco, Azul, Cinza)
+   Baseado no ObjectiveList.module.css original.
+*/
+
+/* --- PALETA DE CORES E FONTES XP --- */
+:root {
+  --xp-blue-dark: #0047C4;
+  --xp-blue-light: #0055E7;
+  --xp-blue-gradient: linear-gradient(to bottom, var(--xp-blue-light), var(--xp-blue-dark));
+  --xp-gray-bg: #ECE9D8; /* O cinza clássico de janela */
+  --xp-gray-border-dark: #ACA899;
+  --xp-gray-border-light: #FFFFFF;
+  --xp-text-black: #000000;
+  --xp-text-white: #FFFFFF;
+  --xp-success-green: #008000;
+  --xp-danger-red: #CC0000;
+  --xp-warning-orange: #FF9800;
+  --xp-focus-blue: #0A246A;
+  --xp-font: Tahoma, Verdana, sans-serif;
+}
+
+/* --- ESTILOS GERAIS DA LISTA --- */
+.container {
+  width: 100%;
+  padding: 8px;
+  font-family: var(--xp-font);
+  background-color: var(--xp-gray-border-light); /* Fundo branco para área de conteúdo */
+}
+
+/* --- ITEM DO OBJETIVO (Estilo "Janela" ou "Grupo") --- */
+.objectiveItem {
+  background-color: var(--xp-gray-bg);
+  border-radius: 0;
+  margin-bottom: 8px;
+  border: 1px solid var(--xp-gray-border-light);
+  border-right-color: var(--xp-gray-border-dark);
+  border-bottom-color: var(--xp-gray-border-dark);
+  position: relative;
+  overflow: visible; /* Necessário para botões não serem cortados */
+  box-shadow: none;
+  padding: 0; /* O header vai cuidar do padding inicial */
+  cursor: pointer;
+  transition: none; /* XP não tinha transições */
+}
+.objectiveItem:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--xp-focus-blue);
+}
+/* Animação de saída - simplificada */
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+    height: 0;
+    margin: 0;
+    padding: 0;
+  }
+}
+.objectiveItem.isDeleting {
+  animation: fadeOut 0.2s forwards ease-out;
+}
+
+/* Cabeçalho do item (Barra de Título Azul) */
+.objectiveHeader {
+  background: var(--xp-blue-gradient);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+}
+.objectiveTitle {
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--xp-text-white);
+  margin: 0;
+}
+.objectiveProgress {
+  font-size: 12px;
+  font-weight: bold;
+  color: var(--xp-text-white);
+  background-color: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+
+/* Conteúdo do item */
+.contentWrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 8px 8px 8px;
+}
+
+/* Removemos o Donut, pois não é muito "XP". Usaremos uma barra de progresso. */
+.donutContainer {
+  display: none;
+}
+.objectiveDetails {
+  flex: 1;
+}
+
+/* Barra de progresso (substituindo o donut) */
+.progressBarBackground {
+  width: 100%;
+  height: 20px;
+  background-color: var(--xp-gray-border-light);
+  border-radius: 0;
+  border: 1px inset var(--xp-gray-border-dark);
+  overflow: hidden;
+  padding: 2px;
+  margin-bottom: 4px;
+}
+.progressBarFill {
+  height: 100%;
+  background-color: var(--xp-success-green);
+  border-radius: 0;
+}
+
+.currentAmount {
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--xp-text-black);
+  margin: 0 0 2px 0;
+}
+.targetAmount {
+  font-size: 12px;
+  color: #333;
+  margin: 0 0 4px 0;
+}
+.deadlineDateContainer {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #555;
+  margin-bottom: 4px;
+}
+.deadline {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--xp-warning-orange);
+}
+
+/* Ações do Item (Botões Padrão XP) */
+.actionButtonsContainer {
+  position: static; /* Não mais absoluto */
+  background-color: transparent;
+  border-radius: 0;
+  padding: 8px;
+  display: flex;
+  gap: 6px;
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+  border-top: 1px solid var(--xp-gray-border-dark);
+  margin-top: 8px;
+  z-index: 2;
+}
+.actionButtonsContainer button {
+  background: var(--xp-gray-bg);
+  border: 1px solid var(--xp-gray-border-light);
+  border-right-color: var(--xp-gray-border-dark);
+  border-bottom-color: var(--xp-gray-border-dark);
+  color: var(--xp-text-black);
+  padding: 2px 12px;
+  border-radius: 0;
+  cursor: pointer;
+  font-family: var(--xp-font);
+  font-size: 12px;
+}
+.actionButtonsContainer button:hover {
+  border: 1px solid var(--xp-focus-blue);
+}
+.actionButtonsContainer .deleteButton {
+  background: var(--xp-danger-red);
+  color: var(--xp-text-white);
+  border-color: var(--xp-danger-red);
+}
+.actionButtonsContainer .deleteButton:hover {
+  background: #E00000;
+}
+
+/* --- ESTADO VAZIO --- */
+.emptyContainer {
+  text-align: center;
+  padding: 40px 20px;
+  color: #555;
+  background-color: var(--xp-gray-bg);
+  border: 1px dashed var(--xp-gray-border-dark);
+}
+.emptyIconContainer {
+  display: none; /* Ícone moderno removido */
+}
+.emptyText {
+  font-size: 16px;
+  color: var(--xp-text-black);
+  font-weight: 700;
+  margin: 0 0 8px 0;
+}
+.emptySubtext {
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0 0 16px 0;
+}
+.tipContainer {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #FFFFE1; /* Clássico balão de dica amarelo */
+  padding: 12px;
+  border-radius: 0;
+  border: 1px solid var(--xp-text-black);
+  color: var(--xp-text-black);
+}
+.tipText {
+  font-size: 12px;
+  font-weight: normal;
+  margin: 0;
+}
+
+/* --- ESTILOS DO MODAL (Janela Clássica XP) --- */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 16px;
+  font-family: var(--xp-font);
+}
+.modalContainer {
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  background-color: var(--xp-gray-bg);
+  border-radius: 4px; /* XP tinha cantos superiores levemente arredondados */
+  border: 1px solid var(--xp-gray-border-light);
+  border-right-color: var(--xp-gray-border-dark);
+  border-bottom-color: var(--xp-gray-border-dark);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Cabeçalho do Modal (Barra de Título) */
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px;
+  border-bottom: none;
+  background: var(--xp-blue-gradient);
+  border-radius: 4px 4px 0 0;
+}
+.modalTitle {
+  color: var(--xp-text-white);
+  font-size: 13px;
+  font-weight: bold;
+  margin: 0;
+}
+.closeButton {
+  padding: 2px;
+  border-radius: 0;
+  background-color: #E86850; /* Vermelho do 'X' do XP */
+  border: 1px solid var(--xp-gray-border-light);
+  border-right-color: var(--xp-gray-border-dark);
+  border-bottom-color: var(--xp-gray-border-dark);
+  cursor: pointer;
+  color: var(--xp-text-white);
+  display: inline-flex;
+  font-family: "Marlett", "Arial"; /* Fonte de ícone do Windows */
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+  width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+}
+/* Adicione 'r' (para 'r' em Marlett, que é o 'x') dentro do botão no seu HTML/React */
+.closeButton:hover {
+  background-color: #F08070;
+}
+
+/* Conteúdo do Modal */
+.modalContent {
+  overflow-y: auto;
+  padding: 12px;
+  background-color: var(--xp-gray-bg);
+}
+.inputContainer {
+  margin: 12px 0;
+}
+.inputLabel {
+  display: block;
+  color: var(--xp-text-black);
+  font-size: 12px;
+  font-weight: normal;
+  margin-bottom: 4px;
+}
+.textInput {
+  width: 100%;
+  background-color: var(--xp-gray-border-light);
+  border: 1px solid var(--xp-gray-border-dark);
+  border-radius: 0;
+  padding: 4px;
+  color: var(--xp-text-black);
+  font-size: 12px;
+  font-family: var(--xp-font);
+  box-sizing: border-box;
+}
+.textInput:focus {
+  outline: none;
+  border-color: var(--xp-focus-blue);
+}
+.inputError {
+  border-color: var(--xp-danger-red);
+}
+.errorText {
+  color: var(--xp-danger-red);
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+/* Preview (Estilo "GroupBox") */
+.previewContainer {
+  margin: 16px 0;
+}
+.previewLabel {
+  color: var(--xp-blue-dark);
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+.previewCard {
+  background-color: transparent;
+  border: 1px solid var(--xp-gray-border-dark);
+  border-radius: 0;
+  padding: 16px;
+  text-align: left;
+}
+.previewTitle {
+  color: var(--xp-text-black);
+  font-size: 13px;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+/* A barra de progresso já foi estilizada acima */
+.previewPercentage {
+  font-size: 12px;
+  font-weight: bold;
+  color: var(--xp-success-green);
+  text-align: center;
+  margin-top: 4px;
+}
+
+/* Ações do Modal (Botões) */
+.modalActions {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--xp-gray-border-dark);
+  background-color: var(--xp-gray-bg);
+  justify-content: flex-end; /* Botões à direita */
+}
+.cancelButton, .saveButton {
+  flex: 0; /* Não esticar */
+  padding: 2px 20px; /* Mais largo */
+  border-radius: 0;
+  font-size: 12px;
+  font-weight: normal;
+  border: 1px solid var(--xp-gray-border-light);
+  border-right-color: var(--xp-gray-border-dark);
+  border-bottom-color: var(--xp-gray-border-dark);
+  cursor: pointer;
+  background-color: var(--xp-gray-bg);
+  color: var(--xp-text-black);
+}
+.saveButton {
+  /* Botão padrão (default) */
+  border: 1px solid var(--xp-focus-blue);
+  font-weight: bold;
+}
+.cancelButton:hover, .saveButton:hover {
+  border: 1px solid var(--xp-focus-blue);
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Checkbox (Estilo XP) */
+.checkboxContainer {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+  padding-left: 25px;
+  min-height: 16px;
+  color: var(--xp-text-black);
+  font-size: 12px;
+  user-select: none;
+}
+.checkboxInput {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+.checkboxCheckmark {
+  position: absolute;
+  top: 1px;
+  left: 0;
+  height: 14px;
+  width: 14px;
+  background-color: var(--xp-gray-border-light);
+  border: 1px solid var(--xp-gray-border-dark);
+  border-radius: 0;
+}
+.checkboxContainer:hover .checkboxCheckmark {
+  border-color: var(--xp-focus-blue);
+}
+.checkboxInput:checked ~ .checkboxCheckmark {
+  background-color: var(--xp-gray-border-light);
+}
+.checkboxCheckmark:after {
+  content: "✔"; /* Símbolo de "check" */
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  font-size: 12px;
+  position: absolute;
+  display: none;
+  left: 2px;
+  top: -2px;
+  color: var(--xp-text-black);
+}
+.checkboxInput:checked ~ .checkboxCheckmark:after {
+  display: block;
+}
+
+/* Ícone de Completo (simples) */
+.completedBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: var(--xp-success-green);
+  border-radius: 50%;
+  flex-shrink: 0;
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+}
+/* Use '✔' como conteúdo do badge no HTML/React */

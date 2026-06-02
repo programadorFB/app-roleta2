@@ -9,6 +9,7 @@ import { PHYSICAL_WHEEL, API_URL } from '../constants/roulette.js';
 import { signedFetch } from '../lib/signedFetch.js';
 import EntrySignalCard from '../components/EntrySignalCard.jsx';
 import SignalHistory from '../components/SignalHistory.jsx';
+import QuickRegisterActions from '../components/QuickRegisterActions.jsx';
 import styles from './MasterDashboard.module.css';
 
 const getCoveredNumbers = (targetNumbers, neighborMode) => {
@@ -272,6 +273,8 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate, backendMotorAnalysis, hi
 
   return (
     <div className={styles.masterDashboardContainer}>
+      <QuickRegisterActions />
+
       <HeroScoreboard
         wins={modeScore.wins} losses={modeScore.losses}
         neighborMode={neighborMode} setNeighborMode={setNeighborMode}

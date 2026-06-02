@@ -1,0 +1,243 @@
+/* ========================================
+   Tema XP (Branco, Azul, Cinza)
+   TransactionHistoryScreen.module.css
+   ======================================== */
+
+.container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-width: 100vw;
+    background-color: #D6D3CE; /* Fundo Cinza XP */
+    color: #000;
+    font-family: 'Tahoma', 'Trebuchet MS', sans-serif;
+}
+/* --- Header (Barra de Título XP) --- */
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    background: linear-gradient(180deg, #0054E3 0%, #0040B0 100%);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.3) inset;
+}
+.header h1 { 
+    font-size: 11px; 
+    font-weight: bold; 
+    margin: 0; 
+    color: #FFFFFF;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+.backButton, .infoButton {
+    background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
+    border: 1px solid #7F9DB9;
+    border-radius: 3px;
+    color: #000;
+    cursor: pointer;
+    padding: 4px;
+}
+.backButton:hover, .infoButton:hover {
+    background: linear-gradient(180deg, #FFFEF9 0%, #F5F3E8 100%);
+}
+
+/* --- Filtros (Estilo Toolbar/Abas XP) --- */
+.filterContainer {
+    display: flex;
+    justify-content: space-around;
+    padding: 10px;
+    background-color: #ECE9D8; /* Fundo cinza claro */
+    border-bottom: 1px solid #7F9DB9;
+}
+.filterContainer button {
+    padding: 6px 12px;
+    border-radius: 3px;
+    background-color: #ECE9D8;
+    border: 1px solid #7F9DB9;
+    color: #000;
+    font-weight: 600;
+    font-size: 11px;
+    cursor: pointer;
+}
+.filterContainer .filterActive {
+    background-color: #C1D2EE; /* Fundo azul claro (selecionado) */
+    color: #000;
+    border: 1px solid #003399;
+}
+
+/* --- Lista (Estilo ListView XP) --- */
+.listContainer {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 10px 15px 20px;
+    background: #FFFFFF; /* Fundo da lista branco */
+    border: 1px solid #7F9DB9;
+    margin: 10px;
+}
+
+/* Item da Lista */
+.itemContainer {
+    display: flex;
+    align-items: center;
+    margin-top: 0;
+    background-color: #FFFFFF;
+    border-radius: 0;
+    border-bottom: 1px solid #C0C0C0; /* Linha divisória */
+    position: relative;
+}
+.itemTouchable {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    gap: 15px;
+}
+.iconContainer {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* Fundo azul para todos */
+    background-color: rgba(0, 84, 227, 0.15) !important;
+}
+/* Ícones são todos azuis */
+.iconContainer svg {
+    color: #0054E3 !important; 
+}
+
+.detailsContainer { flex-grow: 1; }
+.itemCategory { font-size: 12px; font-weight: bold; margin: 0; color: #000; }
+.itemDate { font-size: 11px; color: #333; margin: 4px 0; }
+.itemDescription { font-size: 11px; color: #666; font-style: italic; }
+
+.itemAmount { 
+    font-size: 12px; 
+    font-weight: bold; 
+    /* Cor baseada na prop (positivo/negativo) */
+}
+.itemAmount[style*="rgb(90, 138, 106)"], /* Verde (positivo) */
+.itemAmount[style*="#5A8A6A"] {
+    color: #0054E3 !important; /* Mudar para Azul */
+}
+.itemAmount[style*="rgb(164, 74, 74)"], /* Vermelho (negativo) */
+.itemAmount[style*="#A44A4A"] {
+    color: #333333 !important; /* Mudar para Cinza Escuro */
+}
+
+
+.permanentActions {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding-right: 10px;
+}
+.editButton, .deleteButton {
+    background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
+    border: 1px solid #7F9DB9;
+    border-radius: 3px;
+    padding: 4px;
+    cursor: pointer;
+    color: #000; /* Cor do ícone */
+}
+/* REMOVIDO: Cores de borda/texto (dourado/vermelho) */
+
+/* --- Modal (Estilo Janela XP) --- */
+.modalOverlay { 
+    position: fixed; 
+    inset: 0; 
+    background: rgba(0, 84, 227, 0.3); /* Overlay Azul */
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    backdrop-filter: blur(2px);
+}
+.modalContainer { 
+    background: #ECE9D8; 
+    border-radius: 8px 8px 0 0; 
+    border: 2px solid #0054E3;
+    width: 95%; 
+    max-width: 450px; 
+    max-height: 90vh; 
+    display: flex; 
+    flex-direction: column;
+    box-shadow: 4px 4px 12px rgba(0,0,0,0.4);
+}
+.modalHeader { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    padding: 4px 8px; 
+    border-bottom: none;
+    /* Barra de título azul */
+    background: linear-gradient(180deg, #0054E3 0%, #0040B0 100%);
+}
+.modalHeader h3 {
+    font-size: 11px;
+    font-weight: bold;
+    color: #FFFFFF;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+.modalHeader button { 
+    background: linear-gradient(180deg, #FFFFFF 0%, #BFCCE0 100%);
+    border: 1px solid #003C74;
+    color: #000; 
+    cursor: pointer; 
+    width: 21px;
+    height: 21px;
+    padding: 0;
+}
+.modalContent { 
+    overflow-y: auto; 
+    padding: 5px 20px; 
+    background: #ECE9D8;
+}
+.modalActions { 
+    display: flex; 
+    gap: 10px; 
+    padding: 12px; 
+    border-top: 1px solid #7F9DB9; 
+    background: #ECE9D8;
+}
+.inputGroup { margin: 15px 0; }
+.inputGroup label { 
+    display: block; 
+    margin-bottom: 8px; 
+    font-weight: 600; 
+    color: #000; /* Preto */
+    font-size: 11px;
+}
+/* Inputs Padrão XP */
+.inputGroup input, .inputGroup textarea, .inputGroup select { 
+    width: 100%; 
+    background: #FFFFFF; 
+    border: 1px solid #7F9DB9; 
+    border-radius: 0; 
+    padding: 4px 6px; 
+    color: #000; 
+    font-size: 11px; 
+    box-sizing: border-box; 
+}
+.dateTimeContainer { display: flex; gap: 10px; }
+.dateTimeContainer input { flex: 1; }
+
+.cancelButton, .saveButton { 
+    flex: 1; 
+    padding: 6px 12px; 
+    border-radius: 3px; 
+    border: 1px solid #7F9DB9; 
+    font-weight: bold; 
+    cursor: pointer; 
+    font-size: 11px;
+}
+/* Botão Cinza */
+.cancelButton { 
+    background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%); 
+    color: #000; 
+}
+/* Botão Azul */
+.saveButton { 
+    background: linear-gradient(180deg, #0078D7 0%, #0054E3 50%, #0040B0 100%);
+    color: #FFFFFF; 
+    border-color: #003C74;
+}

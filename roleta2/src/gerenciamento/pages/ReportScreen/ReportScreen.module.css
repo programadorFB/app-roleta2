@@ -1,0 +1,201 @@
+/* ========================================
+   Tema XP (Branco, Azul, Cinza)
+   ReportScreen.module.css - Mobile First
+   ======================================== */
+
+/* Estilo geral do container */
+.container {
+  background-color: #D6D3CE; /* Fundo Cinza XP */
+  color: #000000; /* Texto Preto */
+  min-height: 100vh;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: 'Tahoma', 'Trebuchet MS', sans-serif;
+  overflow-x: hidden; /* Evita rolagem horizontal indesejada */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Cabeçalho (Barra de Título XP) */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: linear-gradient(180deg, #0054E3 0%, #0040B0 100%);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.3) inset;
+  position: sticky; /* Fixa o topo no mobile */
+  top: 0;
+  z-index: 10;
+}
+
+/* Botão de Voltar (Cinza XP) */
+.backButton {
+  background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
+  border: 1px solid #7F9DB9;
+  border-radius: 3px;
+  color: #000;
+  padding: 6px 10px; /* Área de toque melhor */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.backButton:hover {
+  background: linear-gradient(180deg, #FFFEF9 0%, #F5F3E8 100%);
+}
+
+/* Título Principal */
+.title {
+  font-size: 12px;
+  font-weight: bold;
+  color: #FFFFFF;
+  margin: 0;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Texto de Descrição */
+.description {
+  font-size: 12px;
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+  color: #000000;
+  padding: 16px 16px 0 16px;
+  width: 100%;
+}
+
+/* Container para os botões de download */
+.actionsContainer {
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column; /* Mobile: Empilhado */
+  gap: 10px;
+  padding: 0 16px;
+}
+
+/* Botão Base */
+.excelButton,
+.pdfButton {
+  display: flex; /* Flex para centralizar conteúdo */
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px; /* Botões mais altos para toque */
+  border-radius: 3px;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 12px;
+  border: 1px solid;
+  cursor: pointer;
+  width: 100%; /* Ocupa largura total no mobile */
+}
+
+/* Botão Excel */
+.excelButton {
+  background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
+  border-color: #7F9DB9;
+  color: #000000;
+}
+.excelButton:hover {
+  background: linear-gradient(180deg, #FFFEF9 0%, #F5F3E8 100%);
+}
+
+/* Botão PDF */
+.pdfButton {
+  background: linear-gradient(180deg, #0078D7 0%, #0054E3 50%, #0040B0 100%);
+  border-color: #003C74;
+  color: #FFFFFF;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  box-shadow: 1px 1px 0px rgba(255,255,255,0.8) inset;
+}
+.pdfButton:hover {
+  background: linear-gradient(180deg, #008FE5 0%, #0065F0 50%, #0050C5 100%);
+}
+
+/* Texto de Carregamento */
+.loadingText {
+  display: block;
+  text-align: center;
+  padding: 12px;
+  background-color: #ECE9D8;
+  color: #7F9DB9;
+  border-radius: 3px;
+  border: 1px solid #C0C0C0;
+  font-weight: bold;
+  font-size: 11px;
+}
+
+/* Seção do visualizador de PDF (Group Box) */
+.viewerSection {
+  margin: 0 10px 20px 10px; /* Margens pequenas no mobile */
+  padding: 12px;
+  background: #ECE9D8;
+  border: 1px solid #7F9DB9;
+  
+  /* Corrige o problema do width fixo */
+  width: auto;
+  flex-grow: 1; /* Ocupa o resto da tela */
+  display: flex;
+  flex-direction: column;
+}
+
+.viewerTitle {
+  font-size: 13px;
+  color: #003399;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #C0C0C0;
+  padding-bottom: 8px;
+  font-weight: bold;
+}
+
+.viewerWrapper {
+  border: 1px solid #7F9DB9;
+  border-radius: 0;
+  overflow: hidden;
+  background: #FFFFFF;
+  box-shadow: inset 1px 1px 3px rgba(0,0,0,0.3);
+  
+  /* Altura responsiva para mobile */
+  height: 60vh; 
+  min-height: 400px;
+}
+
+/* ========================================
+   Media Queries (Desktop / Tablet)
+   ======================================== */
+@media (min-width: 768px) {
+  .description {
+    padding: 20px 20px 0 20px;
+    max-width: 800px;
+  }
+
+  .actionsContainer {
+    flex-direction: row; /* Volta para linha no desktop */
+    padding: 0 20px;
+    width: auto;
+  }
+
+  .excelButton,
+  .pdfButton {
+    width: auto; /* Tamanho do conteúdo no desktop */
+    padding: 8px 16px;
+    font-size: 11px;
+  }
+
+  .viewerSection {
+    /* Centraliza e limita largura em telas grandes */
+    margin: 0 auto 20px auto;
+    width: 95%;
+    max-width: 1200px; 
+    padding: 20px;
+  }
+
+  .viewerWrapper {
+    height: 750px; /* Altura fixa maior para desktop */
+  }
+}

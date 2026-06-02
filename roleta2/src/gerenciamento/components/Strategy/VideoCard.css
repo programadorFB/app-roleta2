@@ -1,0 +1,217 @@
+/* VideoCard.css - Versão Elegante */
+
+.video-card {
+    flex-shrink: 0;
+    width: 19vw;
+    min-width: 200px;
+    max-width: 320px;
+    background: linear-gradient(145deg, #2a2a2a, #1f1f1f);
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.video-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, transparent 50%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.video-card:hover {
+    transform: scale(1.35) translateY(-8px);
+    z-index: 100;
+    box-shadow: 
+        0 20px 60px rgba(0, 0, 0, 0.95),
+        0 0 40px rgba(212, 175, 55, 0.4),
+        0 0 0 1px rgba(212, 175, 55, 0.3);
+}
+
+.video-card:hover::before {
+    opacity: 1;
+}
+
+.video-card img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: brightness(0.95);
+}
+
+.video-card:hover img {
+    transform: scale(1.05);
+    filter: brightness(1.05);
+}
+
+/* Overlay Gradient */
+.video-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* Barra de Progresso */
+.video-progress {
+    position: absolute;
+    bottom: 64px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.15);
+    z-index: 3;
+}
+
+.video-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #d4af37 0%, #f9d971 50%, #d4af37 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+    box-shadow: 0 0 8px rgba(212, 175, 55, 0.5);
+    transition: width 0.3s ease;
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% center; }
+    100% { background-position: -200% center; }
+}
+
+/* Informações do Vídeo */
+.video-info {
+    padding: 12px 14px;
+    background: rgba(15, 15, 15, 0.98);
+    backdrop-filter: blur(10px);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    z-index: 3;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.video-info h3 {
+    margin: 0;
+    font-size: 0.95em;
+    font-weight: 600;
+    color: #e5e5e5;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-grow: 1;
+    letter-spacing: 0.3px;
+    transition: color 0.3s ease;
+}
+
+.video-card:hover .video-info h3 {
+    color: #ffffff;
+}
+
+/* Botão de Ação Elegante */
+.video-action-btn {
+    background: transparent;
+    backdrop-filter: blur(10px);
+    
+    /* color: #fff;
+    border-radius: 100%; */
+    width: 30px;
+    height: 34px;
+    font-size: 1.3rem;
+    font-weight: 300;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border:None;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    
+    position: relative;
+    overflow: hidden;
+}
+
+.video-action-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    
+    border-radius: 50%;
+
+    transition: width 0.4s ease, height 0.4s ease;
+}
+
+.video-action-btn:hover::before {
+    width: 100px;
+    height: 100px;
+}
+
+.video-action-btn:hover {
+    background: transparent;
+    border-color: None;
+    color: #f9d971;
+    transform: scale(1.1) rotate(180deg);
+
+}
+
+.video-action-btn.added {
+    
+    color: #d4af37;
+    
+}
+
+.video-action-btn.added:hover {
+
+    color: #fff;
+    transform: scale(1.1) rotate(0deg);
+
+}
+
+/* Animação de entrada suave */
+.video-card {
+    animation: fadeInUp 0.5s ease-out backwards;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Efeito de foco para acessibilidade */
+.video-card:focus-visible {
+    outline: 2px solid #d4af37;
+    outline-offset: 4px;
+}
+
+.video-action-btn:focus-visible {
+    outline: 2px solid #d4af37;
+    outline-offset: 2px;
+}

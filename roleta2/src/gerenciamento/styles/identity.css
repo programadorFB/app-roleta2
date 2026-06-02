@@ -1,0 +1,573 @@
+/* ============================================================
+   identity.css — alinha o gerenciamento com o Mogno & Ouro Premium
+   do roleta3.
+
+   Estratégia: ao invés de editar os 21 CSS modules originais (que
+   foram desenhados para tema XP / dark com accent roxo), forçamos
+   o look-and-feel via overrides de ALTA especificidade escopados em
+   `.gerenciamento-root`. Isso mantém a estrutura original mas remapeia:
+     - backgrounds claros  → mogno escuro
+     - textos escuros       → ouro/branco
+     - bordas XP cinza      → ouro tênue
+     - botões azul/accent   → ouro
+     - cards/painéis        → glass escuro
+   ============================================================ */
+
+.gerenciamento-root {
+  /* ── tokens ─────────────────────────────────────────────── */
+  --ger-bg-deep: #0a0806;
+  --ger-bg: #14120e;
+  --ger-bg-alt: #1c1812;
+  --ger-bg-glass: linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+
+  --ger-gold: #c9a052;
+  --ger-gold-bright: #d4ac5c;
+  --ger-gold-dark: #a07830;
+  --ger-gold-soft: rgba(201,160,82,0.7);
+
+  --ger-text: #f0f0f5;
+  --ger-text-muted: rgba(255,255,255,0.65);
+  --ger-text-dim: rgba(255,255,255,0.35);
+
+  --ger-success: #34d399;
+  --ger-danger: #f87171;
+  --ger-warning: #f59e0b;
+
+  --ger-border: rgba(180,120,50,0.18);
+  --ger-border-top: rgba(201,160,82,0.28);
+  --ger-border-strong: rgba(201,160,82,0.45);
+
+  --ger-shadow:
+    0 8px 24px rgba(0,0,0,0.55),
+    inset 0 1px 0 rgba(201,160,82,0.06),
+    inset 0 -1px 1px rgba(0,0,0,0.35);
+
+  --ger-shadow-deep:
+    0 16px 48px rgba(0,0,0,0.7),
+    inset 0 1px 0 rgba(201,160,82,0.12);
+
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--ger-text);
+  background: var(--ger-bg-deep);
+  background-image:
+    radial-gradient(ellipse at 20% 10%, rgba(180,120,50,0.07) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 15%, rgba(201,160,82,0.06) 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.012) 0%, transparent 60%),
+    radial-gradient(ellipse at 75% 85%, rgba(201,160,82,0.045) 0%, transparent 50%);
+  min-height: 100%;
+  font-size: 14px;
+}
+
+/* ── fonte global ─────────────────────────────────────────── */
+.gerenciamento-root,
+.gerenciamento-root * {
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+}
+
+/* ── neutralização agressiva de backgrounds claros ─────────
+   Aplicado em containers genéricos. Excluímos elementos que
+   intencionalmente são coloridos (chips de status, badges, ícones). */
+.gerenciamento-root main,
+.gerenciamento-root section,
+.gerenciamento-root article,
+.gerenciamento-root aside,
+.gerenciamento-root [class*='container'],
+.gerenciamento-root [class*='Container'],
+.gerenciamento-root [class*='wrapper'],
+.gerenciamento-root [class*='Wrapper'],
+.gerenciamento-root [class*='content'],
+.gerenciamento-root [class*='Content'],
+.gerenciamento-root [class*='screen'],
+.gerenciamento-root [class*='Screen'],
+.gerenciamento-root [class*='page'],
+.gerenciamento-root [class*='Page'] {
+  background-color: transparent !important;
+  color: var(--ger-text);
+}
+
+/* ── headers (barra de título XP azul → glass dourado) ──── */
+.gerenciamento-root header,
+.gerenciamento-root [class*='header'],
+.gerenciamento-root [class*='Header'],
+.gerenciamento-root [class*='topBar'],
+.gerenciamento-root [class*='TopBar'] {
+  background: linear-gradient(165deg, rgba(20,18,14,0.88) 0%, rgba(10,8,6,0.75) 100%) !important;
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border-bottom: 1px solid var(--ger-border) !important;
+  border-top: 1px solid var(--ger-border-top) !important;
+  color: var(--ger-gold) !important;
+  box-shadow:
+    0 4px 16px rgba(0,0,0,0.5),
+    inset 0 1px 0 rgba(201,160,82,0.08) !important;
+}
+.gerenciamento-root header *,
+.gerenciamento-root [class*='header'] *:not(svg):not(path),
+.gerenciamento-root [class*='Header'] *:not(svg):not(path) {
+  color: inherit;
+  text-shadow: none;
+}
+
+/* ── cards / painéis ──────────────────────────────────────── */
+.gerenciamento-root [class*='card'],
+.gerenciamento-root [class*='Card'],
+.gerenciamento-root [class*='panel'],
+.gerenciamento-root [class*='Panel'],
+.gerenciamento-root [class*='box']:not(input):not(button):not([type='checkbox']):not([type='radio']),
+.gerenciamento-root [class*='Box']:not(input):not(button) {
+  background: var(--ger-bg-glass) !important;
+  border: 1px solid var(--ger-border) !important;
+  border-top: 1px solid var(--ger-border-top) !important;
+  border-radius: 0 !important;
+  box-shadow: var(--ger-shadow) !important;
+  color: var(--ger-text);
+}
+
+/* ── headings (h1-h6) ─────────────────────────────────────── */
+.gerenciamento-root h1,
+.gerenciamento-root h2,
+.gerenciamento-root h3,
+.gerenciamento-root h4,
+.gerenciamento-root h5,
+.gerenciamento-root h6 {
+  color: var(--ger-gold);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 12px rgba(201,160,82,0.18);
+}
+
+/* ── corpo texto ──────────────────────────────────────────── */
+.gerenciamento-root p,
+.gerenciamento-root span,
+.gerenciamento-root label,
+.gerenciamento-root li,
+.gerenciamento-root small,
+.gerenciamento-root td,
+.gerenciamento-root dt,
+.gerenciamento-root dd {
+  color: inherit;
+}
+
+/* ── inputs / selects / textareas ─────────────────────────── */
+.gerenciamento-root input:not([type='checkbox']):not([type='radio']):not([type='range']),
+.gerenciamento-root select,
+.gerenciamento-root textarea {
+  background: var(--ger-bg-glass) !important;
+  border: 1px solid var(--ger-border) !important;
+  border-top: 1px solid var(--ger-border-top) !important;
+  border-radius: 0 !important;
+  color: var(--ger-text) !important;
+  padding: 0.6rem 0.85rem;
+  transition: all 0.2s ease;
+}
+.gerenciamento-root input:focus,
+.gerenciamento-root select:focus,
+.gerenciamento-root textarea:focus {
+  outline: none !important;
+  border-color: var(--ger-border-strong) !important;
+  box-shadow: 0 0 0 2px rgba(201,160,82,0.12) !important;
+}
+.gerenciamento-root input::placeholder,
+.gerenciamento-root textarea::placeholder {
+  color: var(--ger-text-dim) !important;
+}
+
+/* ── botões: padrão = gold gradient ───────────────────────── */
+.gerenciamento-root button {
+  background: linear-gradient(165deg, var(--ger-gold) 0%, var(--ger-gold-dark) 100%);
+  color: var(--ger-bg-deep);
+  border: 1px solid var(--ger-border-strong);
+  border-top: 1px solid rgba(220,185,105,0.7);
+  border-radius: 0;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.55rem 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow:
+    0 4px 14px rgba(201,160,82,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.22);
+  font-size: 0.78rem;
+}
+.gerenciamento-root button:hover:not(:disabled) {
+  background: linear-gradient(165deg, var(--ger-gold-bright) 0%, var(--ger-gold) 100%);
+  box-shadow:
+    0 6px 22px rgba(201,160,82,0.28),
+    inset 0 1px 0 rgba(255,255,255,0.3);
+}
+.gerenciamento-root button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* botões secundários / sutis / ícone-puro */
+.gerenciamento-root button[class*='secondary'],
+.gerenciamento-root button[class*='Secondary'],
+.gerenciamento-root button[class*='ghost'],
+.gerenciamento-root button[class*='Ghost'],
+.gerenciamento-root button[class*='outline'],
+.gerenciamento-root button[class*='Outline'] {
+  background: transparent !important;
+  color: var(--ger-gold) !important;
+  border: 1px solid var(--ger-border) !important;
+  border-top: 1px solid var(--ger-border-top) !important;
+  box-shadow: none !important;
+}
+.gerenciamento-root button[class*='secondary']:hover,
+.gerenciamento-root button[class*='ghost']:hover,
+.gerenciamento-root button[class*='outline']:hover {
+  background: rgba(201,160,82,0.08) !important;
+  color: var(--ger-gold-bright) !important;
+}
+
+/* botões de ícone (geralmente menores, sem texto) */
+.gerenciamento-root button[class*='iconButton'],
+.gerenciamento-root button[class*='IconButton'],
+.gerenciamento-root button[class*='close'],
+.gerenciamento-root button[class*='Close'],
+.gerenciamento-root button[class*='menuButton'],
+.gerenciamento-root button[class*='MenuButton'] {
+  background: transparent !important;
+  color: var(--ger-gold) !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0.4rem !important;
+}
+
+/* botões "perigo" — vermelho mas dentro da paleta */
+.gerenciamento-root button[class*='danger'],
+.gerenciamento-root button[class*='Danger'],
+.gerenciamento-root button[class*='delete'],
+.gerenciamento-root button[class*='Delete'],
+.gerenciamento-root button[class*='remove'],
+.gerenciamento-root button[class*='Remove'] {
+  background: linear-gradient(165deg, rgba(239,68,68,0.85) 0%, rgba(180,40,40,0.85) 100%) !important;
+  color: var(--ger-text) !important;
+  border-color: rgba(239,68,68,0.4) !important;
+  border-top-color: rgba(248,113,113,0.5) !important;
+  box-shadow:
+    0 4px 14px rgba(239,68,68,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.15) !important;
+}
+
+/* ── links ───────────────────────────────────────────────── */
+.gerenciamento-root a {
+  color: var(--ger-gold);
+  text-decoration: none;
+}
+.gerenciamento-root a:hover {
+  color: var(--ger-gold-bright);
+  text-shadow: 0 0 8px rgba(201,160,82,0.25);
+}
+
+/* ── nav / sidemenu / bottomMenu ─────────────────────────── */
+.gerenciamento-root nav,
+.gerenciamento-root [class*='sideMenu'],
+.gerenciamento-root [class*='SideMenu'],
+.gerenciamento-root [class*='sidemenu'],
+.gerenciamento-root [class*='bottomMenu'],
+.gerenciamento-root [class*='BottomMenu'] {
+  background: linear-gradient(165deg, rgba(12,10,6,0.92) 0%, rgba(8,6,4,0.85) 100%) !important;
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border-color: var(--ger-border) !important;
+  color: var(--ger-text);
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(201,160,82,0.06);
+}
+
+/* itens de menu */
+.gerenciamento-root [class*='menuItem'],
+.gerenciamento-root [class*='MenuItem'],
+.gerenciamento-root [class*='navItem'],
+.gerenciamento-root [class*='NavItem'] {
+  color: var(--ger-text-muted) !important;
+  border-radius: 0 !important;
+}
+.gerenciamento-root [class*='menuItem']:hover,
+.gerenciamento-root [class*='MenuItem']:hover,
+.gerenciamento-root [class*='navItem']:hover,
+.gerenciamento-root [class*='NavItem']:hover {
+  color: var(--ger-gold) !important;
+  background: rgba(201,160,82,0.06) !important;
+}
+.gerenciamento-root [class*='menuItem'][class*='active'],
+.gerenciamento-root [class*='menuItem'][class*='Active'],
+.gerenciamento-root [class*='active']:not(button) {
+  color: var(--ger-gold) !important;
+  background: rgba(201,160,82,0.1) !important;
+}
+
+/* ── valores positivo/negativo ───────────────────────────── */
+.gerenciamento-root [class*='positive'],
+.gerenciamento-root [class*='Positive'],
+.gerenciamento-root [class*='profit'],
+.gerenciamento-root [class*='Profit'],
+.gerenciamento-root [class*='gain'],
+.gerenciamento-root [class*='Gain'] {
+  color: var(--ger-success) !important;
+}
+.gerenciamento-root [class*='negative'],
+.gerenciamento-root [class*='Negative'],
+.gerenciamento-root [class*='loss'],
+.gerenciamento-root [class*='Loss'] {
+  color: var(--ger-danger) !important;
+}
+
+/* ── valores monetários / balance ────────────────────────── */
+.gerenciamento-root [class*='balance'],
+.gerenciamento-root [class*='Balance'],
+.gerenciamento-root [class*='amount'],
+.gerenciamento-root [class*='Amount'] {
+  color: var(--ger-gold);
+  font-weight: 700;
+  text-shadow: 0 0 12px rgba(201,160,82,0.2);
+}
+
+/* ── tabelas ─────────────────────────────────────────────── */
+.gerenciamento-root table {
+  border-collapse: collapse;
+  width: 100%;
+  background: transparent !important;
+  color: var(--ger-text);
+}
+.gerenciamento-root th {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.7rem;
+  color: var(--ger-gold-soft) !important;
+  background: rgba(201,160,82,0.04) !important;
+  border-bottom: 1px solid var(--ger-border) !important;
+  padding: 0.6rem 0.5rem;
+  text-align: left;
+  font-weight: 700;
+}
+.gerenciamento-root td {
+  border-bottom: 1px solid rgba(180,120,50,0.06) !important;
+  padding: 0.7rem 0.5rem;
+  color: var(--ger-text);
+}
+.gerenciamento-root tr:hover td {
+  background: rgba(201,160,82,0.04) !important;
+}
+
+/* ── modais / overlays ───────────────────────────────────── */
+.gerenciamento-root [class*='modal'],
+.gerenciamento-root [class*='Modal'],
+.gerenciamento-root [class*='dialog'],
+.gerenciamento-root [class*='Dialog'] {
+  background: linear-gradient(165deg, rgba(20,18,14,0.96) 0%, rgba(10,8,6,0.92) 100%) !important;
+  backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid var(--ger-border-strong) !important;
+  border-top: 1px solid var(--ger-border-strong) !important;
+  border-radius: 0 !important;
+  box-shadow: var(--ger-shadow-deep) !important;
+  color: var(--ger-text);
+}
+.gerenciamento-root [class*='overlay'],
+.gerenciamento-root [class*='Overlay'],
+.gerenciamento-root [class*='backdrop'],
+.gerenciamento-root [class*='Backdrop'] {
+  background: rgba(0,0,0,0.75) !important;
+  backdrop-filter: blur(8px);
+}
+
+/* ── chips / tags / badges ───────────────────────────────── */
+.gerenciamento-root [class*='chip'],
+.gerenciamento-root [class*='Chip'],
+.gerenciamento-root [class*='tag'],
+.gerenciamento-root [class*='Tag'],
+.gerenciamento-root [class*='badge'],
+.gerenciamento-root [class*='Badge'] {
+  background: rgba(201,160,82,0.1) !important;
+  border: 1px solid var(--ger-border) !important;
+  color: var(--ger-gold) !important;
+  border-radius: 0 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+}
+
+/* ── sliders / range ─────────────────────────────────────── */
+.gerenciamento-root input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, var(--ger-gold-dark) 0%, var(--ger-gold) 100%);
+  border-radius: 0 !important;
+  outline: none;
+  padding: 0 !important;
+}
+.gerenciamento-root input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  background: var(--ger-gold);
+  border: 1px solid rgba(220,185,105,0.7);
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(201,160,82,0.4);
+}
+.gerenciamento-root input[type='range']::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background: var(--ger-gold);
+  border: 1px solid rgba(220,185,105,0.7);
+  cursor: pointer;
+}
+
+/* ── checkboxes / radios ─────────────────────────────────── */
+.gerenciamento-root input[type='checkbox'],
+.gerenciamento-root input[type='radio'] {
+  accent-color: var(--ger-gold);
+}
+
+/* ── progress / charts wrapper ───────────────────────────── */
+.gerenciamento-root progress {
+  accent-color: var(--ger-gold);
+}
+
+/* ── scrollbar ───────────────────────────────────────────── */
+.gerenciamento-root ::-webkit-scrollbar { width: 6px; height: 6px; }
+.gerenciamento-root ::-webkit-scrollbar-track { background: rgba(180,120,50,0.03); }
+.gerenciamento-root ::-webkit-scrollbar-thumb {
+  background: rgba(180,120,50,0.18);
+}
+.gerenciamento-root ::-webkit-scrollbar-thumb:hover { background: rgba(201,160,82,0.32); }
+
+/* ── overrides duríssimos para os "ofensores" XP ────────── */
+/* texto preto puro em tema dark = invisível */
+.gerenciamento-root [style*='color: #000'],
+.gerenciamento-root [style*='color:#000'],
+.gerenciamento-root [style*='color: black'] {
+  color: var(--ger-text) !important;
+}
+
+/* backgrounds branco puro = inadmissíveis */
+.gerenciamento-root [style*='background: #fff'],
+.gerenciamento-root [style*='background:#fff'],
+.gerenciamento-root [style*='background-color: #fff'],
+.gerenciamento-root [style*='background-color:#fff'],
+.gerenciamento-root [style*='background: white'],
+.gerenciamento-root [style*='background-color: white'] {
+  background: var(--ger-bg) !important;
+}
+
+/* ── transitions globais (cosmético) ─────────────────────── */
+.gerenciamento-root button,
+.gerenciamento-root a,
+.gerenciamento-root input,
+.gerenciamento-root select,
+.gerenciamento-root textarea,
+.gerenciamento-root [class*='card'],
+.gerenciamento-root [class*='Card'] {
+  transition: all 0.2s ease;
+}
+
+
+/* ============================================================
+   LINHAS / DIVIDERS / BORDAS — refinamento elegante
+   ============================================================ */
+
+/* hr nativo com fade nas pontas (ouro tênue) */
+.gerenciamento-root hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(201,160,82,0.25) 20%,
+    rgba(201,160,82,0.4) 50%,
+    rgba(201,160,82,0.25) 80%,
+    transparent 100%);
+  margin: 1rem 0;
+}
+
+/* divisores criados via classe (.separator, .divider, etc) */
+.gerenciamento-root [class*='separator'],
+.gerenciamento-root [class*='Separator'],
+.gerenciamento-root [class*='divider'],
+.gerenciamento-root [class*='Divider'] {
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(201,160,82,0.22) 20%,
+    rgba(201,160,82,0.32) 50%,
+    rgba(201,160,82,0.22) 80%,
+    transparent 100%) !important;
+  height: 1px !important;
+  border: none !important;
+  margin: 1rem 0;
+}
+
+/* itens de lista (transactions, objectives, history) — linha
+   inferior hairline ouro com fade */
+.gerenciamento-root [class*='transactionItem'],
+.gerenciamento-root [class*='TransactionItem'],
+.gerenciamento-root [class*='listItem'],
+.gerenciamento-root [class*='ListItem'],
+.gerenciamento-root [class*='objectiveItem'],
+.gerenciamento-root [class*='ObjectiveItem'],
+.gerenciamento-root [class*='historyItem'],
+.gerenciamento-root [class*='HistoryItem'] {
+  background: transparent !important;
+  border: none !important;
+  position: relative;
+  transition: background 0.2s ease;
+}
+.gerenciamento-root [class*='transactionItem']:hover,
+.gerenciamento-root [class*='listItem']:hover,
+.gerenciamento-root [class*='objectiveItem']:hover,
+.gerenciamento-root [class*='historyItem']:hover {
+  background: linear-gradient(90deg,
+    rgba(201,160,82,0.06) 0%,
+    rgba(201,160,82,0.015) 50%,
+    transparent 100%) !important;
+}
+.gerenciamento-root [class*='transactionItem']:not(:last-child)::after,
+.gerenciamento-root [class*='TransactionItem']:not(:last-child)::after,
+.gerenciamento-root [class*='listItem']:not(:last-child)::after,
+.gerenciamento-root [class*='ListItem']:not(:last-child)::after,
+.gerenciamento-root [class*='objectiveItem']:not(:last-child)::after,
+.gerenciamento-root [class*='ObjectiveItem']:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(201,160,82,0.15) 10%,
+    rgba(201,160,82,0.2) 50%,
+    rgba(201,160,82,0.15) 90%,
+    transparent 100%);
+  pointer-events: none;
+}
+
+/* bordas duras `1px solid #FFF...` que escaparam → mogno suave */
+.gerenciamento-root [style*='border:'] {
+  border-color: rgba(201,160,82,0.2) !important;
+}
+
+/* tabela com listras zebradas sutis */
+.gerenciamento-root tbody tr:nth-child(even) {
+  background: rgba(201,160,82,0.018);
+}
+.gerenciamento-root tbody tr {
+  border: none;
+}
+.gerenciamento-root tbody tr td {
+  border-bottom: 1px solid rgba(201,160,82,0.08) !important;
+}
+.gerenciamento-root tbody tr:last-child td {
+  border-bottom: none !important;
+}
+
+/* foco em elementos focáveis: outline dourado tênue */
+.gerenciamento-root *:focus-visible {
+  outline: 2px solid rgba(201,160,82,0.5);
+  outline-offset: 2px;
+}

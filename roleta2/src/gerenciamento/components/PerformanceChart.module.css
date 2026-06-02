@@ -1,0 +1,313 @@
+/* ========================================
+   Tema XP (Branco, Azul, Cinza)
+   PerformanceChart.module.css - Mobile First
+   ======================================== */
+
+/* Container (Estilo Group Box XP) */
+.chartContainer {
+    background: #ECE9D8; /* Fundo Cinza XP */
+    border: 1px solid #7F9DB9; /* Borda Cinza-Azul */
+    border-radius: 0;
+    padding: 12px; /* Padding menor para mobile */
+    
+    /* Mobile First: Ocupa largura disponível */
+    width: 100%; 
+    max-width: 100%;
+    margin: 0 auto 24px auto; /* Centralizado e sem margem esquerda fixa */
+    
+    font-family: 'Tahoma', 'Trebuchet MS', sans-serif;
+    box-sizing: border-box; /* Garante que padding não estoure a largura */
+    overflow: hidden; /* Evita vazamento de conteúdo */
+}
+
+/* Header: Mobile (Coluna) -> Desktop (Linha) */
+.chartHeader {
+    display: flex;
+    flex-direction: column; /* Padrão mobile: empilhado */
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.chartTitle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #003399;
+}
+
+.chartTitle svg {
+    font-size: 20px;
+    color: #0054E3;
+    flex-shrink: 0; /* Ícone não encolhe */
+}
+
+.chartTitle h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* Filtros de Data */
+.dateFilters {
+    display: flex;
+    gap: 8px;
+    background: transparent;
+    padding: 2px 0;
+    border-radius: 0;
+    
+    /* Mobile: Scroll horizontal se faltar espaço */
+    width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    
+    /* Remove barra de rolagem visual mas mantém funcionalidade */
+    scrollbar-width: none; 
+}
+
+.dateFilters::-webkit-scrollbar {
+    display: none;
+}
+
+/* Botão de Filtro (XP) */
+.filterButton {
+    padding: 8px 16px; /* Área de toque maior para mobile */
+    background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
+    border: 1px solid #7F9DB9;
+    border-radius: 3px;
+    color: #000;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: none;
+    white-space: nowrap;
+    flex-shrink: 0; /* Impede botões de esmagarem */
+}
+
+.filterButton:hover {
+    background: linear-gradient(180deg, #FFFEF9 0%, #F5F3E8 100%);
+    color: #000;
+}
+
+.filterButton.active {
+    background: #C1D2EE;
+    color: #000;
+    font-weight: 600;
+    border-color: #003399;
+}
+
+/* Estatísticas (Grid Responsivo) */
+.statsRow {
+    display: grid;
+    /* Mobile: 1 coluna, ou 2 se couber (minimo 140px por card) */
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.statCard {
+    background: #FFFFFF;
+    border: 1px solid #C0C0C0;
+    border-radius: 4px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0; /* Evita overflow em grids flex */
+}
+
+.statLabel {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #333;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.statLabel svg {
+    font-size: 14px;
+    color: #0054E3 !important;
+    flex-shrink: 0;
+}
+
+/* Valores Estatísticos */
+.statValueGains,
+.statValueLosses,
+.statValueNet,
+.statValueBalance {
+    font-size: 16px; /* Legível em mobile */
+    font-weight: bold;
+    word-break: break-all; /* Quebra números muito grandes */
+}
+
+.statValueGains { color: #0054E3; }
+.statValueLosses { color: #333333; }
+.statValueBalance { color: #003399; }
+
+.statValueNet.positive { color: #0054E3; }
+.statValueNet.negative { color: #333333; }
+
+.statAvg {
+    font-size: 10px;
+    color: #666;
+}
+
+.statAvg.positive { color: #0054E3; }
+.statAvg.negative { color: #333333; }
+
+/* Gráfico Wrapper */
+.chartWrapper {
+    margin-top: 16px;
+    padding: 8px; /* Menos padding no mobile */
+    background: #FFFFFF;
+    border-radius: 0;
+    border: 1px solid #7F9DB9;
+    box-shadow: inset 1px 1px 3px rgba(0,0,0,0.3);
+    
+    /* Garante responsividade do canvas do gráfico (Recharts/ChartJS) */
+    width: 100%;
+    min-height: 250px; /* Altura mínima garantida */
+    overflow-x: auto; /* Rolagem se o gráfico for muito largo internamente */
+}
+
+/* Tooltip Customizado */
+.customTooltip {
+    background: #FFFFFF;
+    border: 1px solid #000000;
+    border-radius: 2px;
+    padding: 8px;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+    min-width: 140px;
+    max-width: 90vw; /* Não ultrapassa largura da tela */
+    z-index: 1000;
+}
+
+.tooltipDate {
+    font-size: 11px;
+    color: #000;
+    font-weight: 600;
+    margin: 0 0 6px 0;
+    text-align: center;
+    border-bottom: 1px solid #C0C0C0;
+    padding-bottom: 4px;
+}
+
+.tooltipRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+    flex-wrap: wrap; /* Quebra linha se necessário */
+}
+
+.tooltipLabel {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #000;
+}
+
+.tooltipLabel svg {
+    color: #0054E3 !important;
+}
+
+.tooltipValueBalance {
+    font-weight: 700;
+    color: #000;
+    font-size: 12px;
+}
+
+.tooltipInfo {
+    margin-top: 5px;
+    padding-top: 5px;
+    border-top: 1px dotted #C0C0C0;
+    text-align: center;
+}
+
+.tooltipInfo small {
+    color: #333;
+    font-size: 10px;
+}
+
+/* Estado Vazio */
+.emptyChart {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 10px;
+    color: #333;
+    text-align: center;
+}
+
+.emptyChart svg {
+    color: #7F9DB9;
+    margin-bottom: 12px;
+    font-size: 32px;
+}
+
+.emptyChart p {
+    font-size: 13px;
+    margin: 0 0 4px 0;
+    color: #000;
+    font-weight: bold;
+}
+
+.emptyChart small {
+    font-size: 11px;
+    color: #333;
+}
+
+/* ========================================
+   Media Queries (Telas Maiores / Desktop)
+   ======================================== */
+@media (min-width: 768px) {
+    .chartContainer {
+        padding: 20px;
+        /* Limita a largura em telas grandes para não ficar esticado demais */
+        /* Pode remover o max-width se quiser que ocupe 100% real do container pai */
+        max-width: 100%; 
+    }
+
+    .chartHeader {
+        flex-direction: row; /* Volta para linha horizontal */
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .dateFilters {
+        width: auto; /* Largura automática baseada no conteúdo */
+        overflow-x: visible; /* Remove scroll */
+        padding-bottom: 0;
+    }
+
+    .filterButton {
+        padding: 6px 16px;
+        font-size: 11px;
+    }
+
+    .statsRow {
+        /* Cards maiores no desktop */
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+    }
+    
+    .statValueGains,
+    .statValueLosses,
+    .statValueNet,
+    .statValueBalance {
+        font-size: 18px;
+    }
+
+    .chartWrapper {
+        padding: 10px;
+        margin-top: 20px;
+    }
+}

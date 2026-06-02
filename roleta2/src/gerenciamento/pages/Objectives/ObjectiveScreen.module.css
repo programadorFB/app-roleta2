@@ -1,0 +1,203 @@
+/* ========================================
+   Tema XP (Branco, Azul, Cinza)
+   ObjectiveScreen.module.css - Ajuste Desktop Wide
+   ======================================== */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes tabFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* --- Estrutura da Tela --- */
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  background-color: #D6D3CE;
+  color: #000000;
+  animation: fadeIn 0.3s ease-out;
+  font-family: 'Tahoma', 'Trebuchet MS', sans-serif;
+  overflow-x: hidden;
+}
+
+/* --- Cabeçalho --- */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  background: linear-gradient(180deg, #0054E3 0%, #0040B0 100%);
+  border-bottom: none;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.3) inset;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.header h1 {
+  font-size: 12px;
+  font-weight: bold;
+  color: #FFFFFF;
+  margin: 0;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.backButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
+  border: 1px solid #7F9DB9;
+  border-radius: 3px;
+  color: #000000;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 6px 12px;
+}
+
+.backButton:hover {
+  background: linear-gradient(180deg, #FFFEF9 0%, #F5F3E8 100%);
+}
+
+.headerSpacer { width: 24px; }
+
+/* --- Abas --- */
+.tabsContainer {
+  display: flex;
+  background-color: #D6D3CE;
+  border-bottom: 1px solid #7F9DB9;
+  width: 100%;
+  gap: 2px;
+  padding: 0 4px;
+  margin: 10px 0 0 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tab {
+  flex: 1;
+  min-width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  background: #ECE9D8;
+  border: 1px solid #7F9DB9;
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  color: #333333;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+  position: relative;
+  margin-top: 4px;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  background: #F5F3E8;
+  color: #000;
+}
+
+.tabActive {
+  color: #000000 !important;
+  background: #FFFFFF;
+  border: 1px solid #7F9DB9;
+  border-bottom: 1px solid #FFFFFF;
+  margin-top: 0;
+  padding-top: 14px;
+  z-index: 2;
+}
+
+.tab svg { color: #7F9DB9; }
+.tabActive svg { color: #0054E3; }
+
+/* --- Conteúdo --- */
+.content {
+  flex-grow: 1;
+  padding: 15px;
+  overflow-y: auto;
+  width: 100%;
+  animation: tabFadeIn 0.4s ease-out;
+  background: #FFFFFF;
+  border: 1px solid #7F9DB9;
+  border-top: none;
+  margin: 0;
+}
+
+/* --- Botão Adicionar --- */
+.addObjectiveButton {
+  width: 100%;
+  padding: 10px 16px;
+  border: 1px solid #003C74;
+  border-radius: 3px;
+  font-weight: bold;
+  font-size: 11px;
+  cursor: pointer;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(180deg, #0078D7 0%, #0054E3 50%, #0040B0 100%);
+  color: #FFFFFF;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  box-shadow: 1px 1px 0px rgba(255,255,255,0.8) inset;
+}
+
+.addObjectiveButton:hover {
+  background: linear-gradient(180deg, #008FE5 0%, #0065F0 50%, #0050C5 100%);
+}
+
+/* ========================================
+   MEDIA QUERIES (DESKTOP)
+   ======================================== */
+@media (min-width: 768px) {
+  .header h1 {
+    font-size: 14px;
+    max-width: none;
+  }
+
+  /* AUMENTADO: Ocupa quase toda a largura, até 1600px */
+  .tabsContainer {
+    width: 95%;
+    max-width: 1600px; /* Largura generosa para desktop */
+    margin: 20px auto 0 auto; /* Centralizado */
+    padding: 0 10px;
+  }
+  
+  .tab {
+    flex: initial; /* Tamanho baseado no texto */
+    padding: 8px 25px; /* Mais largo visualmente */
+  }
+
+  /* AUMENTADO: Conteúdo acompanha a largura das abas */
+  .content {
+    width: 95%;
+    max-width: 1600px;
+    margin: 0 auto 20px auto;
+    border: 1px solid #7F9DB9;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    padding: 25px;
+  }
+
+  .addObjectiveButton {
+    width: auto;
+    padding: 8px 30px;
+    margin: 0 auto 20px auto;
+  }
+}

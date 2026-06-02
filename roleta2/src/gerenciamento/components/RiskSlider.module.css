@@ -1,0 +1,248 @@
+/* ========================================
+   Tema XP (Branco, Azul, Cinza)
+   RiskSlider.module.css
+   ======================================== */
+
+.sliderContainer {
+  padding: 20px;
+  background-color: #ECE9D8; /* Fundo Cinza XP */
+  margin: 20px;
+  border-radius: 0;
+  border: 1px solid #7F9DB9; /* Borda Group Box */
+  box-shadow: none;
+  backdrop-filter: none;
+  font-family: 'Tahoma', 'Trebuchet MS', sans-serif;
+}
+
+.compactContainer {
+  padding: 15px;
+  margin: 20px 0;
+  background-color: #ECE9D8;
+  border: 1px solid #7F9DB9;
+}
+
+.sliderHeader, .compactHeader {
+  text-align: left; /* Alinhamento clássico */
+  margin-bottom: 20px;
+}
+
+.sliderTitle, .compactTitle {
+  font-weight: bold;
+  color: #003399; /* Azul Escuro */
+  text-shadow: none;
+}
+
+.sliderTitle {
+  font-size: 14px;
+  margin-bottom: 15px;
+}
+.compactTitle {
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.currentProfileIndicator, .compactProfileDisplay {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #FFFFFF;
+  border: 1px solid #7F9DB9;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.compactProfileDisplay {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+/* Força os ícones e textos do perfil a serem azuis, sobrescrevendo o JSX */
+.currentProfileIndicator span[style*="color"],
+.compactProfileDisplay span[style*="color"] {
+  color: #003399 !important;
+}
+.currentProfileIndicator svg,
+.compactProfileDisplay svg {
+  color: #0054E3 !important;
+}
+
+
+.sliderLabels {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding: 0;
+}
+.labelContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  flex: 1;
+}
+.sliderLabel {
+  font-size: 11px;
+  color: #333;
+  font-weight: 600;
+  transition: none;
+}
+.activeLabel {
+  color: #003399; /* Azul Escuro */
+}
+/* Força as cores dos ícones das labels */
+.sliderLabels svg {
+  color: #7F9DB9 !important; /* Cinza-Azul Inativo */
+}
+.activeLabel svg {
+  color: #0054E3 !important; /* Azul Ativo */
+}
+
+.sliderWrapper {
+  position: relative;
+  padding-top: 50px; /* Espaço para o ícone flutuante */
+  margin-bottom: 15px;
+}
+.compactSliderWrapper {
+  padding-top: 45px;
+}
+
+.floatingIconAnchor {
+  position: absolute;
+  top: 50px; 
+  left: 0;
+  pointer-events: none;
+}
+
+.floatingIconWrapper {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  transform: translate(-50%, -100%) translateY(-15px); 
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+/* Estilo Tooltip XP */
+.iconBubble {
+  background-color: #FFFFFF !important; /* Fundo branco (sobrescreve JSX) */
+  border-radius: 2px;
+  padding: 4px 8px;
+  border-width: 1px;
+  border-style: solid;
+  border-color: #000000 !important; /* Borda preta (sobrescreve JSX) */
+  box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+}
+.iconValue {
+  font-size: 11px;
+  font-weight: bold;
+  margin-left: 5px;
+  color: #000000 !important; /* Texto preto (sobrescreve JSX) */
+}
+/* Ícone dentro do Tooltip */
+.iconBubble svg {
+  color: #0054E3 !important; /* Ícone azul (sobrescreve JSX) */
+}
+
+.iconArrow {
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top-width: 8px;
+  border-top-style: solid;
+  border-top-color: #000000 !important; /* Seta preta (sobrescreve JSX) */
+  margin-top: 0px; /* Ajuste fino */
+}
+
+/* Trilho do Slider (Trackbar) */
+.sliderTrack {
+  height: 6px;
+  background-color: #C0C0C0; /* Trilho Cinza */
+  border: 1px solid #7F9DB9;
+  border-radius: 0;
+  position: relative;
+  cursor: pointer;
+}
+.sliderTrack:active {
+  cursor: pointer;
+}
+.sliderTrackFill {
+  height: 100%;
+  border-radius: 0;
+  background: #0054E3 !important; /* Azul (sobrescreve gradiente do JSX) */
+}
+
+/* Polegar (Knob) do Slider */
+.sliderKnob {
+  position: absolute;
+  top: -16px; /* (40px - 8px) / 2 */
+  left: 0;
+  transform: translateX(-50%); 
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 5;
+  background-color: transparent; 
+}
+.knobCenter {
+  width: 12px;
+  height: 20px; /* Retângulo do XP */
+  border-radius: 0;
+  border: 1px solid #003C74; /* Borda Azul Escura */
+  background: #0054E3 !important; /* Azul (sobrescreve JSX) */
+  pointer-events: none; 
+}
+
+/* Números da Escala */
+.scaleNumbers {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 5px;
+  margin-top: 10px;
+}
+.compactScaleNumbers {
+  margin-top: 5px;
+}
+.scaleNumber {
+  font-size: 11px;
+  color: #333;
+  font-weight: 600;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 5px;
+  transition: none;
+}
+.compactScaleNumber {
+  font-size: 10px;
+}
+.scaleNumber:hover {
+  color: #000;
+}
+.activeScaleNumber {
+  color: #003399; /* Azul Escuro */
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.compactDescriptionText {
+  font-size: 11px;
+  color: #333;
+  text-align: center;
+  line-height: 1.4;
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 1px solid #C0C0C0;
+}

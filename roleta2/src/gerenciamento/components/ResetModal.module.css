@@ -1,0 +1,242 @@
+/* ========================================
+   Tema XP (Branco, Azul, Cinza)
+   ResetModal.module.css — centro de reset (popup único)
+   ======================================== */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 84, 227, 0.3);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 10px;
+}
+
+.container {
+  width: 100%;
+  max-width: 420px;
+  background: #ECE9D8;
+  border: 2px solid #0054E3;
+  border-radius: 4px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  font-family: 'Tahoma', 'Trebuchet MS', sans-serif;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: linear-gradient(180deg, #0054E3 0%, #0040B0 100%);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.backButton {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 2px;
+  color: #FFFFFF;
+  cursor: pointer;
+}
+
+.closeButton {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #FFFFFF 0%, #BFCCE0 100%);
+  border: 1px solid #003C74;
+  color: #000;
+  cursor: pointer;
+}
+
+.backButton:disabled,
+.closeButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Tela: menu de opções ── */
+.menu {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.menuHint {
+  margin: 2px 0 4px;
+  font-size: 12px;
+  color: #333;
+}
+
+.optionRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  text-align: left;
+  background: #FFFFFF;
+  border: 1px solid #7F9DB9;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.optionRow:hover {
+  background: #F5F3E8;
+  border-color: #0054E3;
+}
+
+.optionDanger:hover {
+  border-color: #BF0000;
+}
+
+.optionIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #E0E8F5;
+  color: #0054E3;
+}
+
+.optionDanger .optionIcon {
+  background: #FDECEC;
+  color: #BF0000;
+}
+
+.optionText {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.optionTitle {
+  font-size: 13px;
+  font-weight: bold;
+  color: #000;
+}
+
+.optionSummary {
+  font-size: 11px;
+  color: #555;
+}
+
+.optionArrow {
+  color: #7F9DB9;
+  flex-shrink: 0;
+}
+
+/* ── Tela: confirmação ── */
+.content {
+  padding: 14px;
+  background: #ECE9D8;
+}
+
+.list {
+  margin: 0 0 12px;
+  padding: 12px 14px 12px 28px;
+  background: #FFFFFF;
+  border: 1px solid #7F9DB9;
+  border-radius: 3px;
+}
+
+.list li {
+  font-size: 12px;
+  color: #333;
+  margin: 5px 0;
+  line-height: 1.4;
+}
+
+.danger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 10px;
+  background: #FDECEC;
+  border: 1px solid #BF0000;
+  border-radius: 3px;
+  color: #BF0000;
+  font-size: 12px;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border-top: 1px solid #7F9DB9;
+}
+
+.cancelButton,
+.confirmButton {
+  flex: 1;
+  padding: 9px;
+  font-size: 12px;
+  font-weight: bold;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.cancelButton {
+  background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
+  border: 1px solid #7F9DB9;
+  color: #000;
+}
+
+.cancelButton:hover:not(:disabled) {
+  background: linear-gradient(180deg, #FFFEF9 0%, #F5F3E8 100%);
+}
+
+/* Confirmação padrão = azul (ações leves, ex.: reset diário) */
+.confirmButton {
+  background: linear-gradient(180deg, #0078D7 0%, #0054E3 50%, #0040B0 100%);
+  border: 1px solid #003C74;
+  color: #FFFFFF;
+}
+
+.confirmButton:hover:not(:disabled) {
+  background: linear-gradient(180deg, #1F8AE8 0%, #0A5EF0 50%, #0048C0 100%);
+}
+
+/* Confirmação destrutiva = vermelho (ex.: resetar banca) */
+.confirmDanger {
+  background: linear-gradient(180deg, #E24B4B 0%, #C62828 50%, #A31515 100%);
+  border: 1px solid #7A0F0F;
+}
+
+.confirmDanger:hover:not(:disabled) {
+  background: linear-gradient(180deg, #EA5C5C 0%, #D32F2F 50%, #B71C1C 100%);
+}
+
+.cancelButton:disabled,
+.confirmButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

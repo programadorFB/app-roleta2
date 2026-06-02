@@ -1,0 +1,568 @@
+/* ========================================
+   Tema XP (Branco, Azul, Cinza)
+   CalendarScreen.module.css - Versão Otimizada Mobile
+   ======================================== */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  background-color: #D6D3CE;
+  color: #000;
+  font-family: 'Tahoma', 'Trebuchet MS', sans-serif;
+  overflow-x: hidden;
+}
+
+/* ========================================
+   CABEÇALHO
+   ======================================== */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+  background: linear-gradient(180deg, #0054E3 0%, #0040B0 100%);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.backButton,
+.navButton {
+  background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
+  border: 1px solid #7F9DB9;
+  border-radius: 3px;
+  color: #000;
+  cursor: pointer;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.backButton:hover,
+.navButton:hover {
+  background: linear-gradient(180deg, #FFFEF9 0%, #F5F3E8 100%);
+}
+
+.headerControls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-grow: 1;
+  width: 100%;
+}
+
+.monthTitle {
+  font-size: 14px;
+  font-weight: bold;
+  color: #FFFFFF;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  min-width: 110px;
+  text-align: center;
+  text-transform: capitalize;
+}
+
+/* ========================================
+   BOTÃO DE RESET
+   ======================================== */
+.resetButton {
+  padding: 10px 18px;
+  background: linear-gradient(135deg, #ff4444, #cc0000);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(255, 68, 68, 0.3);
+}
+
+.resetButton:hover {
+  background: linear-gradient(135deg, #ff6666, #dd0000);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 68, 68, 0.5);
+}
+
+.resetButton:active {
+  transform: translateY(0);
+}
+
+/* ========================================
+   CONTEÚDO
+   ======================================== */
+.content {
+  flex-grow: 1;
+  padding: 8px;
+  overflow-y: auto;
+}
+
+/* ========================================
+   GRID DO CALENDÁRIO
+   ======================================== */
+.calendarGrid {
+  width: 100%;
+  border-collapse: collapse;
+  background: #FFFFFF;
+  border: 1px solid #7F9DB9;
+  table-layout: fixed;
+}
+
+.dayHeader {
+  background: #ECE9D8;
+  border: 1px solid #7F9DB9;
+  padding: 6px 2px;
+  font-size: 10px;
+  font-weight: bold;
+  text-align: center;
+  color: #003399;
+}
+
+.dayCell {
+  width: 14.28%;
+  height: 60px;
+  border: 1px solid #7F9DB9;
+  padding: 2px;
+  vertical-align: top;
+  position: relative;
+  background-color: #FFF;
+}
+
+.dayNumber {
+  font-size: 11px;
+  font-weight: bold;
+  color: #000;
+  display: block;
+  text-align: right;
+  margin-right: 2px;
+}
+
+.otherMonth {
+  background-color: #F0F0F0;
+  cursor: default;
+}
+
+.otherMonth .dayNumber {
+  color: #AAA;
+}
+
+.today .dayNumber {
+  color: #BF0000;
+  border: 1px solid #BF0000;
+  background: #FFF0F0;
+  border-radius: 2px;
+  padding: 0 3px;
+  /* Mantém a caixa abraçando o número, mas alinhada à direita como os demais */
+  display: block;
+  width: fit-content;
+  margin-left: auto;
+}
+
+.dayWithData {
+  cursor: pointer;
+  background-color: #F9FCFF;
+}
+
+.dayWithData:hover {
+  background-color: #E3EFFF;
+}
+
+/* ========================================
+   RESUMO DO DIA (Responsivo)
+   ======================================== */
+.daySummary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 2px;
+  align-items: center;
+}
+
+.summaryGain,
+.summaryLoss,
+.summaryDeposit,
+.summaryWithdrawal {
+  font-size: 0;
+  height: 4px;
+  width: 80%;
+  border-radius: 2px;
+  display: block;
+}
+
+.summaryGain { background-color: #4CAF50; }
+.summaryLoss { background-color: #F44336; }
+.summaryDeposit { background-color: #2196F3; }
+.summaryWithdrawal { background-color: #FF9800; }
+
+/* ========================================
+   MODAL DE TRANSAÇÕES DO DIA
+   ======================================== */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 10px;
+  backdrop-filter: blur(2px);
+}
+
+.modalContainer {
+  background: #ECE9D8;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  border: 2px solid #0054E3;
+  box-shadow: 0 0 15px rgba(0,0,0,0.5);
+  border-radius: 4px;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  background: linear-gradient(180deg, #0054E3 0%, #0040B0 100%);
+  color: white;
+}
+
+.modalTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.closeButton {
+  background: #D4D0C8;
+  border: 1px solid #FFF;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+
+.notesSection {
+  margin: 10px 10px 0;
+  padding: 12px;
+  background: #FFFFFF;
+  border: 1px solid #7F9DB9;
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.notesTitle {
+  font-size: 12px;
+  font-weight: bold;
+  color: #003399;
+  margin: 0 0 2px 0;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #E0E0E0;
+}
+
+.notesTextarea {
+  width: 100%;
+  height: 64px;
+  resize: vertical;
+  color: #000;
+  font-family: inherit;
+  font-size: 12px;
+  border: 1px solid #7F9DB9;
+  border-radius: 2px;
+  padding: 6px;
+  box-sizing: border-box;
+}
+
+.notesTextarea:focus {
+  outline: none;
+  border-color: #0054E3;
+  box-shadow: 0 0 0 2px rgba(0, 84, 227, 0.15);
+}
+
+.saveNoteButton {
+  align-self: flex-end;
+  padding: 7px 18px;
+  background: linear-gradient(180deg, #0078D7 0%, #0054E3 50%, #0040B0 100%);
+  color: #FFFFFF;
+  border: 1px solid #003C74;
+  border-radius: 3px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.saveNoteButton:hover:not(:disabled) {
+  background: linear-gradient(180deg, #1F8AE8 0%, #0A5EF0 50%, #0048C0 100%);
+}
+
+.saveNoteButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.modalContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  background: #FFF;
+  border: 1px solid #7F9DB9;
+  border-radius: 3px;
+  margin: 10px;
+  min-height: 140px;
+}
+
+.modalActions {
+  padding: 0 10px 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.addTransactionButton {
+  width: 100%;
+  padding: 10px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
+  border: 1px solid #7F9DB9;
+  font-weight: bold;
+  color: #000;
+  cursor: pointer;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.addTransactionButton:hover {
+  background: linear-gradient(180deg, #FFFEF9 0%, #F5F3E8 100%);
+}
+
+/* ========================================
+   MODAL DE CONFIRMAÇÃO DE RESET
+   ======================================== */
+.resetModalContainer {
+  background: white;
+  border-radius: 20px;
+  padding: 32px;
+  max-width: 520px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.resetModalContent {
+  padding: 24px 0;
+}
+
+.warningText {
+  font-size: 16px;
+  color: #333;
+  margin-bottom: 20px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.warningText strong {
+  color: #d32f2f;
+  font-weight: 700;
+}
+
+.warningList {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0;
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.warningList li {
+  padding: 10px 0;
+  color: #555;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.warningList li::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: #4CAF50;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dangerText {
+  background: linear-gradient(135deg, #ffebee, #ffcdd2);
+  border-left: 4px solid #f44336;
+  padding: 16px;
+  border-radius: 8px;
+  color: #c62828;
+  font-size: 14px;
+  margin-top: 20px;
+  text-align: center;
+}
+
+.dangerText strong {
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.resetModalActions {
+  display: flex;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.cancelButton {
+  flex: 1;
+  padding: 14px;
+  background: #f5f5f5;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  transition: all 0.2s;
+  color: #666;
+}
+
+.cancelButton:hover:not(:disabled) {
+  background: #eeeeee;
+  border-color: #d0d0d0;
+  transform: translateY(-1px);
+}
+
+.cancelButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.confirmResetButton {
+  flex: 1;
+  padding: 14px;
+  background: linear-gradient(135deg, #ff4444, #cc0000);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 15px;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(255, 68, 68, 0.3);
+}
+
+.confirmResetButton:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ff6666, #dd0000);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(255, 68, 68, 0.4);
+}
+
+.confirmResetButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.confirmResetButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ========================================
+   MEDIA QUERIES - DESKTOP
+   ======================================== */
+@media (min-width: 600px) {
+  .header {
+    flex-wrap: nowrap;
+  }
+  
+  .headerControls {
+    width: auto;
+    flex-grow: 0;
+  }
+}
+
+@media (min-width: 768px) {
+  .dayCell {
+    height: 100px;
+    padding: 4px;
+  }
+
+  .daySummary {
+    align-items: flex-start;
+  }
+
+  .summaryGain,
+  .summaryLoss,
+  .summaryDeposit,
+  .summaryWithdrawal {
+    font-size: 10px;
+    height: auto;
+    width: auto;
+    background-color: transparent;
+    display: inline;
+    border-radius: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  .summaryGain { color: #006400; }
+  .summaryLoss { color: #BF0000; }
+  .summaryDeposit { color: #0054E3; }
+  .summaryWithdrawal { color: #FF9800; }
+  
+  .addTransactionButton {
+    width: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .resetButton {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .resetButton span {
+    display: none;
+  }
+
+  .resetModalContainer {
+    padding: 24px;
+    width: 95%;
+  }
+
+  .warningText {
+    font-size: 14px;
+  }
+
+  .warningList li {
+    font-size: 13px;
+  }
+}

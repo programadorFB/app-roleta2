@@ -1,0 +1,296 @@
+/* ========================================
+   Tema XP (Branco, Azul, Cinza)
+   StopLossCard.module.css
+   ======================================== */
+
+/* Container (Estilo Fieldset/Group Box XP) */
+.container {
+  border-radius: 0;
+  overflow: visible; /* Fieldset precisa disso */
+  background-color: #ECE9D8; /* Fundo Cinza */
+  border: 1px solid #7F9DB9; /* Borda Cinza-Azul */
+  box-shadow: none;
+  color: #000000;
+  font-family: 'Tahoma', 'Trebuchet MS', sans-serif;
+  margin: 1rem 0;
+  padding: 10px;
+  transition: none;
+}
+
+/* REMOVIDO: .container:hover, .container.statusChange, @keyframes cardPulse */
+
+/* REMOVIDO: .gradient (agora é o próprio fieldset) */
+
+/* Header (Agora é a <legend> do fieldset) */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0; /* A <legend> cuida disso */
+  padding: 0 10px; /* Espaçamento da <legend> */
+  width: auto; /* Necessário para <legend> */
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.iconWrapper {
+  font-size: 16px;
+  color: var(--status-color);
+  transition: none;
+}
+/* REMOVIDO: .iconWrapper.iconPulse, @keyframes iconPulseAnim */
+
+.title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--status-color);
+  margin: 0;
+  transition: none;
+}
+/* REMOVIDO: .subtitle (combinado no título ou removido do JSX) */
+
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding-top: 10px; /* Espaço após a <legend> */
+}
+
+.percentageItem {
+  flex: 1;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.percentageLabel {
+  font-size: 11px;
+  color: #333;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.percentageValue {
+  font-size: 18px;
+  font-weight: 700;
+  color: #000;
+  transition: none;
+}
+/* REMOVIDO: .percentageValue.valueAnimating, @keyframes valueBounce */
+
+/* Barra de Progresso XP */
+.progressSection {
+  margin-top: 8px;
+}
+.progressBar {
+  height: 16px; /* Altura padrão XP */
+  background-color: #FFFFFF;
+  border-radius: 0;
+  overflow: hidden;
+  position: relative;
+  box-shadow: none;
+  border: 1px solid #7F9DB9;
+}
+.progressFill {
+  height: 100%;
+  border-radius: 0;
+  background-color: var(--status-color, #0054E3); /* Cor de status (azul) */
+  transition: width 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  position: relative;
+  box-shadow: none;
+}
+/* REMOVIDO: .progressFill.progressCritical, @keyframes progressGlow */
+
+.progressText {
+  font-size: 11px;
+  color: #333;
+  text-align: center;
+  margin-top: 8px;
+}
+
+/* Mensagem de Status (Estilo Info XP) */
+.statusMessage {
+  background-color: #E0E8F5; /* Fundo Info Azul */
+  padding: 12px;
+  border-radius: 4px;
+  border: 1px solid var(--status-color, #0054E3);
+  text-align: center;
+  font-size: 12px;
+}
+/* REMOVIDO: .statusMessage.messageSlide, @keyframes messageSlideIn */
+
+.messageText {
+  margin: 0;
+  font-weight: 600;
+  color: #000;
+}
+.descriptionText {
+  margin: 8px 0 0 0;
+  font-size: 11px;
+  color: #333;
+}
+.criticalText {
+  color: #BF0000; /* Vermelho */
+  font-weight: bold;
+}
+
+/* REMOVIDO: .statsSection, .statCard, .statIcon, .statContent, .statLabel, .statValue (Não estão no JSX) */
+
+/* Seção de Valores */
+.amountSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 1rem;
+  border-top: 1px solid #C0C0C0;
+}
+.amountItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  transition: none;
+}
+.amountItem:hover {
+  padding-left: 0;
+  background-color: transparent;
+}
+.amountLabel {
+  font-size: 11px;
+  color: #333;
+}
+.amountValue {
+  font-weight: 600;
+  font-size: 12px;
+  color: #000;
+  transition: none;
+}
+.amountValue.lossValue {
+  color: #BF0000; /* Vermelho */
+  animation: none;
+}
+/* REMOVIDO: @keyframes lossFlash */
+
+
+/* Estilos do Slider (XP) */
+.sliderSection {
+  padding: 10px 0;
+  margin-bottom: 10px;
+}
+.sliderHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 10px;
+  background: #FFFFFF; /* Fundo branco */
+  border-radius: 4px;
+  border: 1px solid #7F9DB9;
+}
+.sliderIconWrapper {
+  font-size: 24px;
+  color: var(--slider-color, #7F9DB9);
+}
+.sliderHeaderText {
+  flex: 1;
+}
+.sliderTitle {
+  font-size: 12px;
+  font-weight: 700;
+  margin: 0;
+  color: #000;
+}
+.sliderSubtitle {
+  font-size: 11px;
+  color: #333;
+  margin: 2px 0 0 0;
+}
+.sliderContainer {
+  position: relative;
+  margin-top: 16px;
+  padding-bottom: 32px; /* espaço para números */
+}
+
+/* REMOVIDO: .sliderTrack, .sliderFill (Input range faz tudo) */
+
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: #C0C0C0; /* Trilho Cinza */
+  border-radius: 0;
+  border: 1px solid #7F9DB9;
+  outline: none;
+  opacity: 1;
+  transition: none;
+  position: relative;
+  z-index: 2;
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 20px;
+  background: var(--slider-color, #0054E3); /* Azul (ou cor dinâmica) */
+  cursor: pointer;
+  border: 1px solid #003C74;
+  box-shadow: none;
+  transition: none;
+}
+.slider::-webkit-slider-thumb:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.slider::-moz-range-thumb {
+  width: 12px;
+  height: 20px;
+  background: var(--slider-color, #0054E3);
+  cursor: pointer;
+  border: 1px solid #003C74;
+  box-shadow: none;
+  transition: none;
+}
+.slider::-moz-range-thumb:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* ===== RÉGUA COM NÚMEROS ===== */
+.numberRuler {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding: 0 2px;
+  user-select: none;
+}
+.numberMark {
+  font-size: 11px;
+  color: #333;
+  font-weight: 500;
+  transition: none;
+  cursor: pointer;
+}
+.numberMark:hover {
+  color: #000;
+  text-shadow: none;
+  transform: none;
+}
+.activeNumber {
+  color: var(--slider-color, #003399);
+  text-shadow: none;
+  font-weight: 700;
+  transform: none;
+}

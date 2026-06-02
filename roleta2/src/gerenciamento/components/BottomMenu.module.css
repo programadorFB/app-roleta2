@@ -1,0 +1,125 @@
+/* ========================================
+   Tema XP (Branco, Azul, Cinza)
+   BottomMenu.module.css
+   ======================================== */
+
+.bottomMenuContainer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  margin-left: 0;
+  background: #ECE9D8; /* Fundo Cinza XP */
+  border-top: 1px solid #7F9DB9; /* Borda Cinza-Azul */
+  border-top-left-radius: 0; /* Remover cantos arredondados */
+  border-top-right-radius: 0;
+  display: flex;
+  justify-content: center;
+  z-index: 1000;
+  box-shadow: none; /* Remover sombra */
+  overflow: visible; /* Remover overflow hidden */
+  height: 60px; /* Altura padrão para barra de navegação */
+  font-family: 'Tahoma', 'Trebuchet MS', sans-serif;
+}
+
+/* REMOVIDO: .neonGlow */
+
+.bottomMenu {
+  display: flex;
+  justify-content: space-around;
+  align-items: stretch; /* Esticar itens para preencher altura */
+  width: 100%;
+  max-width: 500px;
+  height: 100%;
+}
+
+.menuItem {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #000000; /* Texto Preto */
+  text-decoration: none;
+  font-size: 11px;
+  gap: 4px;
+  background: transparent;
+  border: 1px solid transparent; /* Para manter o layout */
+  border-radius: 4px;
+  flex: 1; /* Ocupar espaço igual */
+  cursor: pointer;
+  transition: all 0.1s ease-in-out;
+  padding: 5px 0;
+}
+
+.menuItem:hover {
+  color: #000000;
+  background-color: #F5F3E8; /* Hover cinza-claro */
+  transform: none;
+  text-shadow: none;
+}
+
+.active {
+  color: #003399; /* Texto Azul Escuro */
+  text-shadow: none;
+  transform: none;
+  background-color: #C1D2EE; /* Fundo Azul "Selecionado" */
+  border: 1px solid #7F9DB9;
+}
+
+.iconContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 20px;
+  transition: none;
+}
+/* Força o ícone a ser azul, sobrescrevendo o JSX */
+.iconContainer svg {
+  color: #0054E3 !important;
+}
+.active .iconContainer svg {
+  color: #003399 !important; /* Azul escuro quando ativo */
+}
+
+.menuItem:hover .iconContainer {
+  transform: none;
+  filter: none;
+}
+
+/* REMOVIDO: .activeGlow */
+
+/* REMOVIDO: .pulse, @keyframes pulseEffect */
+
+/* Label */
+.menuLabel {
+  font-weight: bold;
+  letter-spacing: 0;
+  color: #000000; /* Cor do texto do botão */
+  text-transform: none; /* Remover uppercase */
+}
+.active .menuLabel {
+  color: #003399; /* Cor do texto ativo */
+}
+
+/* REMOVIDO: .activeIndicator */
+
+/* Responsividade: Ocultar labels em telas pequenas */
+@media (max-width: 480px) {
+  .bottomMenuContainer {
+    height: 50px; /* Um pouco menor */
+  }
+
+  .menuLabel {
+    display: none; /* Ocultar texto */
+  }
+
+  .menuItem {
+    justify-content: center; /* Centralizar ícone */
+    font-size: 10px;
+  }
+  
+  .iconContainer {
+    font-size: 22px; /* Ícone um pouco maior */
+  }
+}
