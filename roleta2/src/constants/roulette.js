@@ -15,9 +15,9 @@ export const ROULETTE_SOURCES = {
   vip:            '💎 Roleta Vip - Evolution',
   lightning:      '⚡ Lightning Roulette - Evolution',
   speedauto:      '💨 Speed Auto Roulette - Evolution',
-  viproulette:    '💎 Vip Roulette - Evolution',
   relampago:      '⚡ Roleta Relâmpago - Evolution',
-  malta:          '🇲🇹 Casino Malta Roulette - Evolution',
+  // viproulette e malta removidos: feeds mortos na API (sem giros há semanas).
+  // ROULETTE_GAME_IDS mantém os ids p/ compat de histórico já existente no DB.
 };
 
 // 🔧 FIX #6: ROULETTE_GAME_IDS unificado (era divergente App.jsx vs constants)

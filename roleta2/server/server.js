@@ -90,9 +90,9 @@ const API_URLS = {
   lightning:    process.env.API_URL_LIGHTNING,
   aovivo:       process.env.API_URL_AOVIVO,
   speedauto:    process.env.API_URL_SPEEDAUTO,
-  viproulette:  process.env.API_URL_VIPROULETTE,
   relampago:    process.env.API_URL_RELAMPAGO,
-  malta:        process.env.API_URL_MALTA,
+  // viproulette e malta removidos: feeds mortos na API (sem giro desde ~05-20 e
+  // ~05-16 respectivamente) e sem UUID novo descobrível. Historico fica no DB.
 };
 
 // ── Helpers de segurança ──────────────────────────────────────
