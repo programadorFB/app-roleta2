@@ -44,6 +44,11 @@ function simulateCheckAndRegister(pending, numbers, triggerMap) {
     // 1b. Checa se ESTE num é um trigger → registra novo sinal pendente
     const profile = triggerMap.get(num);
     if (profile?.bestPattern) {
+      // ── 1 GATILHO POR VEZ ──
+      // Só abre um novo sinal se não houver pendente em aberto nesta source.
+      const hasOpenPending = pending.some(p => !resolvedInBatch.has(p.id));
+      if (hasOpenPending) continue;
+
       const newId = Date.now() + Math.random();
       const newSig = {
         id: newId,
@@ -272,23 +277,41 @@ describe('Trigger registration within batch', () => {
 // ══════════════════════════════════════════════════════════════
 
 describe('Complex batch scenarios', () => {
-  it('3 triggers disparados + resolvidos em um batch de 6 spins', () => {
+  it('1 GATILHO POR VEZ: só abre o próximo depois que o anterior resolve', () => {
     const triggerMap = new Map();
     triggerMap.set(5, { bestPattern: { coveredNumbers: [4, 5, 6], label: 'T5', confidence: 40, lift: 5 } });
     triggerMap.set(10, { bestPattern: { coveredNumbers: [9, 10, 11], label: 'T10', confidence: 45, lift: 6 } });
     triggerMap.set(20, { bestPattern: { coveredNumbers: [19, 20, 21], label: 'T20', confidence: 50, lift: 7 } });
 
     const pending = [];
-    // Batch: 5(trigger), 10(trigger), 20(trigger), 6(hit T5), 11(hit T10), 19(hit T20)
+    // Batch: 5(trigger→abre), 10(trigger mas BLOQUEADO), 20(BLOQUEADO),
+    //        6(hit T5→WIN, fecha), 11(trigger? não está coberto, abre novo), 19(...)
     const { scores, registered } = simulateCheckAndRegister(
       pending,
       [5, 10, 20, 6, 11, 19],
       triggerMap
     );
 
-    expect(registered).toHaveLength(3);
-    expect(scores.wins).toBe(3); // todos os 3 triggers acertaram
+    // Só o gatilho 5 abriu: 10 e 20 foram bloqueados pois 5 seguia em aberto.
+    expect(registered).toHaveLength(1);
+    expect(registered[0].trigger_number).toBe(5);
+    expect(scores.wins).toBe(1); // 6 fecha o T5 como WIN
     expect(scores.losses).toBe(0);
+  });
+
+  it('próximo gatilho abre no MESMO spin que resolve o anterior', () => {
+    const triggerMap = new Map();
+    // 6 é covered de T5 (resolve) E é ele próprio um gatilho (abre o próximo).
+    triggerMap.set(5, { bestPattern: { coveredNumbers: [4, 5, 6], label: 'T5', confidence: 40, lift: 5 } });
+    triggerMap.set(6, { bestPattern: { coveredNumbers: [6, 7, 8], label: 'T6', confidence: 45, lift: 6 } });
+
+    const pending = [];
+    // 5 abre T5; 6 fecha T5 (WIN) e, como T5 já resolveu neste batch, abre T6.
+    const { scores, registered } = simulateCheckAndRegister(pending, [5, 6], triggerMap);
+
+    expect(scores.wins).toBe(1); // T5 fechou
+    expect(registered).toHaveLength(2); // T5 e depois T6
+    expect(registered.map(r => r.trigger_number)).toEqual([5, 6]);
   });
 
   it('trigger registrado mas não resolvido no mesmo batch (pending)', () => {

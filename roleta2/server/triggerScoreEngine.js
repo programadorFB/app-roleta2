@@ -87,9 +87,24 @@ export async function processTriggerSource(sourceName) {
       // Antes: getActiveSignals(triggerMap) perdia sinais quando triggerMap mudava entre spins.
       const activeSignals = await getActiveSignalsFromDB(sourceName, triggerMap);
       const topTriggers = getActiveTriggers(triggerMap).slice(0, 5);
-      const activeTrigger = spinHistory.length > 0
-        ? checkTrigger(triggerMap, spinHistory[0].number)
-        : null;
+
+      // activeTrigger reflete o ÚNICO gatilho em aberto (pendente), pra manter
+      // "1 por vez" também na UI — card "GATILHO ATIVO" e racetrack apontam o
+      // mesmo gatilho. Sem pendente, checa se o último spin abriu um gatilho.
+      const pendingSignal = activeSignals.find(s => s.status === 'pending');
+      let activeTrigger = null;
+      if (pendingSignal) {
+        activeTrigger = checkTrigger(triggerMap, pendingSignal.triggerNumber) || {
+          trigger: pendingSignal.triggerNumber,
+          triggerColor: getColor(pendingSignal.triggerNumber),
+          action: pendingSignal.action,
+          coveredNumbers: pendingSignal.coveredNumbers,
+          confidence: pendingSignal.confidence,
+          lift: pendingSignal.lift,
+        };
+      } else if (spinHistory.length > 0) {
+        activeTrigger = checkTrigger(triggerMap, spinHistory[0].number);
+      }
 
       // Assertividade por tipo
       const assertivity = computeAssertivityBackend(spinHistory, triggerMap);
@@ -182,10 +197,13 @@ async function checkAndRegisterTriggers(source, numbers, triggerMap) {
     // 1b. Checa se ESTE num é um trigger -> registra novo sinal pendente
     const profile = triggerMap.get(num);
     if (profile?.bestPattern && profile.bestPattern.confidence >= MIN_CONFIDENCE) {
-      // Fast-path: skip se já existe pendente em memória pra este gatilho.
-      // O ON CONFLICT abaixo é a garantia atômica entre workers PM2.
-      const isAlreadyPending = pending.some(p => p.trigger_number === num);
-      if (isAlreadyPending) continue;
+      // ── 1 GATILHO POR VEZ ──────────────────────────────────────
+      // Só emite um novo sinal se NÃO houver nenhum pendente em aberto
+      // nesta source. O próximo gatilho só dispara depois que o anterior
+      // fechar (win/loss). resolvedInBatch cobre o caso de um pendente que
+      // resolveu neste MESMO batch — aí o gatilho deste spin já pode abrir.
+      const hasOpenPending = pending.some(p => !resolvedInBatch.has(p.id));
+      if (hasOpenPending) continue;
 
       const covered = profile.bestPattern.coveredNumbers;
       const bp = profile.bestPattern;
