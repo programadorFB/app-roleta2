@@ -115,7 +115,7 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
             <p className="login-split__subtitle">
               Faça login com sua conta da plataforma.{' '}
               <a 
-                href="https://go.aff.betou.bet.br/bhlfl7qf?utm_medium=apprgr"
+                href="https://go.aff.betou.bet.br/tgml0e19?utm_medium=appcmd"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="login-split__link"
@@ -203,7 +203,7 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
               <p>
                 Clique em{' '}
                 <a 
-                  href={import.meta.env.VITE_AFFILIATE_URL}
+                  href="https://go.aff.betou.bet.br/tgml0e19?utm_medium=appcmd"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="login-split__link"
