@@ -288,7 +288,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-hubla-token', 'x-crawler-secret', 'X-Sig', 'X-Ts'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Email', 'x-hubla-token', 'x-crawler-secret', 'X-Sig', 'X-Ts'],
 }));
 
 app.use(compression({
