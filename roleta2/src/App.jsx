@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 
 import Login        from './components/Login.jsx';
+import InstallAppButton from './components/InstallAppButton.jsx';
 import PaywallModal from './components/PaywallModal.jsx';
 import './components/PaywallModal.css';
 import './components/NotificationsCenter.css';
@@ -330,6 +331,7 @@ const App = () => {
         </div>
 
         <div className="navbar-right">
+          <InstallAppButton />
           <a href="https://betou.bet.br/" target="_blank" rel="noopener noreferrer" className="nav-btn">
             PLATAFORMA<img src={W600} alt="Logo" style={{ height: '13px', marginLeft: '4px' }} />
           </a>

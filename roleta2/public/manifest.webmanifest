@@ -1,0 +1,32 @@
+{
+  "name": "Smart Análise 2.0",
+  "short_name": "Smart Análise",
+  "description": "Análise inteligente de roleta em tempo real.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0806",
+  "theme_color": "#0a0806",
+  "icons": [
+    {
+      "src": "/icons/icon-192.edc35b25.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.edc35b25.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512-maskable.edc35b25.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

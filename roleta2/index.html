@@ -2,12 +2,44 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/backlogin.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.edc35b25.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Smart Análise 2.0</title>
+
+    <!-- PWA: instalável na tela inicial -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0a0806" />
+
+    <!-- iOS (Safari não usa o manifest pro ícone/standalone) -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Smart Análise" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.edc35b25.png" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+
+    <!-- PWA: instalação na tela inicial ("Criar Atalho") -->
+    <script>
+      // Captura o prompt de instalação cedo: ele pode disparar antes do React
+      // montar. Guardamos no window e avisamos o app via evento custom.
+      window.__pwaInstallPrompt = null;
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        window.__pwaInstallPrompt = e;
+        window.dispatchEvent(new Event('pwa:installable'));
+      });
+      window.addEventListener('appinstalled', function () {
+        window.__pwaInstallPrompt = null;
+        window.dispatchEvent(new Event('pwa:installed'));
+      });
+      // Registra o Service Worker (requisito p/ habilitar a instalação no Chrome/Edge).
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js').catch(function () { /* silencioso */ });
+        });
+      }
+    </script>
   </body>
 </html>
