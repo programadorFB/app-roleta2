@@ -29,7 +29,6 @@ services:
       - DB_NAME=phantom-roleta
       - DB_USER=postgres
       - DB_PASSWORD=1234
-      - DB_POOL_MAX=50
 
       # ── Redis ───────────────────────────────────
       - REDIS_URL=redis://redis:6379
@@ -74,8 +73,13 @@ services:
       - SENTRY_DSN=https://1524b8f488f4292a3be4380d2a608b18@o4510381163675648.ingest.us.sentry.io/4510381187334144
 
       # ── PM2 cluster ─────────────────────────────
-      - PM2_INSTANCES=2
+      - PM2_INSTANCES=1
+      - GATEWAY_SECRET=${GATEWAY_SECRET}
+      - GERENCIAMENTO_BACKEND_URL=http://gerenciamento_backend_roleta2:5004
+      - FETCH_INTERVAL_MS=5000
+      - DB_POOL_MAX=10
     restart: unless-stopped
+    stop_grace_period: 30s
     networks:
       - rede_externa
 
@@ -104,9 +108,39 @@ services:
     container_name: roleta2_tunnel
     image: cloudflare/cloudflared:latest
     command: tunnel --no-autoupdate --protocol http2 run --token eyJhIjoiOGQ2YTZmYWY4YzMwM2EzNDU2YzNlZDUwMGYzNjBlNDciLCJ0IjoiYjg0YzFmNTgtNDMzMi00MWQ5LTg5NjAtZDIzM2FhYTdjYWRmIiwicyI6Ik1UTmlPR1V4WVRVdE1HRmxOaTAwTlRNeUxUbGlPRFV0T0RJMk9XRXhZVEEwTWpKbE1UQmxaakk0TldZdE56WTVNeTAwTVRNeExXSmlZamd0TTJZd016WXhZakpoWlRnNSJ9
+    depends_on:
+      - roleta2_frontend
     restart: unless-stopped
     networks:
       - rede_externa
+
+  gerenciamento_backend:
+    container_name: gerenciamento_backend_roleta2
+    build:
+      context: ./gerenciamento_backend/
+      dockerfile: Dockerfile
+    environment:
+      - FLASK_ENV=production
+      - DATABASE_URL=postgresql://postgres:1234@postgres_principal:5432/phantom-roleta
+      - DB_POOL_SIZE=5
+      - DB_POOL_MAX_OVERFLOW=10
+      - GATEWAY_SECRET=${GATEWAY_SECRET}
+      - LOG_LEVEL=INFO
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      rede_externa:
+        aliases:
+          - gerenciamento_backend_roleta2
 
 networks:
   rede_externa:
