@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
     Flame, Snowflake, Layers, AlignCenter, TrendingUp, BarChart3,
-    Target, PieChart, Cpu,
+    Target, PieChart, Cpu, Crown,
 } from 'lucide-react';
 import styles from './DeepAnalysisPanel.module.css';
 import { useNotifications } from '../contexts/NotificationContext';
@@ -42,10 +42,16 @@ const getColumn = (num) => {
 };
 
 // --- Componente Principal com Abas ---
-const DeepAnalysisPanel = ({ spinHistory }) => {
+const DeepAnalysisPanel = ({ spinHistory, freeMode = false }) => {
     const [activeTab, setActiveTab] = useState('statistics');
     const { addNotification } = useNotifications();
     const prevAnalysesRef = useRef();
+
+    // Modo free: só a aba Geral fica disponível. Se o plano resolver para
+    // free com uma aba premium aberta, volta para a Geral.
+    useEffect(() => {
+        if (freeMode && activeTab !== 'statistics') setActiveTab('statistics');
+    }, [freeMode, activeTab]);
 
     const analysis = useMemo(() => {
         const totalSpins = spinHistory.length;
@@ -236,26 +242,40 @@ const DeepAnalysisPanel = ({ spinHistory }) => {
                     <TrendingUp size={14} />
                     <span>Geral</span>
                 </button>
-                <button onClick={() => setActiveTab('frequency')} className={tabCls('frequency')}>
-                    <BarChart3 size={14} />
-                    <span>Frequência</span>
-                </button>
-                <button onClick={() => setActiveTab('neighbors')} className={tabCls('neighbors')}>
-                    <PieChart size={14} />
-                    <span>Vizinhança</span>
-                </button>
-                <button onClick={() => setActiveTab('terminals')} className={tabCls('terminals')}>
-                    <Target size={14} />
-                    <span>Cavalos</span>
-                </button>
-                <button onClick={() => setActiveTab('advanced')} className={tabCls('advanced')}>
-                    <Cpu size={14} />
-                    <span>Avançado</span>
-                </button>
-                <button onClick={() => setActiveTab('sectors')} className={tabCls('sectors')}>
-                    <Layers size={14} />
-                    <span>Setores</span>
-                </button>
+                {!freeMode && (
+                  <>
+                    <button onClick={() => setActiveTab('frequency')} className={tabCls('frequency')}>
+                        <BarChart3 size={14} />
+                        <span>Frequência</span>
+                    </button>
+                    <button onClick={() => setActiveTab('neighbors')} className={tabCls('neighbors')}>
+                        <PieChart size={14} />
+                        <span>Vizinhança</span>
+                    </button>
+                    <button onClick={() => setActiveTab('terminals')} className={tabCls('terminals')}>
+                        <Target size={14} />
+                        <span>Cavalos</span>
+                    </button>
+                    <button onClick={() => setActiveTab('advanced')} className={tabCls('advanced')}>
+                        <Cpu size={14} />
+                        <span>Avançado</span>
+                    </button>
+                    <button onClick={() => setActiveTab('sectors')} className={tabCls('sectors')}>
+                        <Layers size={14} />
+                        <span>Setores</span>
+                    </button>
+                  </>
+                )}
+                {freeMode && (
+                  <button
+                    type="button"
+                    onClick={() => window.dispatchEvent(new CustomEvent('paywall-required'))}
+                    className={styles.premiumBtn}
+                  >
+                    <Crown size={14} />
+                    <span>Seja Premium</span>
+                  </button>
+                )}
             </div>
 
             {/* Conteúdo da Aba */}

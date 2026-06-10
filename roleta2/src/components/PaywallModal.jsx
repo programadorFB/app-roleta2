@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Check, CreditCard, Shield, Zap, Info } from 'lucide-react'; // Ícone 'Info' adicionado
+import { API_URL } from '../constants/roulette';
 import './PaywallModal.css';
 
 const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
@@ -14,21 +15,21 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
     monthly: {
       price: 97,
       period: 'mês',
-      checkoutUrl: 'https://pay.hub.la/1fA5DOZnF8bzlGTNW1XS',
+      checkoutUrl: 'https://pay.hub.la/1fA5DOZnF8bzlGTNW1XS?utm_source=ph',
       savings: null,
       installments: null
     },
     quarterly: {
       price: 197,
       period: 'trimestre',
-      checkoutUrl: 'https://pay.hub.la/MMSfqPB6rwwmraNweEUh',
+      checkoutUrl: 'https://pay.hub.la/MMSfqPB6rwwmraNweEUh?utm_source=ph',
       savings: 'Economize R$ 94',
       installments: '3x R$ 70,04'
     },
     annual: {
       price: 497,
       period: 'ano',
-      checkoutUrl: 'https://pay.hub.la/zwcPAbXDNlfSzhAcs9bg',
+      checkoutUrl: 'https://pay.hub.la/zwcPAbXDNlfSzhAcs9bg?utm_source=ph',
       savings: 'Economize R$ 667',
       installments: '12x R$ 50,80'
     }
@@ -43,7 +44,7 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
   const checkSubscriptionStatus = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/subscription/status?userEmail=${encodeURIComponent(userId)}`);
+      const response = await fetch(`${API_URL}/api/subscription/status?userEmail=${encodeURIComponent(userId)}`);
       const data = await response.json();
       setSubscriptionStatus(data);
     } catch (error) {
@@ -57,8 +58,10 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
     window.open(plans[selectedPlan].checkoutUrl);
   };
 
+  // Modo free unificado: continuar no free é só fechar o modal — o usuário
+  // permanece no app com os recursos premium bloqueados.
   const handleFreeRedirect = () => {
-    window.location.href = 'https://free.smartanalise.com.br';
+    onClose();
   };
 
   if (!isOpen) return null;

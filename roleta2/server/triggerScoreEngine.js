@@ -127,7 +127,8 @@ export async function processTriggerSource(sourceName) {
         allTriggersCount: getActiveTriggers(triggerMap).length,
       };
       if (ioInstance) {
-        try { ioInstance.emit('trigger-analysis', latestTriggerAnalysis[sourceName]); } catch {}
+        // Só premium recebe gatilhos em tempo real (free fica fora da sala).
+        try { ioInstance.to('premium').emit('trigger-analysis', latestTriggerAnalysis[sourceName]); } catch {}
       }
     } catch (emitErr) {
       console.error(`[Trigger ${sourceName}] Erro ao emitir:`, emitErr.message);

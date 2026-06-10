@@ -331,6 +331,15 @@ const requireActiveSubscription = async (req, res, next) => {
   }
 };
 
+// Modo free unificado: rotas de DADOS exigem só email válido (sem assinatura).
+// Rotas premium (triggers, fetch manual) seguem com requireActiveSubscription.
+const requireValidUser = (req, res, next) => {
+  const userEmail = req.query.userEmail;
+  if (!userEmail) return res.status(401).json({ error: 'userEmail obrigatório' });
+  if (!isValidEmail(userEmail.trim().toLowerCase())) return res.status(400).json({ error: 'Email inválido' });
+  next();
+};
+
 const requireAdminAuth = (req, res, next) => {
   if (!ADMIN_SECRET) return res.status(500).json({ error: 'ADMIN_SECRET não configurado' });
   try {
@@ -410,14 +419,14 @@ app.use('/login', createProxyMiddleware({
         if (!email) return res.status(500).json({ error: true, message: 'Email não identificado' });
 
         const cleanEmail = email.trim().toLowerCase();
+        // Modo free unificado: sem assinatura ativa o login segue normal —
+        // o frontend resolve o plano via /api/subscription/status e bloqueia
+        // só os recursos premium (paywall com "Continuar no Modo Free").
         const { canPlay } = await checkSubscriptionWithFallback(cleanEmail);
+        if (!canPlay) console.log(`🆓 [login] Sem assinatura ativa — entrando como free: ${cleanEmail}`);
 
-        if (canPlay) {
-          Object.keys(proxyRes.headers).forEach(k => res.setHeader(k, proxyRes.headers[k]));
-          res.status(statusCode).send(body);
-        } else {
-          res.status(403).json({ error: true, message: 'Assinatura inválida. Renove para jogar.', code: 'FORBIDDEN_SUBSCRIPTION', checkoutUrl: HUBLA_CHECKOUT_URL });
-        }
+        Object.keys(proxyRes.headers).forEach(k => res.setHeader(k, proxyRes.headers[k]));
+        res.status(statusCode).send(body);
       } catch (dbErr) {
         Sentry.captureException(dbErr);
         res.status(500).json({ error: true, message: 'Erro ao verificar assinatura' });
@@ -446,14 +455,9 @@ app.use('/start-game', async (req, res, next) => {
 
   if (email) {
     const cleanEmail = email.trim().toLowerCase();
+    // Modo free unificado: free também pode lançar o jogo (só loga).
     const { canPlay } = await checkSubscriptionWithFallback(cleanEmail);
-    if (!canPlay) {
-      console.warn(`🚫 [start-game] Assinatura inválida: ${cleanEmail}`);
-      return res.status(403).json({
-        error: true, message: 'Assinatura inválida ou expirada.', code: 'FORBIDDEN_SUBSCRIPTION',
-        requiresSubscription: true, checkoutUrl: HUBLA_CHECKOUT_URL,
-      });
-    }
+    if (!canPlay) console.log(`🆓 [start-game] Usuário free lançando jogo: ${cleanEmail}`);
   } else {
     console.warn('⚠️ [start-game] Email não encontrado — pulando verificação');
   }
@@ -577,7 +581,7 @@ app.get('/api/subscription/status', subscriptionStatusLimiter, async (req, res) 
 
 // ── Data endpoints ────────────────────────────────────────────
 
-app.get('/api/full-history', requireActiveSubscription, async (req, res) => {
+app.get('/api/full-history', requireValidUser, async (req, res) => {
   try {
     const source = req.query.source;
     if (!source || !SOURCES.includes(source)) return res.status(400).json({ error: 'source inválido' });
@@ -594,7 +598,7 @@ app.get('/api/full-history', requireActiveSubscription, async (req, res) => {
   }
 });
 
-app.get('/api/history-delta', requireActiveSubscription, async (req, res) => {
+app.get('/api/history-delta', requireValidUser, async (req, res) => {
   try {
     const source = req.query.source;
     if (!source || !SOURCES.includes(source)) return res.status(400).json({ error: 'source inválido' });
@@ -617,7 +621,7 @@ app.get('/api/history-delta', requireActiveSubscription, async (req, res) => {
   }
 });
 
-app.get('/api/latest', requireActiveSubscription, async (req, res) => {
+app.get('/api/latest', requireValidUser, async (req, res) => {
   try {
     const source   = req.query.source;
     const rawLimit = parseInt(req.query.limit, 10);
@@ -704,7 +708,7 @@ const getMotorScores = async (source) => {
 };
 
 // Retorna placar por modo de vizinho para uma roleta
-app.get('/api/motor-score', requireActiveSubscription, async (req, res) => {
+app.get('/api/motor-score', requireValidUser, async (req, res) => {
   const source = req.query.source;
   if (!source) return res.status(400).json({ error: 'source required' });
   const limit = req.query.limit || 'all';
@@ -813,7 +817,7 @@ app.post('/api/admin/backfill-motor', adminLimiter, requireAdminAuth, express.js
 
 // ── Analysis endpoints (carga inicial — Socket.IO cuida do real-time) ──
 
-app.get('/api/motor-analysis', requireActiveSubscription, async (req, res) => {
+app.get('/api/motor-analysis', requireValidUser, async (req, res) => {
   const source = req.query.source;
   if (!source) return res.status(400).json({ error: 'source required' });
   const data = getLatestMotorAnalysis(source) || await computeMotorAnalysisOnDemand(source);
@@ -921,14 +925,20 @@ io.use(async (socket, next) => {
     const email = String(rawEmail).trim().toLowerCase();
     if (!isValidEmail(email)) return next(new Error('auth:email_invalid'));
 
+    // Modo free unificado: free conecta normalmente, mas só premium entra
+    // na sala que recebe os eventos de gatilho (trigger-analysis).
     const { canPlay } = await checkSubscriptionWithFallback(email);
-    if (!canPlay) return next(new Error('auth:subscription_inactive'));
 
     socket.userEmail = email;
+    socket.isPremium = canPlay;
+    if (canPlay) socket.join('premium');
     next();
   } catch (err) {
     console.warn('⚠️ [Socket.IO] Erro na autenticação — fail-open:', err.message);
     Sentry.captureException(err, { tags: { context: 'socket-auth' } });
+    // Fail-open mantém acesso completo para não degradar premium em
+    // instabilidade de DB/Redis.
+    try { socket.join('premium'); } catch { /* ignore */ }
     next();
   }
 });

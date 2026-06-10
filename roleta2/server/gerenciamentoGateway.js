@@ -13,7 +13,7 @@
 import crypto from 'crypto';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 
-import { getSubscriptionByEmail, ACTIVE_STATUSES } from './subscriptionService.js';
+import { getSubscriptionByEmail } from './subscriptionService.js';
 
 const GERENCIAMENTO_BACKEND_URL =
   process.env.GERENCIAMENTO_BACKEND_URL || 'http://gerenciamento_backend:5004';
@@ -84,24 +84,21 @@ export async function gerenciamentoAuthMiddleware(req, res, next) {
     });
   }
 
-  let sub;
+  // Modo free unificado: o gerenciamento é liberado para free também.
+  // Não bloqueamos mais por assinatura — só derivamos um userId estável para
+  // o backend interno (Flask) identificar o usuário. Usa o user_id da
+  // assinatura quando existe; senão cai no próprio email (identificador único
+  // e estável por usuário).
+  let sub = null;
   try {
     sub = await getSubscriptionByEmail(email);
   } catch (err) {
     console.error('[gerenciamentoGateway] erro consultando subscription:', err.message);
-    return res.status(500).json({ error: 'Erro ao validar assinatura' });
-  }
-  if (!sub) {
-    return res.status(403).json({ error: 'Sem assinatura', code: 'NO_SUBSCRIPTION' });
-  }
-  if (!ACTIVE_STATUSES.includes(sub.status)) {
-    return res.status(403).json({ error: 'Assinatura inativa', code: 'INACTIVE_SUBSCRIPTION' });
-  }
-  if (sub.expires_at && new Date(sub.expires_at) < new Date()) {
-    return res.status(403).json({ error: 'Assinatura expirada', code: 'EXPIRED_SUBSCRIPTION' });
+    // Fail-open: segue com o email como userId em vez de derrubar o usuário.
   }
 
-  req.gerenciamentoUser = { userId: sub.user_id, email: sub.email };
+  const userId = sub?.user_id || email;
+  req.gerenciamentoUser = { userId, email: sub?.email || email };
   next();
 }
 

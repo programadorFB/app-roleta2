@@ -544,3 +544,31 @@
     font-size: 0.6rem;
   }
 }
+
+/* ── Botão "Seja Premium" (modo free, na barra de abas) ────────── */
+.premiumBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0.5rem 0.8rem;
+  background: linear-gradient(135deg, rgba(201,160,82,0.15), rgba(201,160,82,0.08));
+  border: 1px solid rgba(201,160,82,0.3);
+  color: #c9a052;
+  font-size: 0.68rem;
+  font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  margin-left: auto;
+}
+
+.premiumBtn:hover {
+  background: linear-gradient(135deg, rgba(201,160,82,0.25), rgba(201,160,82,0.15));
+  border-color: rgba(201,160,82,0.5);
+  color: #d4af5a;
+  box-shadow: 0 0 16px rgba(201,160,82,0.15);
+}

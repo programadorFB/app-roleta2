@@ -1804,3 +1804,184 @@
   @keyframes spin {
     to { transform: rotate(360deg); }
   }
+
+/* ════════════════════════════════════════════════════════════════
+   PREMIUM LOCKED — Blur + Cadeado + Botão (modo free)
+   ════════════════════════════════════════════════════════════════ */
+
+.premium-locked-wrapper {
+  position: relative;
+  overflow: hidden;
+}
+
+.premium-locked-wrapper--full {
+  min-height: calc(100vh - 60px);
+}
+
+.premium-locked-blur {
+  filter: blur(10px);
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.35;
+  transform: scale(1.02);
+}
+
+.premium-locked-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background:
+    radial-gradient(ellipse at center, rgba(201,160,82,0.08) 0%, rgba(5,5,8,0.85) 60%, rgba(5,5,8,0.95) 100%);
+  backdrop-filter: blur(3px);
+}
+
+.premium-locked-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2.5rem 2.5rem 2rem;
+  max-width: 420px;
+  width: 100%;
+  background:
+    linear-gradient(165deg, rgba(20,16,10,0.95) 0%, rgba(10,8,6,0.98) 100%);
+  border: 1px solid rgba(201,160,82,0.25);
+  border-top: 1px solid rgba(201,160,82,0.5);
+  box-shadow:
+    0 24px 60px rgba(0,0,0,0.6),
+    0 0 80px rgba(201,160,82,0.12),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.premium-locked-card::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #c9a052 50%, transparent 100%);
+  opacity: 0.8;
+}
+
+.premium-locked-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  background: radial-gradient(circle, rgba(201,160,82,0.2) 0%, rgba(201,160,82,0.05) 70%);
+  border: 1px solid rgba(201,160,82,0.35);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    0 0 24px rgba(201,160,82,0.2);
+}
+
+.premium-locked-icon {
+  color: #c9a052;
+  filter: drop-shadow(0 0 8px rgba(201,160,82,0.6));
+}
+
+.premium-locked-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  background: rgba(201,160,82,0.12);
+  border: 1px solid rgba(201,160,82,0.3);
+  color: #c9a052;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.premium-locked-text {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #f4e2b9;
+  letter-spacing: 0.02em;
+  margin: 0;
+  text-align: center;
+  text-shadow: 0 2px 12px rgba(201,160,82,0.25);
+}
+
+.premium-locked-desc {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.88rem;
+  color: rgba(255,255,255,0.55);
+  text-align: center;
+  max-width: 320px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.premium-locked-features {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.premium-locked-features li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.65);
+  padding: 0.35rem 0.75rem;
+  background: rgba(255,255,255,0.02);
+  border-left: 2px solid rgba(201,160,82,0.4);
+}
+
+.premium-locked-features li svg {
+  color: #c9a052;
+  flex-shrink: 0;
+}
+
+.premium-locked-btn {
+  margin-top: 0.75rem;
+  padding: 0.85rem 2.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: linear-gradient(165deg, #d4b068 0%, #c9a052 50%, #a0813f 100%);
+  color: #1a1410;
+  text-decoration: none;
+  border: 1px solid rgba(201,160,82,0.6);
+  border-top: 1px solid rgba(244,226,185,0.8);
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.25s;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.3),
+    0 6px 20px rgba(201,160,82,0.3),
+    0 0 40px rgba(201,160,82,0.15);
+}
+
+.premium-locked-btn:hover {
+  background: linear-gradient(165deg, #e6c27a 0%, #d4b068 50%, #b58e4a 100%);
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.4),
+    0 8px 28px rgba(201,160,82,0.45),
+    0 0 60px rgba(201,160,82,0.25);
+}
+
+.premium-locked-btn:active {
+  transform: translateY(0);
+}

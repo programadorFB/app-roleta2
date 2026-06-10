@@ -3,6 +3,7 @@ import React, {
 } from 'react';
 import {
   X, BarChart3, Clock, Hash, Percent, LogOut, PlayCircle, Crosshair, BookOpen, Headset, Wrench, Wallet,
+  Lock, Crown, Sparkles,
 } from 'lucide-react';
 
 import Login        from './components/Login.jsx';
@@ -14,7 +15,7 @@ import './App.modules.css';
 import './index.css';
 
 import W600 from './assets/w=600.svg';
-import { ROULETTE_SOURCES, ROULETTE_GAME_IDS, FILTER_OPTIONS } from './constants/roulette';
+import { ROULETTE_SOURCES, ROULETTE_GAME_IDS, FILTER_OPTIONS, API_URL } from './constants/roulette';
 import { getNumberColor, formatPullTooltip } from './lib/roulette';
 import { useAuth }               from './hooks/useAuth.js';
 import { useGameLauncher, LAUNCH_FAILURE } from './hooks/useGameLauncher.js';
@@ -78,6 +79,34 @@ const NumberStatsPopup = React.memo(({ isOpen, onClose, number, stats }) => {
 });
 NumberStatsPopup.displayName = 'NumberStatsPopup';
 
+// ── PremiumLockedCard ─────────────────────────────────────────
+// Card de upsell exibido sobre recursos premium quando o usuário é free.
+
+const PremiumLockedCard = ({ title, description, features, onSubscribe }) => (
+  <div className="premium-locked-overlay">
+    <div className="premium-locked-card">
+      <div className="premium-locked-icon-wrap">
+        <Lock size={28} className="premium-locked-icon" />
+      </div>
+      <div className="premium-locked-badge">
+        <Crown size={12} />
+        <span>Recurso Premium</span>
+      </div>
+      <h2 className="premium-locked-text">{title}</h2>
+      <p className="premium-locked-desc">{description}</p>
+      <ul className="premium-locked-features">
+        {features.map((f) => (
+          <li key={f}><Sparkles size={12} /> {f}</li>
+        ))}
+      </ul>
+      <button type="button" onClick={onSubscribe} className="premium-locked-btn">
+        <Crown size={14} />
+        <span>Assinar agora</span>
+      </button>
+    </div>
+  </div>
+);
+
 // ── App ───────────────────────────────────────────────────────
 
 const App = () => {
@@ -85,6 +114,9 @@ const App = () => {
 
   const [isPaywallOpen,   setIsPaywallOpen]   = useState(false);
   const [checkoutUrl,     setCheckoutUrl]     = useState('');
+  // null = ainda resolvendo (trata como premium para não piscar cadeados),
+  // 'premium' | 'free' depois que /api/subscription/status responde.
+  const [plan,            setPlan]            = useState(null);
   const [selectedRoulette,     setSelectedRoulette]     = useState(Object.keys(ROULETTE_SOURCES)[0]);
   const [popupNumber,          setPopupNumber]          = useState(null);
   const [isPopupOpen,          setIsPopupOpen]          = useState(false);
@@ -98,13 +130,45 @@ const App = () => {
   const handlePaywallRequired = useCallback((url) => {
     setCheckoutUrl(url || '');
     setIsPaywallOpen(true);
+    setPlan('free'); // backend recusou por assinatura — usuário segue como free
   }, []);
 
   useEffect(() => {
-    const handler = (e) => { setCheckoutUrl(e.detail?.checkoutUrl || ''); setIsPaywallOpen(true); };
+    const handler = (e) => { setCheckoutUrl(e.detail?.checkoutUrl || ''); setIsPaywallOpen(true); setPlan('free'); };
     window.addEventListener('paywall-required', handler);
     return () => window.removeEventListener('paywall-required', handler);
   }, []);
+
+  // ── Plano (premium x free) ────────────────────────────────
+  // Resolve o plano após o login. Sem assinatura ativa o usuário continua
+  // no app em modo free (recursos premium ficam bloqueados com upsell).
+
+  const isFreeUser = plan === 'free';
+  const paywallShownRef = React.useRef(false);
+
+  useEffect(() => {
+    const email = userInfo?.email;
+    if (!isAuthenticated || !email) { setPlan(null); paywallShownRef.current = false; return; }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        // API_URL absoluto: o nginx do frontend não proxia /api em produção.
+        const res = await fetch(`${API_URL}/api/subscription/status?userEmail=${encodeURIComponent(email)}`);
+        if (!res.ok) return; // mantém comportamento atual (premium) em erro
+        const data = await res.json();
+        if (cancelled) return;
+        setPlan(data.hasAccess ? 'premium' : 'free');
+        if (!data.hasAccess && !paywallShownRef.current) {
+          // Mostra a oferta uma vez por sessão; dá pra fechar e seguir no free.
+          paywallShownRef.current = true;
+          setCheckoutUrl(data.checkoutUrl || '');
+          setIsPaywallOpen(true);
+        }
+      } catch { /* offline/erro — segue como premium até o backend dizer o contrário */ }
+    })();
+    return () => { cancelled = true; };
+  }, [isAuthenticated, userInfo?.email]);
 
   // ── Hooks ─────────────────────────────────────────────────
 
@@ -433,6 +497,7 @@ const App = () => {
                       lookbackWindow:          50,
                       maxVisibleAlerts:        3,
                     }}
+                    freeMode={isFreeUser}
                   />
                 </Suspense>
               </>
@@ -446,22 +511,55 @@ const App = () => {
       )}
 
       {activeView === 'triggers' && (
-        <Suspense fallback={<Spinner />}>
-          <TriggersPage
-            filteredSpinHistory={filteredSpinHistory}
-            fullHistory={spinHistory}
-            gameIframeComponent={gameIframeComponent}
-            selectedResult={selectedResult}
-            numberPullStats={numberPullStats}
-            numberPreviousStats={numberPreviousStats}
-            onResultClick={handleResultBoxClick}
-            onNumberClick={handleNumberClick}
-            backendTriggerAnalysis={triggerAnalysis}
-            selectedRoulette={selectedRoulette}
-            historyFilter={historyFilter}
-            userEmail={userInfo?.email || ''}
-          />
-        </Suspense>
+        isFreeUser ? (
+          <div className="premium-locked-wrapper premium-locked-wrapper--full">
+            <PremiumLockedCard
+              title="Gatilhos Inteligentes"
+              description="Análise de padrões estatísticos e gatilhos automáticos com sinais em tempo real."
+              features={[
+                'Sinais em tempo real',
+                'Análise de terminais e setores',
+                'Histórico completo de gatilhos',
+              ]}
+              onSubscribe={() => setIsPaywallOpen(true)}
+            />
+            <div className="premium-locked-blur">
+              <Suspense fallback={<Spinner />}>
+                <TriggersPage
+                  filteredSpinHistory={filteredSpinHistory}
+                  fullHistory={spinHistory}
+                  gameIframeComponent={null}
+                  selectedResult={selectedResult}
+                  numberPullStats={numberPullStats}
+                  numberPreviousStats={numberPreviousStats}
+                  onResultClick={handleResultBoxClick}
+                  onNumberClick={handleNumberClick}
+                  backendTriggerAnalysis={triggerAnalysis}
+                  selectedRoulette={selectedRoulette}
+                  historyFilter={historyFilter}
+                  userEmail={userInfo?.email || ''}
+                />
+              </Suspense>
+            </div>
+          </div>
+        ) : (
+          <Suspense fallback={<Spinner />}>
+            <TriggersPage
+              filteredSpinHistory={filteredSpinHistory}
+              fullHistory={spinHistory}
+              gameIframeComponent={gameIframeComponent}
+              selectedResult={selectedResult}
+              numberPullStats={numberPullStats}
+              numberPreviousStats={numberPreviousStats}
+              onResultClick={handleResultBoxClick}
+              onNumberClick={handleNumberClick}
+              backendTriggerAnalysis={triggerAnalysis}
+              selectedRoulette={selectedRoulette}
+              historyFilter={historyFilter}
+              userEmail={userInfo?.email || ''}
+            />
+          </Suspense>
+        )
       )}
 
       {activeView === 'tutorial' && (
@@ -488,7 +586,7 @@ const App = () => {
 
       <PaywallModal
         isOpen={isPaywallOpen}
-        onClose={() => { setIsPaywallOpen(false); handleLogout(); }}
+        onClose={() => setIsPaywallOpen(false)}
         userId={userInfo?.email}
         checkoutUrl={checkoutUrl}
       />
