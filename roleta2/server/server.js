@@ -22,7 +22,7 @@ import {
   hasActiveAccess, processHublaWebhook, verifyHublaWebhook,
   getSubscriptionStats, getActiveSubscriptions, getWebhookLogs,
   getSubscriptionByEmail, getSubscriptionAuditLog, getAllAuditLogs,
-  sendExpirationReminders,
+  sendExpirationReminders, ensureUserRegistered,
   ACTIVE_STATUSES,
 } from './subscriptionService.js';
 import { processSource, initMotorEngine, getLatestMotorAnalysis, computeMotorAnalysisOnDemand, computeFilteredMotorScore, backfillMotorScores } from './motorScoreEngine.js';
@@ -419,6 +419,9 @@ app.use('/login', createProxyMiddleware({
         if (!email) return res.status(500).json({ error: true, message: 'Email não identificado' });
 
         const cleanEmail = email.trim().toLowerCase();
+        // Registra todo usuário que entra (mesmo free) — garante persistência e
+        // user_id estável para o gerenciamento. Best-effort, não bloqueia o login.
+        await ensureUserRegistered(cleanEmail);
         // Modo free unificado: sem assinatura ativa o login segue normal —
         // o frontend resolve o plano via /api/subscription/status e bloqueia
         // só os recursos premium (paywall com "Continuar no Modo Free").

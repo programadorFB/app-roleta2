@@ -49,6 +49,9 @@ function calculateExpirationByAmount(totalCents) {
 }
 
 const VALID_TRANSITIONS = {
+  // 'free' = usuário registrado no login que nunca assinou. Pode evoluir para
+  // qualquer estado quando um webhook de compra/assinatura chegar.
+  free:     ['pending', 'active', 'trialing', 'canceled', 'failed'],
   pending:  ['active', 'canceled', 'failed'],
   active:   ['canceled', 'expired'],
   trialing: ['active', 'canceled'],
@@ -174,6 +177,54 @@ export async function getSubscriptionByHublaId(hublaCustomerId) {
   return rows[0] || null;
 }
 
+// Registra todo usuário que entra na aplicação (no login), mesmo sem assinatura.
+// Cria uma linha com status 'free' (registrado, nunca assinou) garantindo:
+//   1) persistência do usuário para o gerenciamento (que deriva a identidade de
+//      subscriptions.user_id);
+//   2) user_id estável (= email) que sobrevive a uma futura compra, pois os
+//      handlers de webhook reutilizam o user_id existente.
+// Idempotente: nunca sobrescreve uma assinatura já existente.
+export async function ensureUserRegistered(email) {
+  if (!email) return null;
+  const cleanEmail = email.trim().toLowerCase();
+
+  // Checagem direta no DB (não no cache) para evitar criar linha duplicada
+  // quando já existe assinatura real com user_id != email.
+  try {
+    const { rows: existingRows } = await query(
+      'SELECT * FROM subscriptions WHERE email = $1 LIMIT 1',
+      [cleanEmail],
+    );
+    if (existingRows[0]) return existingRows[0];
+
+    const { rows } = await query(
+      `INSERT INTO subscriptions (user_id, email, status, plan_name, source, created_at, updated_at)
+       VALUES ($1, $2, 'free', 'free', 'app', NOW(), NOW())
+       ON CONFLICT (user_id) DO NOTHING
+       RETURNING *`,
+      [cleanEmail, cleanEmail],
+    );
+
+    if (rows[0]) {
+      console.log(`🆕 [REGISTER] Usuário registrado (free): ${cleanEmail}`);
+      await logSubscriptionAudit(cleanEmail, cleanEmail, null, 'free', 'login');
+      await invalidateSubscriptionCaches(cleanEmail);
+      return rows[0];
+    }
+
+    // Corrida: outra request inseriu primeiro — devolve a linha existente.
+    const { rows: raced } = await query(
+      'SELECT * FROM subscriptions WHERE user_id = $1',
+      [cleanEmail],
+    );
+    return raced[0] || null;
+  } catch (err) {
+    // Fail-open: registro é best-effort, nunca deve derrubar o login.
+    console.error('❌ [REGISTER] Falha ao registrar usuário:', err.message);
+    return null;
+  }
+}
+
 export async function hasActiveAccess(userId) {
   try {
     const sub = await getSubscriptionByUserId(userId);
@@ -214,10 +265,12 @@ async function handleAccessGranted(payload) {
   if (!email) throw new Error('Email não encontrado para liberar acesso');
 
   const subscription = payload.event?.subscription || payload.subscription || payload.data?.subscription;
-  const userId       = hublaId || email.split('@')[0];
   const planName     = subscription?.planName || 'Membro';
 
   const existing = await getSubscriptionByEmail(email);
+  // Reutiliza o user_id existente (inclusive de usuários free registrados no
+  // login) para não quebrar a persistência do gerenciamento.
+  const userId   = existing?.user_id || hublaId || email.split('@')[0];
 
   const result = await upsertSubscription({
     userId: userId.toString(), email, hublaCustomerId: hublaId,
@@ -302,7 +355,10 @@ async function handleSubscriptionCreated(payload) {
   const subscription = payload.event?.subscription || payload.subscription || payload.data?.subscription;
   const hublaStatus  = subscription?.status;
   const dbStatus     = hublaStatus === 'inactive' ? 'pending' : (hublaStatus || 'active');
-  const userId       = hublaId || email.split('@')[0];
+
+  const existing = await getSubscriptionByEmail(email);
+  // Reutiliza o user_id existente (free registrado no login) p/ preservar o gerenciamento.
+  const userId   = existing?.user_id || hublaId || email.split('@')[0];
 
   const result = await upsertSubscription({
     userId: userId.toString(), email, hublaCustomerId: hublaId,
@@ -500,7 +556,7 @@ export async function getAllAuditLogs(limit = 100) {
 
 export default {
   upsertSubscription, getSubscriptionByUserId, getSubscriptionByEmail,
-  getSubscriptionByHublaId, hasActiveAccess, processHublaWebhook,
+  getSubscriptionByHublaId, ensureUserRegistered, hasActiveAccess, processHublaWebhook,
   verifyHublaWebhook, getActiveSubscriptions, getSubscriptionStats,
   logWebhookEvent, getWebhookLogs, logSubscriptionAudit,
   getSubscriptionAuditLog, getAllAuditLogs,

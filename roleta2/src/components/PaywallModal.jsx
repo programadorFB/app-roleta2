@@ -10,6 +10,7 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState('annual');
+  const [emailConfirmed, setEmailConfirmed] = useState(false);
 
   const plans = {
     monthly: {
@@ -55,6 +56,7 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
   };
 
   const handleSubscribe = () => {
+    if (!emailConfirmed) return;
     window.open(plans[selectedPlan].checkoutUrl);
   };
 
@@ -98,25 +100,40 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
               </p>
 
               {/* Status Section */}
-              {subscriptionStatus && (
-                <div className="paywall-status">
-                  {subscriptionStatus.subscription ? (
+              {subscriptionStatus && (() => {
+                const sub = subscriptionStatus.subscription;
+                // "Sem Assinatura" cobre quem nunca assinou: sem registro algum
+                // OU registrado apenas como free (entrou na app mas nunca comprou).
+                const neverSubscribed = !sub || sub.status === 'free';
+
+                if (neverSubscribed) {
+                  return (
+                    <div className="paywall-status">
+                      <div className="status-card status-none">
+                        <p className="status-label">Status Atual</p>
+                        <p className="status-value">Sem Assinatura</p>
+                      </div>
+                    </div>
+                  );
+                }
+
+                const STATUS_LABELS = {
+                  canceled: 'Assinatura Cancelada',
+                  expired:  'Assinatura Expirada',
+                  pending:  'Pagamento Pendente',
+                  failed:   'Pagamento Recusado',
+                };
+                return (
+                  <div className="paywall-status">
                     <div className="status-card status-inactive">
                       <p className="status-label">Status Atual</p>
                       <p className="status-value">
-                        {subscriptionStatus.subscription.status === 'canceled' && 'Assinatura Cancelada'}
-                        {subscriptionStatus.subscription.status === 'expired' && 'Assinatura Expirada'}
-                        {subscriptionStatus.subscription.status === 'pending' && 'Pagamento Pendente'}
+                        {STATUS_LABELS[sub.status] || 'Assinatura Inativa'}
                       </p>
                     </div>
-                  ) : (
-                    <div className="status-card status-none">
-                      <p className="status-label">Status Atual</p>
-                      <p className="status-value">Sem Assinatura</p>
-                    </div>
-                  )}
-                </div>
-              )}
+                  </div>
+                );
+              })()}
               <div className="paywall-email-warning-top">
                 <Info size={16} />
                 <span>Importante: A compra deve ser realizada com o <strong>mesmo e-mail</strong> de acesso da plataforma.</span>
@@ -153,11 +170,12 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
               </div>
 
               {/* Free Mode Button - Positioned at top */}
-              <button 
+              <button
                 className="paywall-cta-free"
                 onClick={handleFreeRedirect}
               >
-                <span>Continuar no Modo Free</span>
+                <span className="free-cta-label">Continuar no Modo Free</span>
+                <span className="free-cta-sub">Acesso gratuito · sem cartão de crédito</span>
               </button>
 
               {/* Plan Selector */}
@@ -237,17 +255,28 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
                 </div>
               </div>
 
-              {/* --- NOVO AVISO DE E-MAIL --- */}
-              <div className="paywall-email-warning">
-                <Info size={16} />
-                <span>Importante: A compra deve ser realizada com o <strong>mesmo e-mail</strong> de acesso da plataforma.</span>
-              </div>
-              {/* --- FIM DO NOVO AVISO --- */}
+              {/* --- CONFIRMAÇÃO DE E-MAIL (obrigatória) --- */}
+              <label className="paywall-email-confirm">
+                <input
+                  type="checkbox"
+                  checked={emailConfirmed}
+                  onChange={(e) => setEmailConfirmed(e.target.checked)}
+                />
+                <span className="checkmark" aria-hidden="true">
+                  <Check size={14} />
+                </span>
+                <span className="confirm-text">
+                  <Info size={16} />
+                  Li e concordo: vou realizar a compra com o <strong>mesmo e-mail</strong> de acesso da plataforma.
+                </span>
+              </label>
+              {/* --- FIM DA CONFIRMAÇÃO --- */}
 
               {/* CTA Button */}
-              <button 
+              <button
                 className="paywall-cta"
                 onClick={handleSubscribe}
+                disabled={!emailConfirmed}
               >
                 <CreditCard size={20} />
                 <span>Assinar Agora</span>

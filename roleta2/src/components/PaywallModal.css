@@ -193,6 +193,75 @@
   color: var(--pw-gold);
 }
 
+/* ── Confirmação de e-mail (checkbox obrigatório) ── */
+.paywall-email-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 14px;
+  background: rgba(201,160,82,0.06);
+  border: 1px solid rgba(201,160,82,0.15);
+  margin-bottom: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.paywall-email-confirm:hover {
+  border-color: rgba(201,160,82,0.3);
+}
+
+/* Esconde o input nativo, usa .checkmark customizado */
+.paywall-email-confirm input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.paywall-email-confirm .checkmark {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1.5px solid rgba(201,160,82,0.45);
+  color: transparent;
+  transition: all 0.2s;
+}
+
+.paywall-email-confirm input:checked ~ .checkmark {
+  background: var(--pw-gold);
+  border-color: var(--pw-gold);
+  color: var(--pw-bg);
+}
+
+.paywall-email-confirm input:focus-visible ~ .checkmark {
+  box-shadow: 0 0 0 2px rgba(201,160,82,0.4);
+}
+
+.paywall-email-confirm .confirm-text {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--pw-text-muted);
+  line-height: 1.4;
+}
+
+.paywall-email-confirm .confirm-text svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--pw-gold);
+}
+
+.paywall-email-confirm .confirm-text strong {
+  color: var(--pw-gold);
+}
+
 /* ── Features ── */
 .paywall-features {
   margin-bottom: 1.25rem;
@@ -234,21 +303,51 @@
 /* ── Free CTA ── */
 .paywall-cta-free {
   width: 100%;
-  padding: 10px;
-  background: transparent;
-  border: 1px solid var(--pw-border);
-  color: var(--pw-text-muted);
-  font-size: 0.82rem;
+  padding: 14px;
+  background: linear-gradient(165deg, #1db954 0%, #15943f 100%);
+  border: 1.5px solid #25e066;
+  color: #ffffff;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: transform 0.2s, filter 0.2s;
   margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  animation: free-pulse 1.6s ease-in-out infinite;
+}
+
+.paywall-cta-free .free-cta-label {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.paywall-cta-free .free-cta-sub {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.9);
   letter-spacing: 0.02em;
 }
 
 .paywall-cta-free:hover {
-  border-color: rgba(255,255,255,0.15);
-  color: var(--pw-text);
-  background: rgba(255,255,255,0.03);
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+@keyframes free-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(37,224,102,0.55), 0 6px 20px rgba(29,185,84,0.25);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(37,224,102,0), 0 6px 20px rgba(29,185,84,0.35);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .paywall-cta-free {
+    animation: none;
+  }
 }
 
 /* ── Plan Selector ── */
@@ -429,9 +528,16 @@
   box-shadow: 0 8px 24px rgba(201,160,82,0.15);
 }
 
-.paywall-cta:hover {
+.paywall-cta:hover:not(:disabled) {
   box-shadow: 0 12px 36px rgba(201,160,82,0.25);
   transform: translateY(-1px);
+}
+
+.paywall-cta:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.4);
+  box-shadow: none;
 }
 
 /* ── Trust Badges ── */
