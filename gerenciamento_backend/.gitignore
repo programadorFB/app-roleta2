@@ -1,0 +1,11 @@
+# Ambiente virtual local
+.venv/
+venv/
+
+# Artefatos Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Env de desenvolvimento local (contém secrets)
+.env.dev
