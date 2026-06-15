@@ -165,6 +165,9 @@ const apiService = {
         date: data.date,
         description: data.description || this.getDefaultDescription(data.type),
         category: data.category || this.getDefaultCategory(data.type),
+        // O backend lê `isInitialBank` (camelCase). Enviamos também a versão
+        // snake_case por robustez.
+        isInitialBank: data.isInitialBank || false,
         is_initial_bank: data.isInitialBank || false,
       });
     } catch (error) {

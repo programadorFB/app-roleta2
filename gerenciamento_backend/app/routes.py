@@ -352,6 +352,26 @@ def get_transactions(current_user_id):
     })
 
 
+def _parse_transaction_date(value):
+    """Converte a data informada pelo usuário (data-only 'YYYY-MM-DD' ou ISO)
+    num datetime ancorado ao MEIO-DIA.
+
+    O campo `date` representa o DIA da transação (o `created_at` guarda o
+    instante real). Ancorar ao meio-dia evita que conversões de timezone no
+    frontend (ex.: `new Date(date).toISOString()`) empurrem a data para o dia
+    anterior/seguinte — qualquer offset de fuso até ±12h permanece no mesmo dia.
+    Retorna None se o valor for inválido/ausente.
+    """
+    if not value:
+        return None
+    try:
+        # Considera só a parte da data (YYYY-MM-DD), ignorando hora/timezone.
+        d = datetime.strptime(str(value).strip()[:10], '%Y-%m-%d')
+    except (ValueError, TypeError):
+        return None
+    return d.replace(hour=12, minute=0, second=0, microsecond=0)
+
+
 @main.route('/transactions', methods=['POST'])
 @gateway_required
 def create_transaction(current_user_id):
@@ -364,16 +384,7 @@ def create_transaction(current_user_id):
     if amount <= 0:
         return jsonify({'success': False, 'error': 'Valor deve ser > 0'}), 400
 
-    date_str = data.get('date')
-    try:
-        if date_str:
-            transaction_date = datetime.strptime(date_str, '%Y-%m-%d').replace(
-                hour=datetime.utcnow().hour, minute=datetime.utcnow().minute,
-            )
-        else:
-            transaction_date = datetime.utcnow()
-    except (ValueError, TypeError):
-        transaction_date = datetime.utcnow()
+    transaction_date = _parse_transaction_date(data.get('date')) or datetime.utcnow()
 
     current_balance = _get_user_balance(current_user_id)
     if tx_type in ('deposit', 'gains'):
@@ -387,7 +398,7 @@ def create_transaction(current_user_id):
         amount=amount,
         category=data.get('category'),
         description=data.get('description'),
-        is_initial_bank=bool(data.get('isInitialBank', False)),
+        is_initial_bank=bool(data.get('isInitialBank', data.get('is_initial_bank', False))),
         betting_session_id=data.get('bettingSessionId'),
         game_type=data.get('gameType'),
         balance_before=current_balance,
@@ -446,10 +457,10 @@ def update_transaction(current_user_id, transaction_id):
             return jsonify({'success': False, 'error': 'Tipo inválido'}), 400
         tx.type = data['type']
     if 'date' in data:
-        try:
-            tx.date = datetime.fromisoformat(str(data['date']).replace('Z', '+00:00'))
-        except (ValueError, TypeError):
+        parsed_date = _parse_transaction_date(data['date'])
+        if parsed_date is None:
             return jsonify({'success': False, 'error': 'Data inválida'}), 400
+        tx.date = parsed_date
 
     db.session.commit()
     return jsonify({'success': True, 'data': _serialize_tx(tx)})

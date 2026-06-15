@@ -16,6 +16,7 @@ import PerformanceChart from '../../components/PerformanceChart';
 // (Ajuste o caminho se sua CalendarScreen não estiver em 'pages/CalendarScreen/CalendarScreen.jsx')
 import { CalendarGrid, DayTransactionsModal } from '../../components/CalendarScreen';
 import ResetModal from '../../components/ResetModal';
+import InitialBankModal from '../../components/InitialBankModal';
 
 // --- Icons ---
 import { 
@@ -69,13 +70,14 @@ const PREDEFINED_AVATARS = [
 const Dashboard = () => {
     const navigate = useNavigate();
     const { user, isLoading } = useAuth();
-    const { 
-        balance, 
-        transactions, 
-        objectives, 
-        refreshData, 
-        getRealProfit, 
-        getEffectiveInitialBalance, 
+    const {
+        balance,
+        transactions,
+        objectives,
+        refreshData,
+        addTransaction,
+        getRealProfit,
+        getEffectiveInitialBalance,
         totalLosses,
         totalDeposits,
         totalWithdraws,
@@ -93,6 +95,7 @@ const Dashboard = () => {
     const [modalDate, setModalDate] = useState(null);
     const [modalTransactions, setModalTransactions] = useState([]);
     const [showResetModal, setShowResetModal] = useState(false);
+    const [showInitialModal, setShowInitialModal] = useState(false);
 
     useEffect(() => {
         if (!isLoading && !user) {
@@ -123,43 +126,52 @@ const Dashboard = () => {
         });
         return map;
     }, [transactions]);
-    const handleQuickEditInitial = async () => {
-        // Busca a transação inicial por 3 critérios diferentes para não falhar
-    const initialTx = transactions.find(tx => 
-        tx.is_initial_bank === true || 
-        tx.description?.toLowerCase().includes('inicial') ||
-        tx.category?.toLowerCase().includes('inicial')
-    );
-    
-    if (!initialTx) {
-        alert("Não encontramos a transação de banca inicial na sua lista. Tente realizar um 'Reset' para criá-la corretamente ou procure-a no histórico.");
-        return;
-    }
-    const newValue = prompt(`Editando: ${initialTx.description}\nDigite o novo valor da banca:`, initialTx.amount);
+    // Abre o modal limpo de banca inicial (substitui o prompt do navegador).
+    const handleQuickEditInitial = () => setShowInitialModal(true);
 
-    
-    if (newValue !== null && newValue !== "" && !isNaN(newValue.replace(',', '.'))) {
-        try {
-            const numericValue = parseFloat(newValue.replace(',', '.'));
-            
-            // Chama o apiService para atualizar
-            const response = await apiService.updateTransaction(initialTx.id, {
-                amount: numericValue,
-                description: initialTx.description
-            });
-
-            if (response.success) {
-                alert("Banca inicial atualizada! O saldo de todo o histórico será recalculado.");
-                if (refreshData) await refreshData(); 
-            } else {
-                // Se cair aqui com erro 400, é porque falta comentar a trava no routes.py
-                alert(`Erro do servidor: ${response.error}`);
-            }
-        } catch (e) {
-            alert("Erro ao conectar com o servidor.");
+    // Salva a banca inicial (cria se ainda não existe, senão ajusta o valor).
+    // Retorna { ok, error } para o modal exibir feedback inline.
+    const saveInitialBank = async (rawValue) => {
+        const valor = parseFloat(String(rawValue).replace(',', '.'));
+        if (isNaN(valor) || valor <= 0) {
+            return { ok: false, error: 'Digite um valor válido, maior que zero.' };
         }
-    }
-};
+
+        const initialTx = transactions.find(tx =>
+            tx.is_initial_bank === true ||
+            tx.description?.toLowerCase().includes('inicial') ||
+            tx.category?.toLowerCase().includes('inicial')
+        );
+
+        try {
+            let response;
+            if (!initialTx) {
+                const hoje = new Date();
+                const dataHoje = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+                response = await addTransaction({
+                    type: 'deposit',
+                    amount: valor,
+                    description: 'Banca inicial',
+                    category: 'Banca inicial',
+                    date: dataHoje,
+                    isInitialBank: true,
+                });
+            } else {
+                response = await apiService.updateTransaction(initialTx.id, {
+                    amount: valor,
+                    description: initialTx.description,
+                });
+            }
+
+            if (response?.success) {
+                if (refreshData) await refreshData();
+                return { ok: true };
+            }
+            return { ok: false, error: response?.error || 'Não foi possível salvar agora. Tente de novo.' };
+        } catch (e) {
+            return { ok: false, error: 'Não foi possível salvar. Verifique sua conexão e tente de novo.' };
+        }
+    };
     // ✅ NOVO: Funções para controlar o modal (copiado de CalendarScreen)
     const handleDayClick = (date, transactions) => {
         setModalDate(date);
@@ -336,11 +348,11 @@ const Dashboard = () => {
                 
                 {/* Seção de Saldos */}
                 <section className={styles.balanceSection}>
-    <div 
-        className={styles.balanceCard} 
-        onClick={handleQuickEditInitial} 
+    <div
+        className={styles.balanceCard}
+        onClick={handleQuickEditInitial}
         style={{ cursor: 'pointer' }}
-        title="Clique para editar a banca inicial"
+        title={initialBalance > 0 ? 'Clique para ajustar sua banca inicial' : 'Clique para inserir sua banca inicial'}
     >
         <div className={styles.cardHeader}>
             <MdAccountBalanceWallet size={20} />
@@ -348,9 +360,18 @@ const Dashboard = () => {
             {/* Ícone visual de edição opcional */}
             <MdRefresh size={14} style={{ marginLeft: 'auto', opacity: 0.5 }} />
         </div>
-        <p className={`${styles.balanceAmount} ${styles.initial}`}>
-            {formatCurrency(initialBalance)}
-        </p>
+        {initialBalance > 0 ? (
+            <p className={`${styles.balanceAmount} ${styles.initial}`}>
+                {formatCurrency(initialBalance)}
+            </p>
+        ) : (
+            <p
+                className={`${styles.balanceAmount} ${styles.initial}`}
+                style={{ fontSize: '1rem', fontWeight: 600, opacity: 0.9 }}
+            >
+                Insira sua banca inicial
+            </p>
+        )}
     </div>
 
                     <div className={`${styles.balanceCard} ${styles.main}`}>
@@ -632,6 +653,13 @@ const Dashboard = () => {
         }[option];
         if (msg) alert(msg);
     }}
+/>
+
+<InitialBankModal
+    open={showInitialModal}
+    currentValue={initialBalance > 0 ? initialBalance : null}
+    onSave={saveInitialBank}
+    onClose={() => setShowInitialModal(false)}
 />
                 {/* =======================================================
                 ✅ NOVO: Seção do Calendário inserida abaixo do gráfico

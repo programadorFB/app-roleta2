@@ -1,0 +1,132 @@
+/* InitialBankModal — modal limpo para inserir/ajustar a banca inicial.
+   Segue o visual dos demais modais do gerenciamento (estilo XP). */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 84, 227, 0.3);
+  backdrop-filter: blur(2px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal {
+  background: #ECE9D8;
+  border: 2px solid #0054E3;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 360px;
+  box-shadow: 4px 4px 16px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.header {
+  background: linear-gradient(180deg, #0054E3 0%, #0040B0 100%);
+  color: #FFFFFF;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.closeBtn {
+  background: transparent;
+  border: none;
+  color: #FFFFFF;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.closeBtn:hover { opacity: 0.8; }
+
+.body {
+  padding: 16px 16px 18px;
+}
+
+.subtitle {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: #333;
+  line-height: 1.45;
+}
+
+.inputWrap {
+  display: flex;
+  align-items: center;
+  border: 1px solid #7F9DB9;
+  background: #FFFFFF;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.currency {
+  padding: 10px 8px 10px 12px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #0054E3;
+  background: #F3F2EC;
+  border-right: 1px solid #D6D3CE;
+}
+
+.input {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 10px 12px;
+  font-size: 16px; /* evita zoom no iOS */
+  color: #000;
+  background: transparent;
+  min-width: 0;
+}
+
+.error {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  color: #C0392B;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.cancel,
+.save {
+  flex: 1;
+  border: 1px solid #7F9DB9;
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: bold;
+  padding: 9px 12px;
+  cursor: pointer;
+}
+
+.cancel {
+  background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
+  color: #000;
+}
+.cancel:hover:not(:disabled) { background: #F5F3EC; }
+
+.save {
+  background: linear-gradient(180deg, #1E6FF0 0%, #0054E3 100%);
+  color: #FFFFFF;
+  border-color: #0040B0;
+}
+.save:hover:not(:disabled) { background: linear-gradient(180deg, #2E7DF5 0%, #0A5CEA 100%); }
+
+.cancel:disabled,
+.save:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

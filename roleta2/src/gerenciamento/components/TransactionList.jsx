@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { MdClose, MdEvent, MdAccessTime, MdEdit, MdDelete, MdInfoOutline, MdTouchApp } from 'react-icons/md';
 import { FaPlusCircle, FaMinusCircle, FaReceipt } from 'react-icons/fa';
 import { FinancialProvider, useFinancial } from '../contexts/FinancialContext';
@@ -11,13 +12,19 @@ const EditTransactionModal = ({ visible, transaction, onClose, onSave }) => {
 
   useEffect(() => {
     if (transaction) {
-      const dateObject = transaction.date ? new Date(transaction.date) : new Date();
-      setEditedTransaction({
-        ...transaction,
-        // Formata para os inputs de data e hora
-        dateInput: dateObject.toISOString().split('T')[0], // YYYY-MM-DD
-        timeInput: dateObject.toTimeString().split(' ')[0].substring(0, 5), // HH:MM
-      });
+      const raw = transaction.date;
+      // Extrai a data SEM converter timezone (evita "pular" de dia).
+      let dateInput;
+      let timeInput;
+      if (typeof raw === 'string' && raw.length >= 10) {
+        dateInput = raw.substring(0, 10); // YYYY-MM-DD (já é a data local pretendida)
+        timeInput = raw.includes('T') ? (raw.split('T')[1]?.substring(0, 5) || '12:00') : '12:00';
+      } else {
+        const d = raw ? new Date(raw) : new Date();
+        dateInput = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        timeInput = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      }
+      setEditedTransaction({ ...transaction, dateInput, timeInput });
       setErrors({});
     }
   }, [transaction]);
@@ -37,10 +44,10 @@ const EditTransactionModal = ({ visible, transaction, onClose, onSave }) => {
       alert('Erro: Por favor, corrija os campos antes de salvar.');
       return;
     }
-    const finalDate = new Date(`${editedTransaction.dateInput}T${editedTransaction.timeInput}:00`);
     const dataToSave = {
       ...editedTransaction,
-      date: finalDate.toISOString(),
+      // Envia a data local (YYYY-MM-DD); o backend ancora ao meio-dia, sem shift de fuso.
+      date: editedTransaction.dateInput,
       amount: parseFloat(editedTransaction.amount),
       category: editedTransaction.category.trim(),
       description: editedTransaction.description?.trim() || '',
@@ -74,8 +81,8 @@ const EditTransactionModal = ({ visible, transaction, onClose, onSave }) => {
 
   if (!visible) return null;
 
-  return (
-    <div className={styles.modalOverlay}>
+  return createPortal(
+    <div className={styles.modalOverlay} style={{ zIndex: 3000 }}>
       <div className={styles.modalContainer}>
         <header className={styles.modalHeader}>
           <h2 className={styles.modalTitle}>Editar Transação</h2>
@@ -191,7 +198,8 @@ const EditTransactionModal = ({ visible, transaction, onClose, onSave }) => {
           <button className={styles.saveButton} onClick={handleSave}>Salvar Alterações</button>
         </footer>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 
