@@ -12,7 +12,7 @@ import crypto from 'crypto';
 import compression from 'compression';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { createProxyMiddleware } from 'http-proxy-middleware';
+import { createProxyMiddleware, responseInterceptor } from 'http-proxy-middleware';
 
 import { loadAllExistingSignalIds, saveNewSignals, getFullHistory, getLatestSpins, getNewSignalsSince } from './dbService.js';
 import { SOURCES } from './constants.js';
@@ -362,7 +362,14 @@ async function checkSubscriptionWithFallback(email) {
     sub && ACTIVE_STATUSES.includes(sub.status) &&
     (!sub.expires_at || new Date(sub.expires_at) >= new Date());
 
-  const cached = await getSubscriptionByEmail(email);
+  let cached = null;
+  try {
+    cached = await getSubscriptionByEmail(email);
+  } catch (cacheErr) {
+    console.error('[checkSub] Erro no cached lookup - fail-open:', cacheErr.message);
+    Sentry.captureException(cacheErr, { tags: { context: 'subscription-cached-check' }, extra: { email } });
+    return { canPlay: true, subscription: null };
+  }
   if (isActive(cached)) return { canPlay: true, subscription: cached };
 
   try {
@@ -386,60 +393,61 @@ async function checkSubscriptionWithFallback(email) {
 app.use('/login', createProxyMiddleware({
   target: AUTH_PROXY_TARGET,
   changeOrigin: true,
-  timeout: 60000,
   followRedirects: true,
+  timeout: 60000,
   pathRewrite: { '^/': '/login' },
-
-  onProxyReq: (proxyReq) => {
-    proxyReq.setHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
-    proxyReq.setHeader('Accept', 'application/json');
-  },
-
-  onProxyRes: (proxyRes, req, res) => {
-    const chunks = [];
-    proxyRes.on('data', c => chunks.push(c));
-    proxyRes.on('end', async () => {
-      const body       = Buffer.concat(chunks).toString('utf8');
-      const statusCode = proxyRes.statusCode;
-
-      if (statusCode < 200 || statusCode >= 300) {
-        Object.keys(proxyRes.headers).forEach(k => res.setHeader(k, proxyRes.headers[k]));
-        return res.status(statusCode).send(body);
+  selfHandleResponse: true,
+  // Entrada validada SOMENTE pelo proxy de entrada (auth externo).
+  // Free e premium entram igual; o plano e resolvido via
+  // /api/subscription/status e as rotas premium por requireActiveSubscription.
+  on: {
+    // O auth externo responde 5xx (errCode LOGIN_ERROR) para credencial
+    // invalida. Traduzimos para 400 + code INVALID_CREDENTIALS, que o
+    // frontend ja mapeia para "E-mail ou senha incorretos.". Evitamos 401
+    // de proposito: ele dispara auto-logout no front.
+    proxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
+      const status = proxyRes.statusCode || 0;
+      if (status >= 500) {
+        try {
+          const j = JSON.parse(responseBuffer.toString('utf8'));
+          const detail = String(j.details || j.message || '');
+          if (j.errCode === 'LOGIN_ERROR' && /incorret|senha|password|credenc|invalid/i.test(detail)) {
+            res.statusCode = 400;
+            return JSON.stringify({ error: true, code: 'INVALID_CREDENTIALS', message: detail || 'E-mail ou senha incorretos.' });
+          }
+        } catch { /* corpo nao-JSON: repassa intacto */ }
       }
 
-      try {
-        let email = null;
-        if (req.headers.authorization?.startsWith('Basic ')) {
-          const decoded = Buffer.from(req.headers.authorization.split(' ')[1], 'base64').toString('utf-8');
-          email = decoded.split(':')[0];
+      // Login bem-sucedido → registra o usuário (mesmo free) para garantir
+      // persistência e user_id estável no gerenciamento. Best-effort: nunca
+      // bloqueia o login (ensureUserRegistered já é fail-open internamente).
+      if (status >= 200 && status < 300) {
+        try {
+          let email = null;
+          if (req.headers.authorization?.startsWith('Basic ')) {
+            email = Buffer.from(req.headers.authorization.split(' ')[1], 'base64').toString('utf-8').split(':')[0];
+          }
+          if (!email) {
+            try {
+              const j = JSON.parse(responseBuffer.toString('utf8'));
+              email = j.user?.email || j.email;
+            } catch { /* corpo não-JSON */ }
+          }
+          if (email) await ensureUserRegistered(email.trim().toLowerCase());
+        } catch (regErr) {
+          console.error('[login] ensureUserRegistered falhou (ignorado):', regErr.message);
         }
-        if (!email) {
-          try { email = JSON.parse(body).user?.email || JSON.parse(body).email; } catch { /* ignore */ }
-        }
-        if (!email) return res.status(500).json({ error: true, message: 'Email não identificado' });
-
-        const cleanEmail = email.trim().toLowerCase();
-        // Registra todo usuário que entra (mesmo free) — garante persistência e
-        // user_id estável para o gerenciamento. Best-effort, não bloqueia o login.
-        await ensureUserRegistered(cleanEmail);
-        // Modo free unificado: sem assinatura ativa o login segue normal —
-        // o frontend resolve o plano via /api/subscription/status e bloqueia
-        // só os recursos premium (paywall com "Continuar no Modo Free").
-        const { canPlay } = await checkSubscriptionWithFallback(cleanEmail);
-        if (!canPlay) console.log(`🆓 [login] Sem assinatura ativa — entrando como free: ${cleanEmail}`);
-
-        Object.keys(proxyRes.headers).forEach(k => res.setHeader(k, proxyRes.headers[k]));
-        res.status(statusCode).send(body);
-      } catch (dbErr) {
-        Sentry.captureException(dbErr);
-        res.status(500).json({ error: true, message: 'Erro ao verificar assinatura' });
       }
-    });
-  },
 
-  onError: (err, req, res) => {
-    Sentry.captureException(err);
-    if (!res.headersSent) res.status(500).json({ error: true, message: 'Erro no proxy de login' });
+      return responseBuffer;
+    }),
+    error: (err, req, res) => {
+      console.error('[login] proxy error (conexao upstream):', err && err.message);
+      Sentry.captureException(err);
+      if (res && !res.headersSent && typeof res.status === 'function') {
+        res.status(502).json({ error: true, message: 'Servico de login indisponivel. Tente novamente em instantes.' });
+      }
+    },
   },
 }));
 
