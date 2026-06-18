@@ -8,7 +8,11 @@
 
 import axios from 'axios';
 
-const API_BASE_URL = '/api/gerenciamento';
+// Base ABSOLUTA via VITE_API_URL (domínio do backend, ex.: tool-api.smartanalise.com.br):
+// o nginx do frontend NÃO proxia /api, então caminho relativo cai no SPA fallback
+// (GET → index.html, POST/PUT → 405). Em dev, deixe VITE_API_URL vazio para usar o
+// proxy do Vite (relativo).
+const API_BASE_URL = (import.meta.env.VITE_API_URL || '') + '/api/gerenciamento';
 
 // Data local (YYYY-MM-DD). NÃO usar toISOString(): ele converte pra UTC e,
 // à noite no Brasil (UTC-3), "hoje" vira amanhã → o valor ia 1 dia pra frente.
