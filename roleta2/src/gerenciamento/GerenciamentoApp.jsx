@@ -8,8 +8,8 @@
  * - Não inclui rota de /login — a auth vem de fora.
  */
 
-import React from 'react';
-import { MemoryRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { MemoryRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 
 import { AuthProvider } from './contexts/AuthContext.jsx';
 import { SideMenuProvider } from './contexts/SideMenuContext.jsx';
@@ -30,6 +30,37 @@ import StrategyScreen from './pages/VideoStrategy/StrategyScreen.jsx';
 import CalendarScreen from './components/CalendarScreen.jsx';
 import TutorialScreen from './pages/Tutorial/TutorialScreen.jsx';
 
+import './styles/identity.css';
+
+
+const ROUTE_KEY = 'gerenciamento.route';
+
+const getSavedRoute = () => {
+  try { return localStorage.getItem(ROUTE_KEY) || '/dashboard'; }
+  catch { return '/dashboard'; }
+};
+
+/**
+ * Histórico inicial do MemoryRouter. Se a rota salva for uma página interna,
+ * semeamos ['/dashboard', rotaSalva] para que `navigate(-1)` (botão Voltar)
+ * sempre tenha pra onde voltar — senão o back quebra ao reabrir numa subpágina.
+ */
+const getInitialEntries = () => {
+  const saved = getSavedRoute();
+  return saved === '/dashboard' ? ['/dashboard'] : ['/dashboard', saved];
+};
+
+/**
+ * Observa a rota interna (MemoryRouter) e persiste em localStorage, para que
+ * um F5 reabra o gerenciamento na MESMA página em vez de cair no /dashboard.
+ */
+const RoutePersistor = () => {
+  const location = useLocation();
+  useEffect(() => {
+    try { localStorage.setItem(ROUTE_KEY, location.pathname); } catch { /* ignore */ }
+  }, [location.pathname]);
+  return null;
+};
 
 const Layout = () => (
   <div style={{ display: 'flex', minHeight: '100%', position: 'relative' }}>
@@ -52,12 +83,13 @@ const Layout = () => (
 
 export default function GerenciamentoApp({ userInfo, jwtToken, onLogout }) {
   return (
-    <div>
+    <div className="gerenciamento-root">
     <AuthProvider userInfo={userInfo} jwtToken={jwtToken} onLogout={onLogout}>
       <FinancialProvider>
         <SideMenuProvider>
           <BettingProvider>
-            <MemoryRouter initialEntries={['/dashboard']}>
+            <MemoryRouter initialEntries={getInitialEntries()} initialIndex={getInitialEntries().length - 1}>
+              <RoutePersistor />
               <Routes>
                 <Route element={<Layout />}>
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />

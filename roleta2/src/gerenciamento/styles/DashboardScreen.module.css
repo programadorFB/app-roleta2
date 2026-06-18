@@ -1,6 +1,11 @@
 /* ========================================
-   Tema XP (Branco, Azul, Cinza)
+   Tema Mogno & Ouro Premium
    DashboardScreen.module.css - Mobile First
+   (migrado do tema XP Branco/Azul/Cinza)
+
+   Tokens herdados de .gerenciamento-root (identity.css):
+   --ger-gold / --ger-gold-bright / --ger-gold-dark
+   --ger-bg-deep / --ger-bg-glass / --ger-text / ...
    ======================================== */
 
 /* --- RESET & GERAL --- */
@@ -11,29 +16,30 @@
 }
 
 body {
-  font-family: 'Tahoma', 'Trebuchet MS', sans-serif;
-  background: #D6D3CE;
-  color: #000;
+  background: transparent;
+  color: var(--ger-text, #f0f0f5);
 }
 
 /* Container Principal */
 .dashboardContainer {
   min-height: 100vh;
   width: 100%;
-  background: #D6D3CE;
+  background: transparent;
   position: relative;
   overflow-x: hidden;
   padding-bottom: 20px; /* Espaço extra no final */
 }
 
-/* --- HEADER (Barra de Título XP) --- */
+/* --- HEADER (barra de título — glass dourado) --- */
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  background: linear-gradient(180deg, #0054E3 0%, #0040B0 100%);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.3) inset;
+  background: linear-gradient(165deg, rgba(20,18,14,0.9) 0%, rgba(10,8,6,0.78) 100%);
+  border-bottom: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(201,160,82,0.08);
   position: sticky; /* Fixa no topo em mobile */
   top: 0;
   z-index: 100;
@@ -48,34 +54,43 @@ body {
   align-items: center;
 }
 
-/* Botão único de reset no header (abre o ResetModal) */
+/* Botão único de reset no header (abre o ResetModal). Ghost dourado: o ícone
+   deve ficar OURO (não preto), sobrescrevendo a regra global `button`. */
 .headerResetButton {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  gap: 6px;
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 3px;
-  color: #FFFFFF;
+  padding: 7px 12px;
+  background: linear-gradient(165deg, rgba(40,34,24,0.9) 0%, rgba(20,17,12,0.9) 100%) !important;
+  border: 1px solid var(--ger-border-strong, rgba(201,160,82,0.45)) !important;
+  border-radius: 8px !important;
+  color: var(--ger-gold-bright, #d4ac5c) !important;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: inset 0 1px 0 rgba(201,160,82,0.12), 0 2px 8px rgba(0,0,0,0.4) !important;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
+.headerResetButton svg { color: var(--ger-gold-bright, #d4ac5c) !important; display: block; }
 
 .headerResetButton:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: linear-gradient(165deg, rgba(56,48,32,0.95) 0%, rgba(28,24,16,0.95) 100%) !important;
+  border-color: var(--ger-gold, #c9a052) !important;
 }
 
 .menuIcon {
   width: 20px;
   height: 2px;
-  background: #FFFFFF;
+  background: var(--ger-gold, #c9a052);
   display: block;
   position: relative;
 }
 .menuIcon::before, .menuIcon::after {
-  content: ''; position: absolute; width: 20px; height: 2px; background: #FFFFFF; left: 0;
+  content: ''; position: absolute; width: 20px; height: 2px; background: var(--ger-gold, #c9a052); left: 0;
 }
 .menuIcon::before { top: -6px; }
 .menuIcon::after { top: 6px; }
@@ -91,8 +106,7 @@ body {
 .greeting {
   font-size: 14px;
   font-weight: bold;
-  color: #FFFFFF;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  color: var(--ger-gold, #c9a052);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -102,7 +116,6 @@ body {
 .logoImg {
   width: 20px;
   height: 20px;
-  filter: brightness(0) invert(1);
   margin-left: 4px;
   vertical-align: middle;
 }
@@ -114,11 +127,13 @@ body {
 }
 
 .profileAvatar {
-  width: 32px;
-  height: 32px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  background-color: #7F9DB9;
-  border: 2px solid #FFFFFF;
+  /* Avatar premium: centro escuro (mogno) com ARO dourado — em vez de bola de ouro. */
+  background: radial-gradient(circle at 50% 32%, var(--ger-bg-alt, #1c1812) 0%, var(--ger-bg-deep, #0a0806) 100%);
+  border: 2px solid var(--ger-gold, #c9a052);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.5), 0 2px 10px rgba(201,160,82,0.28);
   object-fit: cover;
 }
 
@@ -126,9 +141,11 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #FFF;
-  font-size: 12px;
-  font-weight: bold;
+  color: var(--ger-gold-bright, #d4ac5c);
+  text-shadow: 0 0 8px rgba(201,160,82,0.4);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
 
 .profileIconBadge {
@@ -137,14 +154,14 @@ body {
   right: -4px;
   width: 16px;
   height: 16px;
-  background: #0054E3;
+  background: var(--ger-bg-deep, #0a0806);
   border-radius: 50%;
-  border: 1px solid #FFF;
+  border: 1px solid var(--ger-gold, #c9a052);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 8px;
-  color: #FFF;
+  color: var(--ger-gold, #c9a052);
 }
 
 /* --- SCROLL VIEW --- */
@@ -165,16 +182,18 @@ body {
 }
 
 .balanceCard {
-  background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
-  border: 1px solid #7F9DB9;
-  border-radius: 8px;
+  background: var(--ger-bg-glass, linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%));
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+  border-radius: 12px;
   padding: 12px;
   text-align: center;
-  box-shadow: 1px 1px 0px rgba(255,255,255,0.8) inset, 2px 2px 5px rgba(0,0,0,0.2);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.4), inset 0 1px 0 rgba(201,160,82,0.06);
 }
 
 .balanceCard.main {
-  border: 2px solid #0054E3;
+  border: 1px solid var(--ger-border-strong, rgba(201,160,82,0.45));
+  border-top: 1px solid var(--ger-border-strong, rgba(201,160,82,0.45));
   order: -1; /* Joga o saldo principal para o topo no mobile */
 }
 
@@ -185,29 +204,29 @@ body {
   gap: 6px;
   font-size: 11px;
   font-weight: bold;
-  color: #333;
+  color: var(--ger-text-muted, rgba(255,255,255,0.65));
   margin-bottom: 4px;
 }
 
-.cardHeader svg { color: #0054E3 !important; }
+.cardHeader svg { color: var(--ger-gold, #c9a052) !important; }
 
 .balanceAmount {
   font-size: 20px;
   font-weight: bold;
-  color: #000;
+  color: var(--ger-text, #f0f0f5);
 }
-.balanceAmount.main { font-size: 26px; color: #003399; }
-.balanceAmount.initial { color: #0054E3; }
-.balanceAmount.positive { color: #006400; } /* Verde escuro para leitura */
-.balanceAmount.negative { color: #BF0000; }
+.balanceAmount.main { font-size: 26px; color: var(--ger-gold-bright, #d4ac5c); text-shadow: 0 0 12px rgba(201,160,82,0.25); }
+.balanceAmount.initial { color: var(--ger-gold, #c9a052); }
+.balanceAmount.positive { color: var(--ger-success, #34d399); }
+.balanceAmount.negative { color: var(--ger-danger, #f87171); }
 
 .performance {
   font-size: 11px;
   font-weight: bold;
   margin-top: 4px;
 }
-.performance.positive { color: #006400; }
-.performance.negative { color: #BF0000; }
+.performance.positive { color: var(--ger-success, #34d399); }
+.performance.negative { color: var(--ger-danger, #f87171); }
 
 /* --- AÇÕES RÁPIDAS --- */
 .quickActions {
@@ -216,22 +235,16 @@ body {
   gap: 8px;
 }
 
+/* Cor/gradiente/borda/uppercase vêm da regra global `button` (identity.css).
+   Aqui só o que é específico de layout deste grid de ações. */
 .actionButton {
   padding: 10px;
-  background: linear-gradient(180deg, #0078D7 0%, #0054E3 50%, #0040B0 100%);
-  border: 1px solid #003C74;
-  border-radius: 3px;
-  color: #FFFFFF;
   font-size: 11px;
-  font-weight: bold;
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
 }
-.actionButton:active { background: #003399; }
 
 /* --- SEÇÕES GERAIS --- */
 .sectionHeader {
@@ -244,17 +257,28 @@ body {
 .sectionTitle {
   font-size: 14px;
   font-weight: bold;
-  color: #003399;
+  color: var(--ger-gold, #c9a052);
 }
 
+/* "Ver tudo" — link de texto, nao um botao preenchido. Sobrescreve a regra
+   global `button` (identity) que senao vira tile ouro com texto preto. */
 .seeAllButton {
-  background: none;
-  border: none;
-  color: #0054E3;
+  background: none !important;
+  border: none !important;
+  color: var(--ger-gold, #c9a052) !important;
   font-size: 11px;
   font-weight: bold;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
   text-decoration: underline;
+  box-shadow: none !important;
+  padding: 2px 4px;
   cursor: pointer;
+}
+.seeAllButton:hover:not(:disabled) {
+  background: none !important;
+  color: var(--ger-gold-bright, #d4ac5c) !important;
+  box-shadow: none !important;
 }
 
 /* --- GESTÃO DE RISCO --- */
@@ -271,26 +295,28 @@ body {
 }
 
 .riskCard {
-  background: #FFFFFF;
-  border: 2px solid #0054E3;
-  border-radius: 6px;
-  overflow: hidden; /* Garante bordas arredondadas */
-  box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+  background: var(--ger-bg-glass, linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%));
+  border: 1px solid var(--ger-border-strong, rgba(201,160,82,0.45));
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.4), inset 0 1px 0 rgba(201,160,82,0.06);
 }
 
 .riskCardHeader {
-  background: linear-gradient(180deg, #0054E3 0%, #0040B0 100%);
+  background: linear-gradient(165deg, rgba(201,160,82,0.14) 0%, rgba(201,160,82,0.03) 100%);
+  border-bottom: 1px solid var(--ger-border, rgba(180,120,50,0.18));
   padding: 6px 10px;
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #FFF;
+  color: var(--ger-gold, #c9a052);
 }
 
 .riskCardTitle {
   font-size: 12px;
   font-weight: bold;
-  text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .riskCardBody {
@@ -307,26 +333,29 @@ body {
 .riskMainValue {
   font-size: 18px;
   font-weight: bold;
-  color: #000;
+  color: var(--ger-text, #f0f0f5);
 }
 
 .riskPercentage {
   font-size: 11px;
-  color: #666;
+  color: var(--ger-text-dim, rgba(255,255,255,0.35));
 }
 
 .progressBarContainer { margin-top: 8px; }
 
 .progressBar {
   height: 14px;
-  background: #FFF;
-  border: 1px solid #7F9DB9;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-radius: 999px;
   padding: 1px;
+  overflow: hidden;
 }
 
 .progressBarFill {
   height: 100%;
-  background: #0054E3;
+  background: linear-gradient(90deg, var(--ger-gold-dark, #a07830) 0%, var(--ger-gold, #c9a052) 100%);
+  border-radius: 999px;
   width: 0; /* Animado via JS */
   transition: width 0.3s;
 }
@@ -336,54 +365,52 @@ body {
   justify-content: space-between;
   font-size: 10px;
   margin-top: 2px;
-  color: #333;
+  color: var(--ger-text-muted, rgba(255,255,255,0.65));
 }
 
 .riskCardEmpty {
   text-align: center;
   padding: 10px;
   font-size: 11px;
-  color: #666;
+  color: var(--ger-text-dim, rgba(255,255,255,0.35));
 }
 
+/* Cor dourada vem da regra global `button` (identity.css) — aqui só layout. */
 .configureButton {
   margin-top: 8px;
   padding: 4px 10px;
-  background: #0054E3;
-  color: #FFF;
-  border: 1px solid #003C74;
-  border-radius: 3px;
   font-size: 10px;
-  cursor: pointer;
 }
 
 /* Alertas */
 .alertBanner, .successBanner {
   margin-top: 10px;
-  padding: 6px;
+  padding: 8px 10px;
   font-size: 11px;
   font-weight: bold;
-  border-radius: 3px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   gap: 6px;
 }
-.alertBanner { background: #FFE5E5; color: #BF0000; border: 1px solid #BF0000; }
-.successBanner { background: #E5FFE5; color: #006400; border: 1px solid #006400; }
-.stopLossTriggered { border-color: #BF0000 !important; }
+.alertBanner { background: rgba(248,113,113,0.12); color: var(--ger-danger, #f87171); border: 1px solid rgba(248,113,113,0.4); }
+.successBanner { background: rgba(52,211,153,0.12); color: var(--ger-success, #34d399); border: 1px solid rgba(52,211,153,0.4); }
+.stopLossTriggered { border-color: var(--ger-danger, #f87171) !important; }
 
 /* --- RESUMO FINANCEIRO --- */
 .summaryCardUnified {
-  background: #FFFFFF;
-  border: 1px solid #7F9DB9;
-  border-radius: 4px;
+  background: var(--ger-bg-glass, linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%));
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .summaryRow {
   display: flex;
   justify-content: space-between;
   padding: 10px;
-  border-bottom: 1px solid #ECE9D8;
+  border-bottom: 1px solid var(--ger-border, rgba(180,120,50,0.12));
 }
 .summaryRow:last-child { border-bottom: none; }
 
@@ -392,24 +419,25 @@ body {
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #333;
+  color: var(--ger-text-muted, rgba(255,255,255,0.65));
 }
-.summaryLabel svg { color: #0054E3 !important; }
+.summaryLabel svg { color: var(--ger-gold, #c9a052) !important; }
 
 .summaryValue {
   font-weight: bold;
   font-size: 12px;
 }
-.summaryValue.positive { color: #006400; }
-.summaryValue.negative { color: #BF0000; }
+.summaryValue.positive { color: var(--ger-success, #34d399); }
+.summaryValue.negative { color: var(--ger-danger, #f87171); }
 
 /* --- CALENDÁRIO --- */
 .calendarSection {
   /* Garante que o calendário não estoure a tela */
   width: 100%;
   overflow: hidden;
-  background: #ECE9D8;
-  border: 1px solid #7F9DB9;
+  background: var(--ger-bg-glass, linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%));
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-radius: 12px;
   padding: 4px;
 }
 .calendarSection .sectionHeader {
@@ -421,11 +449,11 @@ body {
 .emptyState {
   text-align: center;
   padding: 20px;
-  color: #666;
+  color: var(--ger-text-dim, rgba(255,255,255,0.35));
   font-size: 12px;
-  background: #FFF;
-  border: 1px dashed #7F9DB9;
-  border-radius: 4px;
+  background: transparent;
+  border: 1px dashed var(--ger-border, rgba(180,120,50,0.18));
+  border-radius: 12px;
 }
 
 /* ========================================
@@ -453,9 +481,9 @@ body {
     padding: 20px;
     gap: 24px;
   }
-  
+
   .greeting { font-size: 16px; max-width: none; }
-  
+
   .balanceAmount { font-size: 24px; }
   .balanceAmount.main { font-size: 32px; }
 }

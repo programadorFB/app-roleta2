@@ -1,19 +1,20 @@
 /* ========================================
-   Tema XP (Branco, Azul, Cinza)
+   Tema Mogno & Ouro Premium
    StopLossCard.module.css
+   (migrado do tema XP Branco/Azul/Cinza)
    ======================================== */
 
-/* Container (Estilo Fieldset/Group Box XP) */
+/* Sem caixa: controle aberto, integrado à página (igual ao RiskSlider).
+   Brilho radial sutil no topo dá foco sem desenhar borda dura. */
 .container {
+  border: none;
   border-radius: 0;
   overflow: visible; /* Fieldset precisa disso */
-  background-color: #ECE9D8; /* Fundo Cinza */
-  border: 1px solid #7F9DB9; /* Borda Cinza-Azul */
+  background: radial-gradient(120% 80% at 50% -8%, rgba(201,160,82,0.05) 0%, transparent 60%);
   box-shadow: none;
-  color: #000000;
-  font-family: 'Tahoma', 'Trebuchet MS', sans-serif;
-  margin: 1rem 0;
-  padding: 10px;
+  color: var(--ger-text, #f0f0f5);
+  margin: 0;
+  padding: 4px 2px;
   transition: none;
 }
 
@@ -39,7 +40,7 @@
 
 .iconWrapper {
   font-size: 16px;
-  color: var(--status-color);
+  color: var(--status-color, var(--ger-gold, #c9a052));
   transition: none;
 }
 /* REMOVIDO: .iconWrapper.iconPulse, @keyframes iconPulseAnim */
@@ -47,7 +48,7 @@
 .title {
   font-size: 11px;
   font-weight: 700;
-  color: var(--status-color);
+  color: var(--status-color, var(--ger-gold, #c9a052));
   margin: 0;
   transition: none;
 }
@@ -69,7 +70,7 @@
 
 .percentageLabel {
   font-size: 11px;
-  color: #333;
+  color: var(--ger-text-muted, rgba(255,255,255,0.65));
   display: block;
   margin-bottom: 4px;
 }
@@ -77,47 +78,48 @@
 .percentageValue {
   font-size: 18px;
   font-weight: 700;
-  color: #000;
+  color: var(--ger-text, #f0f0f5);
   transition: none;
 }
 /* REMOVIDO: .percentageValue.valueAnimating, @keyframes valueBounce */
 
-/* Barra de Progresso XP */
+/* Barra de Progresso */
 .progressSection {
   margin-top: 8px;
 }
 .progressBar {
-  height: 16px; /* Altura padrão XP */
-  background-color: #FFFFFF;
-  border-radius: 0;
+  height: 10px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 999px;
   overflow: hidden;
   position: relative;
-  box-shadow: none;
-  border: 1px solid #7F9DB9;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.4);
+  border: 1px solid rgba(201,160,82,0.14);
 }
 .progressFill {
   height: 100%;
-  border-radius: 0;
-  background-color: var(--status-color, #0054E3); /* Cor de status (azul) */
+  border-radius: 999px;
+  background: var(--status-color, linear-gradient(90deg, var(--ger-gold-dark, #a07830) 0%, var(--ger-gold, #c9a052) 100%));
   transition: width 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   position: relative;
-  box-shadow: none;
+  box-shadow: 0 0 10px var(--status-color, rgba(201,160,82,0.35));
 }
 /* REMOVIDO: .progressFill.progressCritical, @keyframes progressGlow */
 
 .progressText {
   font-size: 11px;
-  color: #333;
+  color: var(--ger-text-muted, rgba(255,255,255,0.65));
   text-align: center;
   margin-top: 8px;
 }
 
-/* Mensagem de Status (Estilo Info XP) */
+/* Mensagem de Status (Estilo Info) */
 .statusMessage {
-  background-color: #E0E8F5; /* Fundo Info Azul */
-  padding: 12px;
-  border-radius: 4px;
-  border: 1px solid var(--status-color, #0054E3);
+  background: rgba(201,160,82,0.06);
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--status-color, var(--ger-border-strong, rgba(201,160,82,0.45)));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
   text-align: center;
   font-size: 12px;
 }
@@ -126,15 +128,15 @@
 .messageText {
   margin: 0;
   font-weight: 600;
-  color: #000;
+  color: var(--ger-text, #f0f0f5);
 }
 .descriptionText {
   margin: 8px 0 0 0;
   font-size: 11px;
-  color: #333;
+  color: var(--ger-text-muted, rgba(255,255,255,0.65));
 }
 .criticalText {
-  color: #BF0000; /* Vermelho */
+  color: var(--ger-danger, #f87171);
   font-weight: bold;
 }
 
@@ -147,7 +149,7 @@
   gap: 8px;
   margin-top: 16px;
   padding-top: 1rem;
-  border-top: 1px solid #C0C0C0;
+  border-top: 1px solid var(--ger-border, rgba(180,120,50,0.18));
 }
 .amountItem {
   display: flex;
@@ -162,22 +164,22 @@
 }
 .amountLabel {
   font-size: 11px;
-  color: #333;
+  color: var(--ger-text-muted, rgba(255,255,255,0.65));
 }
 .amountValue {
   font-weight: 600;
   font-size: 12px;
-  color: #000;
+  color: var(--ger-text, #f0f0f5);
   transition: none;
 }
 .amountValue.lossValue {
-  color: #BF0000; /* Vermelho */
+  color: var(--ger-danger, #f87171);
   animation: none;
 }
 /* REMOVIDO: @keyframes lossFlash */
 
 
-/* Estilos do Slider (XP) */
+/* Estilos do Slider */
 .sliderSection {
   padding: 10px 0;
   margin-bottom: 10px;
@@ -186,15 +188,15 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
-  padding: 10px;
-  background: #FFFFFF; /* Fundo branco */
-  border-radius: 4px;
-  border: 1px solid #7F9DB9;
+  margin-bottom: 18px;
+  padding: 0 0 14px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(201,160,82,0.15); /* divisor sutil em vez de caixa */
 }
 .sliderIconWrapper {
   font-size: 24px;
-  color: var(--slider-color, #7F9DB9);
+  color: var(--slider-color, var(--ger-gold, #c9a052));
 }
 .sliderHeaderText {
   flex: 1;
@@ -203,11 +205,11 @@
   font-size: 12px;
   font-weight: 700;
   margin: 0;
-  color: #000;
+  color: var(--ger-gold, #c9a052);
 }
 .sliderSubtitle {
   font-size: 11px;
-  color: #333;
+  color: var(--ger-text-muted, rgba(255,255,255,0.65));
   margin: 2px 0 0 0;
 }
 .sliderContainer {
@@ -222,10 +224,16 @@
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 6px;
-  background: #C0C0C0; /* Trilho Cinza */
-  border-radius: 0;
-  border: 1px solid #7F9DB9;
+  height: 8px;
+  /* Escala de risco no trilho: success → ouro → âmbar → danger */
+  background: linear-gradient(90deg,
+    var(--ger-success, #34d399) 0%,
+    var(--ger-gold, #c9a052) 45%,
+    var(--ger-warning, #f59e0b) 75%,
+    var(--ger-danger, #f87171) 100%);
+  border-radius: 999px;
+  border: 1px solid rgba(201,160,82,0.14);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.4);
   outline: none;
   opacity: 1;
   transition: none;
@@ -237,31 +245,32 @@
 .slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 12px;
+  width: 20px;
   height: 20px;
-  background: var(--slider-color, #0054E3); /* Azul (ou cor dinâmica) */
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 35%, #fff 0%, var(--slider-color, var(--ger-gold, #c9a052)) 45%, rgba(0,0,0,0.25) 130%);
   cursor: pointer;
-  border: 1px solid #003C74;
-  box-shadow: none;
-  transition: none;
+  border: 2px solid rgba(255,255,255,0.85);
+  box-shadow: 0 0 14px var(--slider-color, rgba(201,160,82,0.5)), 0 2px 6px rgba(0,0,0,0.5);
+  margin-top: -7px; /* centra no trilho de 8px */
+  transition: box-shadow 0.2s ease;
 }
 .slider::-webkit-slider-thumb:hover {
-  transform: none;
-  box-shadow: none;
+  box-shadow: 0 0 20px var(--slider-color, rgba(201,160,82,0.6)), 0 2px 8px rgba(0,0,0,0.55);
 }
 
 .slider::-moz-range-thumb {
-  width: 12px;
+  width: 20px;
   height: 20px;
-  background: var(--slider-color, #0054E3);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 35%, #fff 0%, var(--slider-color, var(--ger-gold, #c9a052)) 45%, rgba(0,0,0,0.25) 130%);
   cursor: pointer;
-  border: 1px solid #003C74;
-  box-shadow: none;
-  transition: none;
+  border: 2px solid rgba(255,255,255,0.85);
+  box-shadow: 0 0 14px var(--slider-color, rgba(201,160,82,0.5)), 0 2px 6px rgba(0,0,0,0.5);
+  transition: box-shadow 0.2s ease;
 }
 .slider::-moz-range-thumb:hover {
-  transform: none;
-  box-shadow: none;
+  box-shadow: 0 0 20px var(--slider-color, rgba(201,160,82,0.6)), 0 2px 8px rgba(0,0,0,0.55);
 }
 
 /* ===== RÉGUA COM NÚMEROS ===== */
@@ -278,19 +287,26 @@
 }
 .numberMark {
   font-size: 11px;
-  color: #333;
-  font-weight: 500;
-  transition: none;
+  color: var(--ger-text-dim, rgba(255,255,255,0.4));
+  font-weight: 600;
   cursor: pointer;
+  min-width: 22px;
+  text-align: center;
+  padding: 3px 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  transition: all 0.2s cubic-bezier(0.22,1,0.36,1);
 }
 .numberMark:hover {
-  color: #000;
-  text-shadow: none;
-  transform: none;
+  color: var(--ger-gold, #c9a052);
+  background: rgba(201,160,82,0.07);
+  border-color: rgba(201,160,82,0.2);
 }
 .activeNumber {
-  color: var(--slider-color, #003399);
-  text-shadow: none;
-  font-weight: 700;
-  transform: none;
+  color: var(--ger-bg-deep, #0a0806) !important;
+  background: var(--slider-color, var(--ger-gold, #c9a052));
+  border-color: rgba(255,255,255,0.5);
+  font-weight: 800;
+  box-shadow: 0 3px 12px var(--slider-color, rgba(201,160,82,0.4));
+  transform: translateY(-2px) scale(1.1);
 }

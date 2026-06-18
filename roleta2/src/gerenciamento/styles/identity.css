@@ -113,12 +113,14 @@
 .gerenciamento-root [class*='Card'],
 .gerenciamento-root [class*='panel'],
 .gerenciamento-root [class*='Panel'],
-.gerenciamento-root [class*='box']:not(input):not(button):not([type='checkbox']):not([type='radio']),
-.gerenciamento-root [class*='Box']:not(input):not(button) {
+/* `[class*='box']` exclui 'checkbox' (checkBOX) — senão o checkbox e seus
+   labels/containers viram cards de vidro com borda. */
+.gerenciamento-root [class*='box']:not([class*='checkbox']):not(input):not(button):not([type='checkbox']):not([type='radio']),
+.gerenciamento-root [class*='Box']:not([class*='heckbox']):not(input):not(button) {
   background: var(--ger-bg-glass) !important;
   border: 1px solid var(--ger-border) !important;
   border-top: 1px solid var(--ger-border-top) !important;
-  border-radius: 0 !important;
+  border-radius: 12px !important;
   box-shadow: var(--ger-shadow) !important;
   color: var(--ger-text);
 }
@@ -155,7 +157,7 @@
   background: var(--ger-bg-glass) !important;
   border: 1px solid var(--ger-border) !important;
   border-top: 1px solid var(--ger-border-top) !important;
-  border-radius: 0 !important;
+  border-radius: 8px !important;
   color: var(--ger-text) !important;
   padding: 0.6rem 0.85rem;
   transition: all 0.2s ease;
@@ -175,10 +177,13 @@
 /* ── botões: padrão = gold gradient ───────────────────────── */
 .gerenciamento-root button {
   background: linear-gradient(165deg, var(--ger-gold) 0%, var(--ger-gold-dark) 100%);
-  color: var(--ger-bg-deep);
+  /* Texto/ícone PRETO nos botões ouro preenchidos (legível). Os botões ghost
+     (secondary/ghost/outline/icon/back) têm regra própria !important mais
+     específica que mantém o texto ouro sobre fundo transparente. */
+  color: var(--ger-bg-deep) !important;
   border: 1px solid var(--ger-border-strong);
   border-top: 1px solid rgba(220,185,105,0.7);
-  border-radius: 0;
+  border-radius: 9px !important;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -233,6 +238,27 @@
   border: none !important;
   box-shadow: none !important;
   padding: 0.4rem !important;
+}
+
+/* botões "Voltar" — ghost dourado com borda sutil e ícone visível
+   (senão a regra global `button` os preenche de ouro e o ícone ouro some) */
+.gerenciamento-root button[class*='backButton'],
+.gerenciamento-root button[class*='BackButton'] {
+  background: transparent !important;
+  color: var(--ger-gold) !important;
+  border: 1px solid var(--ger-border) !important;
+  box-shadow: none !important;
+  padding: 0.4rem !important;
+  line-height: 0 !important;
+}
+.gerenciamento-root button[class*='backButton'] svg,
+.gerenciamento-root button[class*='BackButton'] svg {
+  color: var(--ger-gold) !important;
+}
+.gerenciamento-root button[class*='backButton']:hover,
+.gerenciamento-root button[class*='BackButton']:hover {
+  background: rgba(201,160,82,0.1) !important;
+  border-color: var(--ger-border-strong) !important;
 }
 
 /* botões "perigo" — vermelho mas dentro da paleta */
@@ -309,10 +335,12 @@
 .gerenciamento-root [class*='Gain'] {
   color: var(--ger-success) !important;
 }
+/* 'Loss' exclui 'stopLoss*' — stop-loss é uma CONFIGURAÇÃO, não um valor de
+   perda; senão título/seção do stop-loss ficam vermelhos sem querer. */
 .gerenciamento-root [class*='negative'],
 .gerenciamento-root [class*='Negative'],
-.gerenciamento-root [class*='loss'],
-.gerenciamento-root [class*='Loss'] {
+.gerenciamento-root [class*='loss']:not([class*='stoploss']),
+.gerenciamento-root [class*='Loss']:not([class*='topLoss']) {
   color: var(--ger-danger) !important;
 }
 
@@ -361,8 +389,7 @@
   background: linear-gradient(165deg, rgba(20,18,14,0.96) 0%, rgba(10,8,6,0.92) 100%) !important;
   backdrop-filter: blur(40px) saturate(180%);
   border: 1px solid var(--ger-border-strong) !important;
-  border-top: 1px solid var(--ger-border-strong) !important;
-  border-radius: 0 !important;
+  border-radius: 14px !important;
   box-shadow: var(--ger-shadow-deep) !important;
   color: var(--ger-text);
 }
@@ -375,9 +402,11 @@
 }
 
 /* ── chips / tags / badges ───────────────────────────────── */
+/* `[class*='tag']` exclui '*ercentage*' (percenTAGe / riskPercenTAGe) — case-insensitive
+   via 'ercentage' — senão 'percentage'/'riskPercentage' viram badge gold-on-gold ilegível. */
 .gerenciamento-root [class*='chip'],
 .gerenciamento-root [class*='Chip'],
-.gerenciamento-root [class*='tag'],
+.gerenciamento-root [class*='tag']:not([class*='ercentage']),
 .gerenciamento-root [class*='Tag'],
 .gerenciamento-root [class*='badge'],
 .gerenciamento-root [class*='Badge'] {

@@ -1,71 +1,78 @@
 /* ========================================
-   Tema XP (Branco, Azul, Cinza)
+   Tema Mogno & Ouro Premium
+   (migrado do tema XP Branco/Azul/Cinza)
+
+   Tokens herdados de .gerenciamento-root (identity.css)
    ======================================== */
 
 .container {
-  background-color: #D6D3CE; /* Fundo Cinza XP */
-  color: #000000; /* Texto Preto */
+  background: transparent;
+  color: var(--ger-text, #f0f0f5);
   min-height: 100vh;
   min-width: 100vw;
-  font-family: 'Tahoma', 'Trebuchet MS', sans-serif;
 }
 
-/* --- Header (Barra de Título XP) --- */
+/* --- Header (barra de título — glass dourado) --- */
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 6px 12px;
-  border-bottom: none;
-  background: linear-gradient(180deg, #0054E3 0%, #0040B0 100%);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.3) inset;
+  border-bottom: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+  background: linear-gradient(165deg, rgba(20,18,14,0.9) 0%, rgba(10,8,6,0.78) 100%);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(201,160,82,0.08);
 }
 
 .backButton {
-  /* Botão Cinza Padrão */
-  background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
-  border: 1px solid #7F9DB9;
-  border-radius: 3px;
-  color: #000;
+  background: transparent;
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-radius: 8px;
+  color: var(--ger-gold, #c9a052);
   cursor: pointer;
-  padding: 4px;
+  padding: 6px;
+  line-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s ease;
 }
 .backButton:hover {
-  background: linear-gradient(180deg, #FFFEF9 0%, #F5F3E8 100%);
+  background: rgba(201,160,82,0.12);
+  border-color: var(--ger-border-strong, rgba(201,160,82,0.45));
 }
 
 .title {
   font-size: 11px;
   font-weight: bold;
-  color: #FFFFFF;
+  color: var(--ger-gold, #c9a052);
   margin: 0;
   text-align: center;
   flex: 1;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  text-shadow: 0 0 12px rgba(201,160,82,0.18);
 }
 
 .headerSpacer {
-  width: 40px; 
+  width: 40px;
 }
 
-/* --- Seções (Estilo Group Box) --- */
+/* --- Seções (Painel glass sutil, cantos arredondados) --- */
 .imageSection,
 .section {
   padding: 20px;
-  margin-left: 150px;
-  max-width: 1800px;
-  background: #ECE9D8;
-  border: 1px solid #7F9DB9;
+  margin: 12px auto;
+  max-width: 720px;
+  background: var(--ger-bg-glass, linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%));
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
 }
 
 .imageSection {
   display: flex;
   flex-direction: column;
   align-items: center;
-  border-bottom: 1px solid #7F9DB9; /* Mantido para separar da seção de avatar */
 }
 
 .imageContainer {
@@ -76,7 +83,8 @@
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  border: 2px solid #7F9DB9; /* Borda Cinza */
+  border: 2px solid var(--ger-gold-bright, #d4ac5c); /* Borda Ouro */
+  box-shadow: 0 0 16px rgba(201,160,82,0.35);
   object-fit: cover;
 }
 
@@ -84,7 +92,9 @@
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  background-color: #7F9DB9; /* Fundo Cinza-Azul */
+  background: linear-gradient(165deg, var(--ger-gold, #c9a052) 0%, var(--ger-gold-dark, #a07830) 100%);
+  border: 2px solid var(--ger-gold-bright, #d4ac5c);
+  box-shadow: 0 0 16px rgba(201,160,82,0.35);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -93,7 +103,7 @@
 .profileImagePlaceholder span {
   font-size: 48px;
   font-weight: bold;
-  color: #FFFFFF; /* Texto Branco */
+  color: var(--ger-bg-deep, #0a0806); /* Texto escuro sobre ouro */
 }
 
 .imageButtons {
@@ -101,40 +111,45 @@
   gap: 10px;
 }
 
-/* Botão Cinza XP */
+/* Botão Ghost ouro — override local necessário: a regra global `button`
+   pintaria estes de ouro sólido (texto preto). Aqui forçamos o estilo ghost. */
 .imageButton,
 .removeButton {
-  background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
-  border: 1px solid #7F9DB9;
-  border-radius: 3px;
+  background: transparent;
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+  border-radius: 9px;
   padding: 6px 16px;
   cursor: pointer;
-  font-weight: bold;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   font-size: 11px;
-  color: #000;
-  transition: none;
+  color: var(--ger-gold, #c9a052);
+  transition: all 0.2s ease;
 }
 .imageButton:hover,
 .removeButton:hover {
-  background: linear-gradient(180deg, #FFFEF9 0%, #F5F3E8 100%);
+  background: rgba(201,160,82,0.08);
+  color: var(--ger-gold-bright, #d4ac5c);
 }
-/* REMOVIDO: .removeButton (vermelho), agora usa o estilo cinza padrão */
 
 
-/* --- Avatar Selector (Nested Group Box) --- */
+/* --- Avatar Selector (bloco aberto, sem caixa aninhada) ---
+   Antes era um painel glass dentro de outro painel glass (caixa-na-caixa).
+   Agora é um bloco aberto separado por um divisor dourado tênue no topo. */
 .avatarSelector {
-  margin-top: 30px;
+  margin-top: 24px;
+  padding-top: 20px;
   width: 100%;
   max-width: 400px;
-  padding: 15px;
-  background-color: #FFFFFF; /* Fundo branco */
-  border-radius: 0;
-  border: 1px solid #C0C0C0; /* Borda cinza mais clara */
+  border-top: 1px solid var(--ger-border, rgba(180,120,50,0.18));
 }
 
 .avatarSelectorTitle {
   font-size: 14px;
-  color: #003399; /* Azul escuro */
+  color: var(--ger-gold, #c9a052);
+  text-shadow: 0 0 12px rgba(201,160,82,0.18);
   margin-top: 0;
   margin-bottom: 15px;
   text-align: center;
@@ -150,7 +165,7 @@
 
 .avatarOption {
   background: none;
-  border: 2px solid #C0C0C0; /* Borda cinza */
+  border: 2px solid var(--ger-border, rgba(180,120,50,0.18)); /* Borda tênue */
   padding: 0;
   cursor: pointer;
   width: 70px;
@@ -164,11 +179,12 @@
 
 .avatarOption:hover {
   transform: scale(1.05);
+  border-color: var(--ger-border-strong, rgba(201,160,82,0.45));
 }
 
 .avatarOptionSelected {
-  border-color: #0054E3; /* Borda Azul */
-  box-shadow: none;
+  border-color: var(--ger-gold, #c9a052); /* Borda Ouro */
+  box-shadow: 0 0 14px rgba(201,160,82,0.4);
 }
 
 .avatarOptionImage {
@@ -187,8 +203,9 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background-color: #0054E3; /* Azul */
-  color: #FFFFFF; /* Branco */
+  background: linear-gradient(165deg, var(--ger-gold, #c9a052) 0%, var(--ger-gold-dark, #a07830) 100%);
+  color: var(--ger-bg-deep, #0a0806);
+  box-shadow: 0 0 12px rgba(201,160,82,0.45);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -200,7 +217,8 @@
 .sectionTitle {
   font-size: 14px;
   font-weight: bold;
-  color: #003399; /* Azul escuro */
+  color: var(--ger-gold, #c9a052);
+  text-shadow: 0 0 12px rgba(201,160,82,0.18);
   margin-bottom: 20px;
 }
 
@@ -211,43 +229,41 @@
 .label {
   display: block;
   font-size: 11px;
-  color: #000000; /* Preto */
+  color: var(--ger-text-muted, rgba(255,255,255,0.65));
   margin-bottom: 6px;
   font-weight: 600;
 }
 
-/* Input Padrão XP */
+/* Input Padrão */
 .input {
   width: 100%;
-  background: #FFFFFF;
-  border: 1px solid #7F9DB9;
-  border-radius: 0;
-  padding: 4px 6px;
+  background: var(--ger-bg-glass, linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%));
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+  border-radius: 8px;
+  padding: 8px 10px;
   font-size: 11px;
-  color: #000000;
+  color: var(--ger-text, #f0f0f5);
   box-sizing: border-box;
-  box-shadow: 
-      -1px -1px 0px rgba(255,255,255,0.8) inset,
-      1px 1px 2px rgba(0,0,0,0.1) inset;
 }
 
 .input:focus {
-  outline: 1px solid #0054E3;
-  outline-offset: -1px;
-  background: #FFFEF9;
+  outline: none;
+  border-color: var(--ger-border-strong, rgba(201,160,82,0.45));
+  box-shadow: 0 0 0 2px rgba(201,160,82,0.12);
 }
 
 .input:disabled,
 .disabledInput {
-  background-color: #ECE9D8;
-  color: #7F9DB9;
+  background: rgba(255,255,255,0.02);
+  color: var(--ger-text-dim, rgba(255,255,255,0.35));
   cursor: not-allowed;
-  border-color: #C0C0C0;
+  border-color: var(--ger-border, rgba(180,120,50,0.18));
 }
 
 .helperText {
   font-size: 11px;
-  color: #333333;
+  color: var(--ger-text-dim, rgba(255,255,255,0.35));
   margin-top: 5px;
 }
 
@@ -258,49 +274,48 @@
   gap: 15px;
 }
 
+/* Layout do botão. Cor/peso/uppercase vêm da regra global `button`
+   (identity.css); aqui só largura, padding e cantos. */
 .button {
-  padding: 8px 16px;
-  border-radius: 3px;
+  padding: 9px 16px;
+  border-radius: 9px;
   font-size: 11px;
-  font-weight: bold;
   cursor: pointer;
   width: 100%;
-  transition: none;
+  transition: all 0.2s ease;
 }
 
 .button:disabled {
-  opacity: 0.6;
+  opacity: 0.4;
   cursor: not-allowed;
 }
-.button:not(:disabled):hover {
-  transform: none;
-  box-shadow: none;
-}
 
-/* Botão Salvar (Azul) */
+/* Botão Salvar (Ouro) */
 .saveButton {
-  border: 1px solid #003C74;
-  background: linear-gradient(180deg, #0078D7 0%, #0054E3 50%, #0040B0 100%);
-  color: #FFFFFF;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-  box-shadow: 1px 1px 0px rgba(255,255,255,0.8) inset;
+  border: 1px solid var(--ger-border-strong, rgba(201,160,82,0.45));
+  border-top: 1px solid rgba(220,185,105,0.7);
+  background: linear-gradient(165deg, var(--ger-gold, #c9a052) 0%, var(--ger-gold-dark, #a07830) 100%);
+  color: var(--ger-bg-deep, #0a0806);
+  box-shadow: 0 4px 14px rgba(201,160,82,0.18), inset 0 1px 0 rgba(255,255,255,0.22);
 }
 .saveButton:not(:disabled):hover {
-  background: linear-gradient(180deg, #008FE5 0%, #0065F0 50%, #0050C5 100%);
+  background: linear-gradient(165deg, var(--ger-gold-bright, #d4ac5c) 0%, var(--ger-gold, #c9a052) 100%);
+  box-shadow: 0 6px 22px rgba(201,160,82,0.28), inset 0 1px 0 rgba(255,255,255,0.3);
 }
 .saveButton:disabled {
-  background: linear-gradient(180deg, #999999 0%, #808080 100%);
-  color: #CCCCCC;
+  opacity: 0.4;
 }
 
-/* Botão Logout (Cinza) */
+/* Botão Logout (Ghost ouro) */
 .logoutButton {
-  background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
-  border: 1px solid #7F9DB9;
-  color: #000;
+  background: transparent;
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+  color: var(--ger-gold, #c9a052);
 }
 .logoutButton:not(:disabled):hover {
-  background: linear-gradient(180deg, #FFFEF9 0%, #F5F3E8 100%);
+  background: rgba(201,160,82,0.08);
+  color: var(--ger-gold-bright, #d4ac5c);
 }
 
 /* ========================================
@@ -310,41 +325,37 @@
 .labelIcon {
   margin-right: 6px;
   vertical-align: middle;
-  color: #0054E3; /* Azul */
+  color: var(--ger-gold, #c9a052);
 }
 
 .currencyInputWrapper {
   display: flex;
   align-items: center;
-  background-color: #FFFFFF;
-  border: 1px solid #7F9DB9;
-  border-radius: 0;
+  background: var(--ger-bg-glass, linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%));
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+  border-radius: 8px;
   padding: 0;
-  transition: none;
+  transition: all 0.2s ease;
   overflow: hidden;
-  box-shadow: 
-      -1px -1px 0px rgba(255,255,255,0.8) inset,
-      1px 1px 2px rgba(0,0,0,0.1) inset;
 }
 
 .currencyInputWrapper:focus-within {
-  border-color: #7F9DB9;
-  box-shadow: -1px -1px 0px rgba(255,255,255,0.8) inset,
-              1px 1px 2px rgba(0,0,0,0.1) inset;
+  border-color: var(--ger-border-strong, rgba(201,160,82,0.45));
+  box-shadow: 0 0 0 2px rgba(201,160,82,0.12);
 }
 /* O foco será no input interno */
 .currencyInput:focus {
-  outline: 1px solid #0054E3;
-  outline-offset: -1px;
+  outline: none;
 }
 
 .currencySymbol {
   padding: 4px 8px;
   font-size: 11px;
-  color: #003399; /* Azul escuro */
+  color: var(--ger-gold, #c9a052);
   font-weight: 700;
-  background-color: #ECE9D8; /* Fundo cinza */
-  border-right: 1px solid #7F9DB9;
+  background: rgba(201,160,82,0.1);
+  border-right: 1px solid var(--ger-border, rgba(180,120,50,0.18));
 }
 
 .currencyInput {
@@ -353,30 +364,30 @@
   border: none;
   padding: 4px 6px;
   font-size: 11px;
-  color: #000;
+  color: var(--ger-text, #f0f0f5);
   font-weight: 600;
   outline: none;
 }
 
 .currencyInput::placeholder {
-  color: #666;
+  color: var(--ger-text-dim, rgba(255,255,255,0.35));
   font-weight: 400;
 }
 
 .currencyInput:disabled {
-  color: #888;
+  color: var(--ger-text-dim, rgba(255,255,255,0.35));
   cursor: not-allowed;
 }
 
-/* Warning Text (Estilo Info Azul) */
+/* Warning Text (Estilo Info ouro) */
 .warningText {
   font-size: 11px;
-  color: #003399; /* Azul escuro */
+  color: var(--ger-gold, #c9a052);
   margin-top: 8px;
   padding: 8px 12px;
-  background-color: #E0E8F5; /* Azul claro */
-  border: 1px solid #0054E3; /* Borda Azul */
-  border-radius: 4px;
+  background: rgba(201,160,82,0.1);
+  border: 1px solid var(--ger-border-strong, rgba(201,160,82,0.45));
+  border-radius: 8px;
   line-height: 1.4;
 }
 
@@ -387,33 +398,28 @@
     width: 100%;
     max-width: 200px;
   }
-  
+
   .imageButton {
     width: 100%;
   }
-  
+
   .header {
     padding: 6px 10px;
   }
-  
+
   .title {
     font-size: 11px;
   }
-  
+
   .avatarGrid {
     grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
     gap: 8px;
   }
-  .imageSection{
-    margin-left: 0px;
-  }
+  .imageSection,
   .section {
-  /* padding: 20px; */
-  margin-left: 0px;
-  max-width: 450px;
-  background: #ECE9D8;
-  border: 1px solid #7F9DB9;
-}
+    margin: 12px auto;
+    max-width: 100%;
+  }
   .avatarOption {
     width: 60px;
     height: 60px;

@@ -270,33 +270,69 @@
   }
 
   .navbar-tab {
-    padding: 0.45rem 0.85rem;
+    position: relative;
+    padding: 0.45rem 0.95rem;
     background: transparent;
-    color: rgba(255,255,255,0.4);
+    color: rgba(255,255,255,0.42);
     border: none;
-    border-bottom: 2px solid transparent;
     cursor: pointer;
     font-weight: 600;
     font-size: 0.75rem;
     display: flex;
     align-items: center;
-    gap: 0.35rem;
-    transition: all 0.2s;
+    gap: 0.4rem;
+    transition: color 0.28s ease, background 0.28s ease, transform 0.28s cubic-bezier(0.22,1,0.36,1);
     font-family: 'Outfit', sans-serif;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     white-space: nowrap;
     min-height: 36px;
   }
 
+  /* sublinhado dourado em gradiente que expande do centro */
+  .navbar-tab::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    right: 50%;
+    bottom: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent 0%, var(--ger-gold, #c9a052) 50%, transparent 100%);
+    opacity: 0;
+    transition: left 0.28s cubic-bezier(0.22,1,0.36,1), right 0.28s cubic-bezier(0.22,1,0.36,1), opacity 0.28s ease;
+    pointer-events: none;
+  }
+
+  .navbar-tab svg {
+    transition: transform 0.28s cubic-bezier(0.22,1,0.36,1), filter 0.28s ease;
+  }
+
   .navbar-tab:hover {
-    color: rgba(201,160,82,0.7);
+    color: rgba(201,160,82,0.88);
+    background: linear-gradient(180deg, rgba(201,160,82,0.07) 0%, transparent 100%);
+  }
+  .navbar-tab:hover::after {
+    left: 22%;
+    right: 22%;
+    opacity: 0.65;
+  }
+  .navbar-tab:hover svg {
+    transform: translateY(-1px) scale(1.06);
   }
 
   .navbar-tab--active {
-    color: #c9a052;
-    border-bottom-color: #c9a052;
-    text-shadow: 0 0 12px rgba(201,160,82,0.25);
+    color: #d4ac5c;
+    background: linear-gradient(180deg, rgba(201,160,82,0.13) 0%, rgba(201,160,82,0.02) 70%, transparent 100%);
+    text-shadow: 0 0 14px rgba(201,160,82,0.4);
+  }
+  .navbar-tab--active::after {
+    left: 0;
+    right: 0;
+    opacity: 1;
+    box-shadow: 0 0 12px rgba(201,160,82,0.65), 0 0 4px rgba(201,160,82,0.5);
+  }
+  .navbar-tab--active svg {
+    filter: drop-shadow(0 0 6px rgba(201,160,82,0.45));
   }
 
   .navbar-tab-text {

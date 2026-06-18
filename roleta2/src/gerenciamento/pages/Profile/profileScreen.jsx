@@ -241,15 +241,6 @@ const ProfileScreen = () => {
               />
             </div>
           </div>
-
-          <div className={styles.inputContainer}>
-            <label className={styles.label}>Email</label>
-            <input 
-              className={`${styles.input} ${styles.disabledInput}`} 
-              value={user?.email || ''} 
-              disabled 
-            />
-          </div>
         </section>
 
         {/* SENHA */}

@@ -1,6 +1,11 @@
 /* ========================================
-   Tema XP (Branco, Azul, Cinza)
+   Tema Mogno & Ouro Premium
    ObjectiveScreen.module.css - Ajuste Desktop Wide
+   (migrado do tema XP Branco/Azul/Cinza)
+
+   Tokens herdados de .gerenciamento-root (identity.css):
+   --ger-gold / --ger-gold-bright / --ger-gold-dark
+   --ger-bg-deep / --ger-bg-glass / --ger-text / ...
    ======================================== */
 
 @keyframes fadeIn {
@@ -19,22 +24,22 @@
   flex-direction: column;
   min-height: 100vh;
   width: 100%;
-  background-color: #D6D3CE;
-  color: #000000;
+  background-color: transparent;
+  color: var(--ger-text, #f0f0f5);
   animation: fadeIn 0.3s ease-out;
-  font-family: 'Tahoma', 'Trebuchet MS', sans-serif;
   overflow-x: hidden;
 }
 
-/* --- Cabeçalho --- */
+/* --- Cabeçalho (barra de título — glass dourado) --- */
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 6px 12px;
-  background: linear-gradient(180deg, #0054E3 0%, #0040B0 100%);
-  border-bottom: none;
-  box-shadow: 0 1px 0 rgba(255,255,255,0.3) inset;
+  background: linear-gradient(165deg, rgba(20,18,14,0.9) 0%, rgba(10,8,6,0.78) 100%);
+  border-bottom: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(201,160,82,0.08);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -43,9 +48,9 @@
 .header h1 {
   font-size: 12px;
   font-weight: bold;
-  color: #FFFFFF;
+  color: var(--ger-gold, #c9a052);
   margin: 0;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  text-shadow: 0 0 12px rgba(201,160,82,0.18);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -57,18 +62,21 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
-  border: 1px solid #7F9DB9;
-  border-radius: 3px;
-  color: #000000;
+  background: transparent;
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+  border-radius: 8px;
+  color: var(--ger-gold, #c9a052);
   font-size: 11px;
   font-weight: bold;
   cursor: pointer;
   padding: 6px 12px;
+  transition: all 0.2s ease;
 }
 
 .backButton:hover {
-  background: linear-gradient(180deg, #FFFEF9 0%, #F5F3E8 100%);
+  background: rgba(201,160,82,0.08);
+  color: var(--ger-gold-bright, #d4ac5c);
 }
 
 .headerSpacer { width: 24px; }
@@ -76,8 +84,8 @@
 /* --- Abas --- */
 .tabsContainer {
   display: flex;
-  background-color: #D6D3CE;
-  border-bottom: 1px solid #7F9DB9;
+  background-color: transparent;
+  border-bottom: 1px solid var(--ger-border, rgba(180,120,50,0.18));
   width: 100%;
   gap: 2px;
   padding: 0 4px;
@@ -94,36 +102,39 @@
   justify-content: center;
   gap: 6px;
   padding: 10px;
-  background: #ECE9D8;
-  border: 1px solid #7F9DB9;
+  background: var(--ger-bg-glass, linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%));
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
   border-bottom: none;
-  border-radius: 4px 4px 0 0;
-  color: #333333;
+  border-radius: 10px 10px 0 0;
+  color: var(--ger-text-muted, rgba(255,255,255,0.65));
   font-size: 11px;
   font-weight: bold;
   cursor: pointer;
   position: relative;
   margin-top: 4px;
   white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition: all 0.2s ease;
 }
 
 .tab:hover {
-  background: #F5F3E8;
-  color: #000;
+  background: rgba(201,160,82,0.08);
+  color: var(--ger-gold, #c9a052);
 }
 
 .tabActive {
-  color: #000000 !important;
-  background: #FFFFFF;
-  border: 1px solid #7F9DB9;
-  border-bottom: 1px solid #FFFFFF;
+  color: var(--ger-gold, #c9a052) !important;
+  background: linear-gradient(165deg, rgba(201,160,82,0.18) 0%, rgba(201,160,82,0.05) 100%);
+  border: 1px solid var(--ger-border-strong, rgba(201,160,82,0.45));
+  border-bottom: 1px solid var(--ger-bg-deep, #0a0806);
   margin-top: 0;
   padding-top: 14px;
   z-index: 2;
 }
 
-.tab svg { color: #7F9DB9; }
-.tabActive svg { color: #0054E3; }
+.tab svg { color: var(--ger-text-dim, rgba(255,255,255,0.35)) !important; }
+.tabActive svg { color: var(--ger-gold, #c9a052) !important; }
 
 /* --- Conteúdo --- */
 .content {
@@ -132,34 +143,25 @@
   overflow-y: auto;
   width: 100%;
   animation: tabFadeIn 0.4s ease-out;
-  background: #FFFFFF;
-  border: 1px solid #7F9DB9;
+  background: var(--ger-bg-glass, linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%));
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
   border-top: none;
+  border-radius: 0 0 12px 12px;
   margin: 0;
 }
 
-/* --- Botão Adicionar --- */
+/* --- Botão Adicionar ---
+   Cor/gradiente/borda/uppercase/glow vêm da regra global `button` (identity.css).
+   Aqui só o que é específico de layout (largura cheia, ícone+texto, espaçamento). */
 .addObjectiveButton {
   width: 100%;
   padding: 10px 16px;
-  border: 1px solid #003C74;
-  border-radius: 3px;
-  font-weight: bold;
   font-size: 11px;
-  cursor: pointer;
   margin-bottom: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: linear-gradient(180deg, #0078D7 0%, #0054E3 50%, #0040B0 100%);
-  color: #FFFFFF;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-  box-shadow: 1px 1px 0px rgba(255,255,255,0.8) inset;
-}
-
-.addObjectiveButton:hover {
-  background: linear-gradient(180deg, #008FE5 0%, #0065F0 50%, #0050C5 100%);
 }
 
 /* ========================================
@@ -178,7 +180,7 @@
     margin: 20px auto 0 auto; /* Centralizado */
     padding: 0 10px;
   }
-  
+
   .tab {
     flex: initial; /* Tamanho baseado no texto */
     padding: 8px 25px; /* Mais largo visualmente */
@@ -189,9 +191,9 @@
     width: 95%;
     max-width: 1600px;
     margin: 0 auto 20px auto;
-    border: 1px solid #7F9DB9;
+    border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
     border-top: none;
-    border-radius: 0 0 4px 4px;
+    border-radius: 0 0 12px 12px;
     padding: 25px;
   }
 

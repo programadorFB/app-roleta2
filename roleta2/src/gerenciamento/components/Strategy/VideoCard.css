@@ -1,19 +1,24 @@
 /* VideoCard.css - Versão Elegante */
 
+/* Especificidade extra (.video-thumbnails) p/ vencer o `[class*='card']`
+   do identity.css, que senao forca glass + border-radius 12px. Card de
+   video = glass mogno escuro, borda ouro, cantos retos. */
+.video-thumbnails .video-card,
 .video-card {
     flex-shrink: 0;
     width: 19vw;
     min-width: 200px;
     max-width: 320px;
-    background: linear-gradient(145deg, #2a2a2a, #1f1f1f);
-    border-radius: 8px;
+    background: linear-gradient(165deg, rgba(28,24,18,0.95), rgba(14,12,9,0.98)) !important;
+    border: none !important;
+    border-radius: 0 !important;
     overflow: hidden;
     cursor: pointer;
     position: relative;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 
-        0 4px 12px rgba(0, 0, 0, 0.4),
-        0 0 0 1px rgba(255, 255, 255, 0.05);
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.5),
+        0 0 0 1px var(--ger-border, rgba(180,120,50,0.18)) !important;
 }
 
 .video-card::before {
@@ -23,20 +28,21 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, transparent 50%);
+    background: linear-gradient(135deg, rgba(201, 160, 82, 0.1) 0%, transparent 50%);
     opacity: 0;
     transition: opacity 0.4s ease;
     pointer-events: none;
     z-index: 1;
 }
 
+.video-thumbnails .video-card:hover,
 .video-card:hover {
     transform: scale(1.35) translateY(-8px);
     z-index: 100;
-    box-shadow: 
+    box-shadow:
         0 20px 60px rgba(0, 0, 0, 0.95),
-        0 0 40px rgba(212, 175, 55, 0.4),
-        0 0 0 1px rgba(212, 175, 55, 0.3);
+        0 0 40px rgba(201, 160, 82, 0.45),
+        0 0 0 1px var(--ger-border-strong, rgba(201,160,82,0.45)) !important;
 }
 
 .video-card:hover::before {
@@ -84,10 +90,10 @@
 
 .video-progress-bar {
     height: 100%;
-    background: linear-gradient(90deg, #d4af37 0%, #f9d971 50%, #d4af37 100%);
+    background: linear-gradient(90deg, var(--ger-gold-dark, #a07830) 0%, var(--ger-gold-bright, #d4ac5c) 50%, var(--ger-gold-dark, #a07830) 100%);
     background-size: 200% 100%;
     animation: shimmer 2s infinite;
-    box-shadow: 0 0 8px rgba(212, 175, 55, 0.5);
+    box-shadow: 0 0 8px rgba(201, 160, 82, 0.5);
     transition: width 0.3s ease;
 }
 
@@ -99,7 +105,7 @@
 /* Informações do Vídeo */
 .video-info {
     padding: 12px 14px;
-    background: rgba(15, 15, 15, 0.98);
+    background: rgba(10, 8, 6, 0.95);
     backdrop-filter: blur(10px);
     display: flex;
     justify-content: space-between;
@@ -107,14 +113,14 @@
     gap: 12px;
     position: relative;
     z-index: 3;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
 }
 
 .video-info h3 {
     margin: 0;
     font-size: 0.95em;
     font-weight: 600;
-    color: #e5e5e5;
+    color: var(--ger-text, #f0f0f5);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -124,28 +130,33 @@
 }
 
 .video-card:hover .video-info h3 {
-    color: #ffffff;
+    color: var(--ger-gold-bright, #d4ac5c);
 }
 
-/* Botão de Ação Elegante */
-.video-action-btn {
-    background: transparent;
+/* Botão de Ação Elegante.
+   E um <button>: a regra global do identity.css o preencheria de ouro
+   com glifo preto. Forcamos transparente, glifo em ouro. */
+.video-info .video-action-btn {
+    background: transparent !important;
     backdrop-filter: blur(10px);
-    
-    /* color: #fff;
-    border-radius: 100%; */
+    color: var(--ger-gold, #c9a052) !important;
     width: 30px;
     height: 34px;
     font-size: 1.3rem;
     font-weight: 300;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    border:None;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+    padding: 0 !important;
     display: flex;
     align-items: center;
     justify-content: center;
     line-height: 1;
-    
+
     position: relative;
     overflow: hidden;
 }
@@ -168,25 +179,19 @@
     height: 100px;
 }
 
-.video-action-btn:hover {
-    background: transparent;
-    border-color: None;
-    color: #f9d971;
+.video-info .video-action-btn:hover {
+    background: transparent !important;
+    color: var(--ger-gold-bright, #d4ac5c) !important;
     transform: scale(1.1) rotate(180deg);
-
 }
 
-.video-action-btn.added {
-    
-    color: #d4af37;
-    
+.video-info .video-action-btn.added {
+    color: var(--ger-success, #34d399) !important;
 }
 
-.video-action-btn.added:hover {
-
-    color: #fff;
+.video-info .video-action-btn.added:hover {
+    color: var(--ger-text, #f0f0f5) !important;
     transform: scale(1.1) rotate(0deg);
-
 }
 
 /* Animação de entrada suave */
@@ -207,11 +212,11 @@
 
 /* Efeito de foco para acessibilidade */
 .video-card:focus-visible {
-    outline: 2px solid #d4af37;
+    outline: 2px solid var(--ger-gold, #c9a052);
     outline-offset: 4px;
 }
 
 .video-action-btn:focus-visible {
-    outline: 2px solid #d4af37;
+    outline: 2px solid var(--ger-gold, #c9a052);
     outline-offset: 2px;
 }

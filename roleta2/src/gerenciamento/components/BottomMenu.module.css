@@ -1,6 +1,7 @@
 /* ========================================
-   Tema XP (Branco, Azul, Cinza)
+   Tema Mogno & Ouro Premium
    BottomMenu.module.css
+   (migrado do tema XP Branco/Azul/Cinza)
    ======================================== */
 
 .bottomMenuContainer {
@@ -9,17 +10,19 @@
   left: 0;
   width: 100%;
   margin-left: 0;
-  background: #ECE9D8; /* Fundo Cinza XP */
-  border-top: 1px solid #7F9DB9; /* Borda Cinza-Azul */
-  border-top-left-radius: 0; /* Remover cantos arredondados */
+  background: linear-gradient(165deg, rgba(12,10,6,0.92) 0%, rgba(8,6,4,0.85) 100%);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+  border-top-left-radius: 0;
   border-top-right-radius: 0;
   display: flex;
   justify-content: center;
   z-index: 1000;
-  box-shadow: none; /* Remover sombra */
-  overflow: visible; /* Remover overflow hidden */
-  height: 60px; /* Altura padrão para barra de navegação */
-  font-family: 'Tahoma', 'Trebuchet MS', sans-serif;
+  box-shadow: 0 -8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(201,160,82,0.06);
+  overflow: visible;
+  height: 60px;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 /* REMOVIDO: .neonGlow */
@@ -27,44 +30,62 @@
 .bottomMenu {
   display: flex;
   justify-content: space-around;
-  align-items: stretch; /* Esticar itens para preencher altura */
+  align-items: stretch;
   width: 100%;
   max-width: 500px;
   height: 100%;
 }
 
-.menuItem {
+/* Prefixo .bottomMenu p/ vencer a regra global `.gerenciamento-root button`
+   (que senão preenche cada item de ouro, invertendo ativo/inativo). */
+.bottomMenu .menuItem {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #000000; /* Texto Preto */
+  color: var(--ger-text-muted, rgba(255,255,255,0.6)) !important;
   text-decoration: none;
   font-size: 11px;
   gap: 4px;
-  background: transparent;
-  border: 1px solid transparent; /* Para manter o layout */
-  border-radius: 4px;
-  flex: 1; /* Ocupar espaço igual */
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 0 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  box-shadow: none !important;
+  flex: 1;
   cursor: pointer;
-  transition: all 0.1s ease-in-out;
+  transition: all 0.2s ease;
   padding: 5px 0;
 }
 
-.menuItem:hover {
-  color: #000000;
-  background-color: #F5F3E8; /* Hover cinza-claro */
+.bottomMenu .menuItem:hover {
+  color: var(--ger-gold, #c9a052) !important;
+  background: rgba(201,160,82,0.07) !important;
   transform: none;
   text-shadow: none;
 }
 
-.active {
-  color: #003399; /* Texto Azul Escuro */
-  text-shadow: none;
+.bottomMenu .active {
+  color: var(--ger-gold-bright, #d4ac5c) !important;
+  text-shadow: 0 0 12px rgba(201,160,82,0.3);
   transform: none;
-  background-color: #C1D2EE; /* Fundo Azul "Selecionado" */
-  border: 1px solid #7F9DB9;
+  background: rgba(201,160,82,0.12) !important;
+  border-top: 1px solid var(--ger-border-strong, rgba(201,160,82,0.45)) !important;
+}
+
+/* Indicador dourado no topo do item ativo */
+.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, var(--ger-gold, #c9a052) 50%, transparent 100%);
+  box-shadow: 0 0 8px rgba(201,160,82,0.5);
 }
 
 .iconContainer {
@@ -74,12 +95,16 @@
   font-size: 20px;
   transition: none;
 }
-/* Força o ícone a ser azul, sobrescrevendo o JSX */
+/* Ícone em ouro tênue (inativo), sobrescrevendo o JSX */
 .iconContainer svg {
-  color: #0054E3 !important;
+  color: var(--ger-gold-soft, rgba(201,160,82,0.7)) !important;
 }
 .active .iconContainer svg {
-  color: #003399 !important; /* Azul escuro quando ativo */
+  color: var(--ger-gold-bright, #d4ac5c) !important;
+  filter: drop-shadow(0 0 6px rgba(201,160,82,0.45));
+}
+.menuItem:hover .iconContainer svg {
+  color: var(--ger-gold, #c9a052) !important;
 }
 
 .menuItem:hover .iconContainer {
@@ -95,11 +120,11 @@
 .menuLabel {
   font-weight: bold;
   letter-spacing: 0;
-  color: #000000; /* Cor do texto do botão */
-  text-transform: none; /* Remover uppercase */
+  color: inherit;
+  text-transform: none;
 }
 .active .menuLabel {
-  color: #003399; /* Cor do texto ativo */
+  color: var(--ger-gold-bright, #d4ac5c);
 }
 
 /* REMOVIDO: .activeIndicator */
@@ -107,19 +132,19 @@
 /* Responsividade: Ocultar labels em telas pequenas */
 @media (max-width: 480px) {
   .bottomMenuContainer {
-    height: 50px; /* Um pouco menor */
+    height: 50px;
   }
 
   .menuLabel {
-    display: none; /* Ocultar texto */
+    display: none;
   }
 
   .menuItem {
-    justify-content: center; /* Centralizar ícone */
+    justify-content: center;
     font-size: 10px;
   }
-  
+
   .iconContainer {
-    font-size: 22px; /* Ícone um pouco maior */
+    font-size: 22px;
   }
 }

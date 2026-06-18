@@ -1,6 +1,7 @@
 /* ========================================
-   Tema XP (Branco, Azul, Cinza)
+   Tema Mogno & Ouro Premium
    TransactionScreen.module.css - Mobile First
+   (migrado do tema XP Branco/Azul/Cinza)
    ======================================== */
 
 @keyframes fadeIn {
@@ -14,22 +15,23 @@
   flex-direction: column;
   min-height: 100vh;
   width: 100%;
-  background-color: #D6D3CE; /* Fundo Cinza XP */
-  color: #000000;
+  background: transparent;
+  color: var(--ger-text, #f0f0f5);
   animation: fadeIn 0.3s ease-out;
-  font-family: 'Tahoma', 'Trebuchet MS', sans-serif;
   overflow-x: hidden;
 }
 
-/* --- Header (Barra de Título XP) --- */
+/* --- Header (barra de título — glass dourado) --- */
 .header {
   width: 100%;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 6px 12px;
-  background: linear-gradient(180deg, #0054E3 0%, #0040B0 100%);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.3) inset;
+  background: linear-gradient(165deg, rgba(20,18,14,0.9) 0%, rgba(10,8,6,0.78) 100%);
+  border-bottom: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(201,160,82,0.08);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -38,32 +40,44 @@
 .header h1 {
   font-size: 11px;
   font-weight: bold;
-  color: #FFFFFF;
+  color: var(--ger-gold, #c9a052);
   margin: 0;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 12px rgba(201,160,82,0.18);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 150px;
 }
 
+/* Ghost dourado: !important vence a regra global `button` (ouro preenchido). */
 .backButton {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
-  border: 1px solid #7F9DB9;
-  border-radius: 3px;
-  color: #000000;
+  background: transparent !important;
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18)) !important;
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28)) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  color: var(--ger-gold, #c9a052) !important;
   font-size: 11px;
   font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   cursor: pointer;
   padding: 6px 12px;
-  transition: none;
+  transition: all 0.2s ease;
+}
+.backButton:hover {
+  background: rgba(201,160,82,0.08) !important;
+  color: var(--ger-gold-bright, #d4ac5c) !important;
 }
 .backButton:active {
-  background: #C1D2EE;
+  background: rgba(201,160,82,0.16) !important;
 }
+.backButton svg { color: var(--ger-gold, #c9a052) !important; }
 
 .headerSpacer { width: 24px; }
 
@@ -82,12 +96,14 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  background: #ECE9D8;
-  border: 1px solid #7F9DB9;
+  background: var(--ger-bg-glass, linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%));
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
   padding: 15px;
   width: 100%;
   max-width: 600px; /* Limite para Desktop */
-  border-radius: 4px; /* Leve arredondamento visual */
+  border-radius: 12px;
+  box-shadow: var(--ger-shadow, 0 8px 24px rgba(0,0,0,0.55));
 }
 
 /* Grupo de Inputs */
@@ -99,27 +115,30 @@
 
 .inputGroup label {
   font-size: 11px;
-  color: #000000;
+  color: var(--ger-text-muted, rgba(255,255,255,0.65));
   font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-/* Input Padrão XP */
+/* Input */
 .input {
   width: 100%;
-  background: #FFFFFF;
-  border: 1px solid #7F9DB9;
-  border-radius: 0;
+  background: var(--ger-bg-glass, linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%));
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+  border-radius: 8px;
   padding: 8px 6px; /* Mais alto para toque */
   font-size: 12px; /* Fonte legível */
-  color: #000000;
+  color: var(--ger-text, #f0f0f5);
   box-sizing: border-box;
-  box-shadow: -1px -1px 0px rgba(255,255,255,0.8) inset, 1px 1px 2px rgba(0,0,0,0.1) inset;
+  transition: all 0.2s ease;
 }
 
 .input:focus {
-  outline: 1px solid #0054E3;
-  outline-offset: -1px;
-  background: #FFFEF9;
+  outline: none;
+  border-color: var(--ger-border-strong, rgba(201,160,82,0.45));
+  box-shadow: 0 0 0 2px rgba(201,160,82,0.12);
 }
 
 /* --- Seletor de Tipo (Radio Buttons) --- */
@@ -129,28 +148,35 @@
   gap: 10px;
 }
 
+/* Cartões selecionáveis (ghost): !important vence a regra global `button`
+   (ouro preenchido), mantendo o cartão transparente e o rótulo legível. */
 .typeButton {
-  background: #ECE9D8;
-  border: 1px solid #7F9DB9;
-  border-radius: 4px;
+  background: transparent !important;
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18)) !important;
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28)) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
   padding: 12px;
   cursor: pointer;
-  color: #000;
+  color: var(--ger-text-muted, rgba(255,255,255,0.65)) !important;
   text-align: left;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
   display: flex;
   align-items: center;
   gap: 10px;
-  transition: background-color 0.1s;
+  transition: all 0.2s ease;
 }
 
 .typeButton:hover {
-  background-color: #F5F3E8;
+  background: rgba(201,160,82,0.08) !important;
 }
 
 .typeButton.typeButtonActive {
-  background-color: #C1D2EE;
-  border-color: #003399;
-  box-shadow: inset 1px 1px 3px rgba(0,0,0,0.1);
+  background: rgba(201,160,82,0.12) !important;
+  border-color: var(--ger-border-strong, rgba(201,160,82,0.45)) !important;
+  color: var(--ger-gold, #c9a052) !important;
 }
 
 .typeButtonIcon {
@@ -184,7 +210,7 @@
   right: 10px;
   top: 50%;
   transform: translateY(-50%);
-  color: #0054E3;
+  color: var(--ger-gold, #c9a052);
   font-size: 16px;
   pointer-events: none; /* Deixa o clique passar para o input */
 }
@@ -193,48 +219,53 @@
 .datePickerOverlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 84, 227, 0.3);
+  background: rgba(0, 0, 0, 0.75);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 100;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(8px);
   padding: 20px;
 }
 
 .datePickerContainer {
-  background: #ECE9D8;
-  border-radius: 8px 8px 0 0;
-  border: 2px solid #0054E3;
+  background: linear-gradient(165deg, rgba(20,18,14,0.96) 0%, rgba(10,8,6,0.92) 100%);
+  border-radius: 14px;
+  overflow: hidden; /* cantos arredondados recortam o cabeçalho */
+  border: 1px solid var(--ger-border-strong, rgba(201,160,82,0.45));
+  border-top: 1px solid var(--ger-border-strong, rgba(201,160,82,0.45));
   width: 100%;
   max-width: 350px;
-  box-shadow: 4px 4px 12px rgba(0,0,0,0.4);
+  box-shadow: var(--ger-shadow-deep, 0 16px 48px rgba(0,0,0,0.7));
 }
 
 .datePickerContainer h3 {
-  background: linear-gradient(180deg, #0054E3 0%, #0040B0 100%);
-  color: #FFFFFF;
+  background: linear-gradient(165deg, rgba(201,160,82,0.18) 0%, rgba(201,160,82,0.05) 100%);
+  color: var(--ger-gold, #c9a052);
   padding: 8px 12px;
   font-size: 12px;
   margin: 0;
   font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--ger-border, rgba(180,120,50,0.18));
 }
 
 .datePickerContainer input[type="date"] {
   width: calc(100% - 30px);
   margin: 15px;
   padding: 8px;
-  border: 1px solid #7F9DB9;
+  background: var(--ger-bg-glass, linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%));
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-radius: 8px;
+  color: var(--ger-text, #f0f0f5);
   font-size: 14px; /* Evita zoom no iOS */
 }
 
+/* CTA "Fechar": gradiente ouro/uppercase/texto preto vêm da regra global
+   `button` (identity.css). Aqui só layout + arredondamento. */
 .datePickerContainer button {
-  background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
-  border: 1px solid #7F9DB9;
-  border-radius: 3px;
-  color: #000000;
-  font-size: 12px;
-  font-weight: bold;
+  border-radius: 9px;
   cursor: pointer;
   padding: 8px 16px;
   margin: 0 15px 15px 15px;
@@ -247,26 +278,29 @@
   align-items: flex-start; /* Alinha topo para textos longos */
   gap: 10px;
   padding: 10px;
-  background: #ECE9D8;
+  background: transparent;
   border: 1px solid transparent; /* Reserva espaço para borda hover */
+  border-radius: 10px;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .checkboxContainer:hover {
-  background: #F5F3E8;
-  border-color: #7F9DB9;
+  background: rgba(201,160,82,0.08);
+  border-color: var(--ger-border, rgba(180,120,50,0.18));
 }
 
 .checkbox {
   width: 16px; /* Maior para toque */
   height: 16px;
   min-width: 16px;
-  border: 1px solid #7F9DB9;
-  background: #FFFFFF;
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-radius: 4px;
+  background: var(--ger-bg-glass, linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%));
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #0054E3;
+  color: var(--ger-gold, #c9a052);
   font-size: 14px;
   margin-top: 2px; /* Ajuste fino de alinhamento */
 }
@@ -275,36 +309,34 @@
   display: block;
   font-size: 12px;
   font-weight: 700;
-  color: #000;
+  color: var(--ger-text, #f0f0f5);
   margin-bottom: 2px;
 }
 
 .checkboxDescription {
   font-size: 11px;
-  color: #333;
+  color: var(--ger-text-muted, rgba(255,255,255,0.65));
   line-height: 1.4;
 }
 
-/* --- Botão de Submissão --- */
+/* --- Botão de Submissão (CTA) --- */
+/* Gradiente ouro/uppercase/texto preto vêm da regra global `button`
+   (identity.css). Aqui só layout, arredondamento e o estado :disabled. */
 .submitButton {
   padding: 12px 16px; /* Botão alto para toque */
-  border: 1px solid #003C74;
-  border-radius: 3px;
-  background: linear-gradient(180deg, #0078D7 0%, #0054E3 50%, #0040B0 100%);
-  color: #FFFFFF;
-  font-size: 12px;
-  font-weight: bold;
+  border-radius: 9px;
   cursor: pointer;
   margin-top: 10px;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-  box-shadow: 1px 1px 0px rgba(255,255,255,0.8) inset;
   width: 100%; /* Largura total no mobile */
+  transition: all 0.2s ease;
 }
 
 .submitButton:disabled {
-  background: linear-gradient(180deg, #999999 0%, #808080 100%);
-  color: #CCCCCC;
+  background: linear-gradient(165deg, rgba(201,160,82,0.25) 0%, rgba(160,120,48,0.25) 100%);
+  color: var(--ger-text-dim, rgba(255,255,255,0.35));
   cursor: not-allowed;
+  opacity: 0.5;
+  box-shadow: none;
 }
 
 /* ========================================
@@ -315,7 +347,7 @@
     font-size: 14px;
     max-width: none;
   }
-  
+
   .typeGrid {
     grid-template-columns: 1fr 1fr; /* 2 Colunas */
   }
@@ -326,8 +358,8 @@
 
   .formContainer {
     padding: 25px;
-    border-radius: 0;
-    box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+    border-radius: 12px;
+    box-shadow: var(--ger-shadow, 0 8px 24px rgba(0,0,0,0.55));
   }
 
   .submitButton {
@@ -335,8 +367,20 @@
     align-self: flex-start; /* Alinhado à esquerda ou direita */
     padding: 8px 24px;
   }
-  
+
   .datePickerContainer button {
       width: auto;
   }
+}
+
+/* Aviso ao remarcar a banca inicial — âmbar na identidade Mogno & Ouro */
+.initialBankWarning {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ger-warning, #f59e0b);
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 8px;
 }

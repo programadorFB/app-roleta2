@@ -1,59 +1,64 @@
 /* ========================================
-   Tema XP (Branco, Azul, Cinza)
+   Tema Mogno & Ouro Premium
    ReportScreen.module.css - Mobile First
+   (migrado do tema XP Branco/Azul/Cinza)
    ======================================== */
 
 /* Estilo geral do container */
 .container {
-  background-color: #D6D3CE; /* Fundo Cinza XP */
-  color: #000000; /* Texto Preto */
+  background-color: transparent;
+  color: var(--ger-text, #f0f0f5);
   min-height: 100vh;
   width: 100%;
   box-sizing: border-box;
-  font-family: 'Tahoma', 'Trebuchet MS', sans-serif;
   overflow-x: hidden; /* Evita rolagem horizontal indesejada */
   display: flex;
   flex-direction: column;
 }
 
-/* Cabeçalho (Barra de Título XP) */
+/* Cabeçalho (Barra de Título — glass dourado) */
 .header {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 8px 12px;
-  background: linear-gradient(180deg, #0054E3 0%, #0040B0 100%);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.3) inset;
+  background: linear-gradient(165deg, rgba(20,18,14,0.9) 0%, rgba(10,8,6,0.78) 100%);
+  border-bottom: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(201,160,82,0.08);
   position: sticky; /* Fixa o topo no mobile */
   top: 0;
   z-index: 10;
 }
 
-/* Botão de Voltar (Cinza XP) */
+/* Botão de Voltar (Ghost dourado) */
 .backButton {
-  background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
-  border: 1px solid #7F9DB9;
-  border-radius: 3px;
-  color: #000;
+  background: transparent;
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+  border-radius: 9px;
+  color: var(--ger-gold, #c9a052);
   padding: 6px 10px; /* Área de toque melhor */
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   font-size: 11px;
+  transition: all 0.2s ease;
 }
 
 .backButton:hover {
-  background: linear-gradient(180deg, #FFFEF9 0%, #F5F3E8 100%);
+  background: rgba(201,160,82,0.08);
+  color: var(--ger-gold-bright, #d4ac5c);
 }
 
 /* Título Principal */
 .title {
   font-size: 12px;
   font-weight: bold;
-  color: #FFFFFF;
+  color: var(--ger-gold, #c9a052);
   margin: 0;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  text-shadow: 0 0 12px rgba(201,160,82,0.18);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -64,7 +69,7 @@
   font-size: 12px;
   margin-bottom: 1.5rem;
   line-height: 1.5;
-  color: #000000;
+  color: var(--ger-text-muted, rgba(255,255,255,0.65));
   padding: 16px 16px 0 16px;
   width: 100%;
 }
@@ -86,35 +91,42 @@
   align-items: center;
   gap: 10px;
   padding: 10px 16px; /* Botões mais altos para toque */
-  border-radius: 3px;
+  border-radius: 9px;
   text-decoration: none;
-  font-weight: bold;
+  font-weight: 700;
   font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   border: 1px solid;
   cursor: pointer;
   width: 100%; /* Ocupa largura total no mobile */
+  transition: all 0.2s ease;
 }
 
-/* Botão Excel */
+/* Botão Excel (secundário — ghost dourado) */
 .excelButton {
-  background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
-  border-color: #7F9DB9;
-  color: #000000;
+  background: transparent;
+  border-color: var(--ger-border, rgba(180,120,50,0.18));
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+  color: var(--ger-gold, #c9a052);
 }
 .excelButton:hover {
-  background: linear-gradient(180deg, #FFFEF9 0%, #F5F3E8 100%);
+  background: rgba(201,160,82,0.08);
+  border-color: var(--ger-border-strong, rgba(201,160,82,0.45));
+  color: var(--ger-gold-bright, #d4ac5c);
 }
 
-/* Botão PDF */
+/* Botão PDF (primário — ouro pleno) */
 .pdfButton {
-  background: linear-gradient(180deg, #0078D7 0%, #0054E3 50%, #0040B0 100%);
-  border-color: #003C74;
-  color: #FFFFFF;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-  box-shadow: 1px 1px 0px rgba(255,255,255,0.8) inset;
+  background: linear-gradient(165deg, var(--ger-gold, #c9a052) 0%, var(--ger-gold-dark, #a07830) 100%);
+  border-color: var(--ger-border-strong, rgba(201,160,82,0.45));
+  border-top: 1px solid rgba(220,185,105,0.7);
+  color: var(--ger-bg-deep, #0a0806);
+  box-shadow: 0 4px 14px rgba(201,160,82,0.18), inset 0 1px 0 rgba(255,255,255,0.22);
 }
 .pdfButton:hover {
-  background: linear-gradient(180deg, #008FE5 0%, #0065F0 50%, #0050C5 100%);
+  background: linear-gradient(165deg, var(--ger-gold-bright, #d4ac5c) 0%, var(--ger-gold, #c9a052) 100%);
+  box-shadow: 0 6px 22px rgba(201,160,82,0.28), inset 0 1px 0 rgba(255,255,255,0.3);
 }
 
 /* Texto de Carregamento */
@@ -122,10 +134,10 @@
   display: block;
   text-align: center;
   padding: 12px;
-  background-color: #ECE9D8;
-  color: #7F9DB9;
-  border-radius: 3px;
-  border: 1px solid #C0C0C0;
+  background: rgba(201,160,82,0.06);
+  color: var(--ger-gold-soft, rgba(201,160,82,0.7));
+  border-radius: 8px;
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
   font-weight: bold;
   font-size: 11px;
 }
@@ -134,9 +146,11 @@
 .viewerSection {
   margin: 0 10px 20px 10px; /* Margens pequenas no mobile */
   padding: 12px;
-  background: #ECE9D8;
-  border: 1px solid #7F9DB9;
-  
+  background: var(--ger-bg-glass, linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%));
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+  border-radius: 12px;
+
   /* Corrige o problema do width fixo */
   width: auto;
   flex-grow: 1; /* Ocupa o resto da tela */
@@ -146,22 +160,25 @@
 
 .viewerTitle {
   font-size: 13px;
-  color: #003399;
+  color: var(--ger-gold, #c9a052);
+  text-shadow: 0 0 12px rgba(201,160,82,0.18);
   margin-bottom: 12px;
-  border-bottom: 1px solid #C0C0C0;
+  border-bottom: 1px solid var(--ger-border, rgba(180,120,50,0.18));
   padding-bottom: 8px;
   font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .viewerWrapper {
-  border: 1px solid #7F9DB9;
-  border-radius: 0;
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-radius: 10px;
   overflow: hidden;
-  background: #FFFFFF;
-  box-shadow: inset 1px 1px 3px rgba(0,0,0,0.3);
-  
+  background: var(--ger-bg-deep, #0a0806);
+  box-shadow: inset 0 1px 4px rgba(0,0,0,0.5);
+
   /* Altura responsiva para mobile */
-  height: 60vh; 
+  height: 60vh;
   min-height: 400px;
 }
 
@@ -191,7 +208,7 @@
     /* Centraliza e limita largura em telas grandes */
     margin: 0 auto 20px auto;
     width: 95%;
-    max-width: 1200px; 
+    max-width: 1200px;
     padding: 20px;
   }
 

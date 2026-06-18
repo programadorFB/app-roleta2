@@ -43,6 +43,9 @@ export default defineConfig(({ mode }) => {
     },
 
     server: {
+      // Watcher por polling: no Windows os eventos nativos de fs falham com
+      // frequência (HMR "não aplica" sem hard-refresh). Polling resolve.
+      watch: { usePolling: true, interval: 250 },
       proxy: {
         '/login':      { target: 'http://localhost:3001', changeOrigin: true },
         '/start-game': { target: 'http://localhost:3001', changeOrigin: true },

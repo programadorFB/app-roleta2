@@ -123,7 +123,10 @@ const App = () => {
   const [entrySignals,         setEntrySignals]         = useState({ targets: [], expanded: [] });
   const [historyFilter,        setHistoryFilter]        = useState(FILTER_OPTIONS[1].value);
   const [mobileTooltip,        setMobileTooltip]        = useState({ visible: false, content: '', x: 0, y: 0, isBelow: false });
-  const [activeView,           setActiveView]           = useState('dashboard');
+  const [activeView,           setActiveView]           = useState(() => {
+    try { return localStorage.getItem('roleta2.activeView') || 'dashboard'; }
+    catch { return 'dashboard'; }
+  });
 
   // ── Paywall event bus ─────────────────────────────────────
 
@@ -257,6 +260,12 @@ const App = () => {
   const setTutorial  = useCallback(() => setActiveView('tutorial'),  []);
   const setTools     = useCallback(() => setActiveView('tools'),     []);
   const setGerenciamento = useCallback(() => setActiveView('gerenciamento'), []);
+
+  // Persiste a aba ativa para que um F5 mantenha o usuário na mesma view
+  // (em vez de cair sempre no 'dashboard').
+  useEffect(() => {
+    try { localStorage.setItem('roleta2.activeView', activeView); } catch { /* ignore */ }
+  }, [activeView]);
 
   // ── Computed ──────────────────────────────────────────────
 

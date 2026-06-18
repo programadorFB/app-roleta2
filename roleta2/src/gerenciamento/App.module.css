@@ -1,9 +1,9 @@
-/* Windows XP Theme - App.module.css */
-@import url('https://fonts.googleapis.com/css2?family=Tahoma:wght@400;700&display=swap');
+/* Mahogany & Gold — Gerenciamento App.module.css */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap');
 
 * {
-  font-family: 'Tahoma', 'Trebuchet MS', sans-serif;
-  box-sizing: border-box; /* Essencial para responsividade */
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  box-sizing: border-box;
 }
 
 #root {
@@ -11,347 +11,145 @@
   margin: 0;
   padding: 0;
   text-align: center;
-  background: linear-gradient(180deg, #5A7FBF 0%, #B8D4F1 100%);
+  background: #0a0806;
   min-height: 100vh;
-  /* Espaço extra no final para não cobrir conteúdo com a barra de tarefas no mobile */
   padding-bottom: 40px; 
 }
 
-/* --- XP Window Styles --- */
+/* --- Loading Styles --- */
 .loadingScreen {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(180deg, #5A7FBF 0%, #B8D4F1 100%);
-  color: #003399;
-  font-family: 'Tahoma', sans-serif;
+  background: #0a0806;
+  color: #c9a052;
   width: 100%;
 }
 
 .spinner {
   width: 50px;
   height: 50px;
-  border: 5px solid rgba(0, 51, 153, 0.2);
-  border-left-color: #0054E3;
+  border: 5px solid rgba(201, 160, 82, 0.1);
+  border-left-color: #c9a052;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 20px;
 }
 
 .appContent {
-  padding: 1rem; /* Padding menor para mobile */
-  background: linear-gradient(180deg, #5A7FBF 0%, #B8D4F1 100%);
+  padding: 1rem;
+  background: #0a0806;
   min-height: 100vh;
   width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center; /* Centraliza o conteúdo */
+  align-items: center;
 }
 
-/* XP Button Style - Otimizado para toque */
+/* Mahogany Button Style */
 .button {
-  padding: 8px 20px; /* Um pouco maior para dedos */
-  border-radius: 3px;
-  border: 1px solid #003C74;
-  background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 50%, #E0DED0 100%);
-  color: #000000;
+  padding: 10px 24px;
+  border-radius: 0;
+  border: 1px solid rgba(201, 160, 82, 0.5);
+  border-top: 1px solid rgba(201, 160, 82, 0.7);
+  background: linear-gradient(165deg, #c9a052 0%, #a07830 100%);
+  color: #0a0806;
   cursor: pointer;
-  font-weight: normal;
-  font-size: 12px; /* Fonte levemente maior para leitura mobile */
-  font-family: 'Tahoma', sans-serif;
-  transition: all 0.1s;
-  box-shadow: 
-    1px 1px 0px rgba(255,255,255,0.9) inset,
-    -1px -1px 0px rgba(0,0,0,0.2) inset;
-  text-shadow: 1px 1px 0px rgba(255,255,255,0.5);
-  width: 100%; /* Botões ocupam largura total em containers pequenos */
-  max-width: 200px; /* Limite em telas grandes */
+  font-weight: bold;
+  font-size: 14px;
+  transition: all 0.25s;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
 .button:hover {
-  background: linear-gradient(180deg, #FFFEF9 0%, #F5F3E8 50%, #EAE8DC 100%);
-  border-color: #0054E3;
+  background: linear-gradient(165deg, #d4ac5c 0%, #b08838 100%);
+  box-shadow: 0 6px 16px rgba(201, 160, 82, 0.2);
 }
 
 .button:active {
-  background: linear-gradient(180deg, #C1D2EE 0%, #BFCCE0 50%, #A5B5D0 100%);
-  box-shadow: 
-    -1px -1px 0px rgba(255,255,255,0.5) inset,
-    1px 1px 2px rgba(0,0,0,0.3) inset;
+  transform: translateY(1px);
 }
 
 .button:disabled {
-  background: linear-gradient(180deg, #E0E0E0 0%, #D0D0D0 100%);
-  color: #808080;
+  opacity: 0.4;
   cursor: not-allowed;
-  border-color: #999999;
 }
 
-/* XP Input Style */
+/* Mahogany Input Style */
 .input {
-  padding: 8px 6px; /* Mais altura para facilitar o clique */
-  border: 1px solid #7F9DB9;
-  background-color: #FFFFFF;
-  color: #000000;
-  font-size: 12px;
-  font-family: 'Tahoma', sans-serif;
-  width: 100%; /* Responsivo */
-  box-shadow: 
-    -1px -1px 0px rgba(255,255,255,0.8) inset,
-    1px 1px 2px rgba(0,0,0,0.1) inset;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(180, 120, 50, 0.2);
+  border-top: 1px solid rgba(201, 160, 82, 0.1);
+  color: var(--ger-text, #f0f0f5);
+  font-size: 14px;
+  width: 100%;
+  transition: all 0.2s;
 }
 
 .input:focus {
-  outline: 1px solid #0054E3;
-  outline-offset: -1px;
+  outline: none;
+  border-color: #c9a052;
+  background: rgba(255, 255, 255, 0.08);
 }
 
-/* XP Form Style - Responsivo */
-.loginForm {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 20px;
-  background: linear-gradient(180deg, #ECE9D8 0%, #D6D3CE 100%);
-  border: 1px solid #0054E3;
-  border-radius: 0;
-  
-  /* Lógica Mobile-First */
-  width: 95%; /* Ocupa quase toda a tela no celular */
-  max-width: 350px; /* Trava em 350px em telas maiores */
-  margin: 0 auto; /* Centraliza */
-  
-  box-shadow: 
-    0 0 0 1px rgba(255,255,255,0.8),
-    2px 2px 8px rgba(0,0,0,0.3);
-}
-
-.errorText {
-  color: #FF0000;
-  text-align: center;
-  font-size: 11px;
-  background-color: #FFE5E5;
-  padding: 8px;
-  border: 1px solid #FF0000;
-  word-wrap: break-word; /* Evita quebra de layout com erros longos */
-}
-
-/* XP Dashboard Header */
+/* Dashboard Header */
 .dashboardHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
-  padding: 8px 12px;
-  background: linear-gradient(180deg, #0054E3 0%, #0040B0 100%);
-  border: 1px solid #003C74;
-  border-radius: 8px 8px 0 0;
-  box-shadow: 
-    0 1px 0 rgba(255,255,255,0.3) inset,
-    0 2px 4px rgba(0,0,0,0.2);
-  color: #FFFFFF;
+  padding: 12px 16px;
+  background: linear-gradient(165deg, rgba(12,10,6,0.75) 0%, rgba(10,8,6,0.65) 100%);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(180,120,50,0.15);
+  border-top: 1px solid rgba(201,160,82,0.25);
+  color: #c9a052;
   font-weight: bold;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-  
-  /* Ajuste para telas muito pequenas */
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   flex-wrap: wrap; 
   gap: 10px;
 }
 
-/* --- Animations --- */
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 
-/* --- XP Logo Styles --- */
+/* Logo Styles */
 .logo {
-  height: 5em; /* Um pouco menor no mobile */
+  height: 5em;
   padding: 1em;
-  filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+  filter: drop-shadow(0 0 8px rgba(201,160,82,0.2));
   transition: filter 300ms;
-  max-width: 100%; /* Garante que não estoure a tela */
+  max-width: 100%;
 }
 
 .logo:hover {
-  filter: drop-shadow(0 0 8px #0054E3);
+  filter: drop-shadow(0 0 12px rgba(201,160,82,0.4));
 }
 
-/* XP Card/Panel Style */
+/* Glass Card Style */
 .card {
-  padding: 16px;
-  background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
-  border: 1px solid #0054E3;
-  box-shadow: 
-    0 0 0 1px rgba(255,255,255,0.8),
-    2px 2px 8px rgba(0,0,0,0.2);
-  margin-bottom: 12px;
-  width: 100%; /* Responsivo */
-  overflow: hidden; /* Evita que conteúdo interno quebre o layout */
-}
-
-/* XP Taskbar-like element */
-.taskbar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 40px; /* Um pouco mais alta para facilitar o toque no mobile */
-  background: linear-gradient(180deg, #245EDC 0%, #1941A5 100%);
-  border-top: 2px solid #5A7FBF;
-  box-shadow: 0 -1px 0 rgba(0,0,0,0.3);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  padding-right: 5px;
-}
-
-/* XP Start Button Style */
-.startButton {
-  height: 34px; /* Ajustado para a nova altura da taskbar */
-  padding: 0 15px 0 6px;
-  background: linear-gradient(180deg, #3FA037 0%, #2E7D2E 100%);
-  border: 1px solid #1A5A1A;
-  border-radius: 0 12px 12px 0;
-  color: #FFFFFF;
-  font-weight: bold;
-  font-size: 13px; /* Fonte maior */
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  box-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-  flex-shrink: 0; /* Impede que o botão encolha */
-}
-
-.startButton:hover {
-  background: linear-gradient(180deg, #50C048 0%, #3A9837 100%);
-}
-
-.startButton:active {
-  background: linear-gradient(180deg, #2E7D2E 0%, #245E24 100%);
-  box-shadow: inset 1px 1px 2px rgba(0,0,0,0.4);
-}
-
-/* XP Window Title Bar */
-.windowTitleBar {
-  background: linear-gradient(180deg, #0054E3 0%, #0040B0 100%);
-  padding: 4px 8px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #003C74;
-  color: #FFFFFF;
-  font-size: 11px;
-  font-weight: bold;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-}
-
-.windowControls {
-  display: flex;
-  gap: 2px;
-}
-
-.windowButton {
-  width: 21px;
-  height: 21px;
-  border: 1px solid #003C74;
-  background: linear-gradient(180deg, #FFFFFF 0%, #BFCCE0 100%);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  color: #000000;
-  font-weight: bold;
-}
-
-/* XP Desktop Icons Grid System */
-.desktopGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-  gap: 16px;
   padding: 20px;
+  background: linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+  backdrop-filter: blur(40px);
+  border: 1px solid rgba(180,120,50,0.1);
+  border-top: 1px solid rgba(201,160,82,0.2);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  margin-bottom: 16px;
   width: 100%;
+  overflow: hidden;
+  color: #f0f0f5;
 }
 
-.desktopIcon {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 8px;
-  cursor: pointer;
-  border: 1px solid transparent;
-  background: transparent;
-  transition: all 0.1s;
-}
-
-.desktopIcon:hover {
-  background: rgba(0, 84, 227, 0.2);
-  border: 1px solid rgba(0, 84, 227, 0.5);
-}
-
-.desktopIcon:active {
-  background: rgba(0, 84, 227, 0.4);
-}
-
-.desktopIconText {
-  color: #FFFFFF;
-  font-size: 11px;
-  text-shadow: 
-    1px 1px 2px rgba(0,0,0,0.8),
-    -1px -1px 2px rgba(0,0,0,0.8);
-  text-align: center;
-  word-break: break-word; /* Quebra palavras longas */
-}
-
-/* XP Status Bar - Oculta em telas muito pequenas se necessário, ou ajustada */
-.statusBar {
-  height: 22px;
-  background: linear-gradient(180deg, #ECE9D8 0%, #D6D3CE 100%);
-  border-top: 1px solid #FFFFFF;
-  border-bottom: 1px solid #808080;
-  display: none; /* Oculta no mobile por padrão para economizar espaço */
-  align-items: center;
-  padding: 0 8px;
-  font-size: 11px;
-  color: #000000;
-  gap: 12px;
-}
-
-.read-the-docs {
-  color: #0054E3;
-  text-decoration: underline;
-}
-
-/* --- Media Queries para Desktop/Tablet --- */
 @media (min-width: 768px) {
   .appContent {
     padding: 2rem;
-  }
-
-  .loginForm {
-    width: 320px; /* Volta ao tamanho fixo clássico no desktop */
-  }
-
-  .logo {
-    height: 6em;
-  }
-
-  .taskbar {
-    height: 30px; /* Altura original XP no desktop */
-  }
-
-  .startButton {
-    height: 30px;
-    font-size: 11px;
-  }
-
-  .statusBar {
-    display: flex; /* Mostra a status bar no desktop */
   }
 }

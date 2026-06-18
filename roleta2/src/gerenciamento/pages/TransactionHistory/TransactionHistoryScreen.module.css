@@ -1,6 +1,9 @@
 /* ========================================
-   Tema XP (Branco, Azul, Cinza)
+   Tema Mogno & Ouro Premium
    TransactionHistoryScreen.module.css
+   (migrado do tema XP Branco/Azul/Cinza)
+
+   Tokens herdados de .gerenciamento-root (identity.css)
    ======================================== */
 
 .container {
@@ -8,81 +11,111 @@
     flex-direction: column;
     min-height: 100vh;
     min-width: 100vw;
-    background-color: #D6D3CE; /* Fundo Cinza XP */
-    color: #000;
-    font-family: 'Tahoma', 'Trebuchet MS', sans-serif;
+    background: transparent;
+    color: var(--ger-text, #f0f0f5);
 }
-/* --- Header (Barra de Título XP) --- */
+/* --- Header (barra de título — glass dourado) --- */
 .header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 6px 12px;
-    background: linear-gradient(180deg, #0054E3 0%, #0040B0 100%);
-    box-shadow: 0 1px 0 rgba(255,255,255,0.3) inset;
+    background: linear-gradient(165deg, rgba(20,18,14,0.9) 0%, rgba(10,8,6,0.78) 100%);
+    border-bottom: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+    border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(201,160,82,0.08);
 }
-.header h1 { 
-    font-size: 11px; 
-    font-weight: bold; 
-    margin: 0; 
-    color: #FFFFFF;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+.header h1 {
+    font-size: 11px;
+    font-weight: bold;
+    margin: 0;
+    color: var(--ger-gold, #c9a052);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-shadow: 0 0 12px rgba(201,160,82,0.18);
 }
+/* Ghost dourado. !important vence a regra global `button` do identity
+   (ouro preenchido), senão o ícone ouro some. */
 .backButton, .infoButton {
-    background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
-    border: 1px solid #7F9DB9;
-    border-radius: 3px;
-    color: #000;
+    background: transparent !important;
+    border: 1px solid var(--ger-border, rgba(180,120,50,0.18)) !important;
+    border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28)) !important;
+    border-radius: 8px !important;
+    color: var(--ger-gold, #c9a052) !important;
+    box-shadow: none !important;
     cursor: pointer;
     padding: 4px;
+    transition: all 0.2s ease;
 }
 .backButton:hover, .infoButton:hover {
-    background: linear-gradient(180deg, #FFFEF9 0%, #F5F3E8 100%);
+    background: rgba(201,160,82,0.08) !important;
+    color: var(--ger-gold-bright, #d4ac5c) !important;
 }
+.backButton svg, .infoButton svg { color: var(--ger-gold, #c9a052) !important; }
 
-/* --- Filtros (Estilo Toolbar/Abas XP) --- */
+/* --- Filtros (Toolbar/Abas) --- */
 .filterContainer {
     display: flex;
     justify-content: space-around;
     padding: 10px;
-    background-color: #ECE9D8; /* Fundo cinza claro */
-    border-bottom: 1px solid #7F9DB9;
+    background: linear-gradient(165deg, rgba(20,18,14,0.6) 0%, rgba(10,8,6,0.4) 100%);
+    border-bottom: 1px solid var(--ger-border, rgba(180,120,50,0.18));
 }
+/* Abas-filtro ghost: !important vence a regra global `button` (ouro
+   preenchido), mantendo o pill transparente/inativo legível. */
 .filterContainer button {
     padding: 6px 12px;
-    border-radius: 3px;
-    background-color: #ECE9D8;
-    border: 1px solid #7F9DB9;
-    color: #000;
+    border-radius: 8px !important;
+    background: transparent !important;
+    border: 1px solid var(--ger-border, rgba(180,120,50,0.18)) !important;
+    border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28)) !important;
+    color: var(--ger-text-muted, rgba(255,255,255,0.65)) !important;
+    box-shadow: none !important;
     font-weight: 600;
     font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
     cursor: pointer;
+    transition: all 0.2s ease;
 }
-.filterContainer .filterActive {
-    background-color: #C1D2EE; /* Fundo azul claro (selecionado) */
-    color: #000;
-    border: 1px solid #003399;
+.filterContainer button:hover {
+    background: rgba(201,160,82,0.08) !important;
+    color: var(--ger-gold, #c9a052) !important;
+}
+.filterContainer button.filterActive {
+    background: rgba(201,160,82,0.14) !important;
+    color: var(--ger-gold, #c9a052) !important;
+    border-color: var(--ger-border-strong, rgba(201,160,82,0.45)) !important;
 }
 
-/* --- Lista (Estilo ListView XP) --- */
+/* --- Lista --- */
 .listContainer {
     flex-grow: 1;
     overflow-y: auto;
-    padding: 10px 15px 20px;
-    background: #FFFFFF; /* Fundo da lista branco */
-    border: 1px solid #7F9DB9;
+    padding: 6px 10px 16px;
+    background: var(--ger-bg-glass, linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%));
+    border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+    border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+    border-radius: 12px;
+    box-shadow: var(--ger-shadow, 0 8px 24px rgba(0,0,0,0.55));
     margin: 10px;
 }
 
-/* Item da Lista */
+/* Item da Lista — linha plana com divisória hairline (sem caixa própria;
+   a .listContainer é a caixa). */
 .itemContainer {
     display: flex;
     align-items: center;
     margin-top: 0;
-    background-color: #FFFFFF;
+    background-color: transparent;
     border-radius: 0;
-    border-bottom: 1px solid #C0C0C0; /* Linha divisória */
+    border-bottom: 1px solid var(--ger-border, rgba(180,120,50,0.12)); /* Linha divisória */
     position: relative;
+    transition: background 0.2s ease;
+}
+.itemContainer:last-child { border-bottom: none; }
+.itemContainer:hover {
+    background: linear-gradient(90deg, rgba(201,160,82,0.06) 0%, rgba(201,160,82,0.015) 50%, transparent 100%);
 }
 .itemTouchable {
     flex-grow: 1;
@@ -98,31 +131,58 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    /* Fundo azul para todos */
-    background-color: rgba(0, 84, 227, 0.15) !important;
+    border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
 }
-/* Ícones são todos azuis */
-.iconContainer svg {
-    color: #0054E3 !important; 
+/* O ícone segue o tipo: verde (entrada) / vermelho (saída). O JSX já passa a
+   cor inline no SVG; reforçamos pelo fundo tênue (verde/vermelho) que casa
+   com o backgroundColor inline (rgba(90,138,106)/rgba(164,74,74)). */
+.iconContainer[style*="rgb(90, 138, 106)"],
+.iconContainer[style*="rgba(90, 138, 106"] {
+    background-color: rgba(52,211,153,0.12) !important;
+    border-color: rgba(52,211,153,0.3);
 }
+.iconContainer[style*="rgb(164, 74, 74)"],
+.iconContainer[style*="rgba(164, 74, 74"] {
+    background-color: rgba(248,113,113,0.12) !important;
+    border-color: rgba(248,113,113,0.3);
+}
+/* Realça os ícones verde/vermelho metálicos opacos do JSX para a paleta viva */
+.iconContainer svg[color="#5A8A6A"] { color: var(--ger-success, #34d399) !important; }
+.iconContainer svg[color="#A44A4A"] { color: var(--ger-danger, #f87171) !important; }
 
-.detailsContainer { flex-grow: 1; }
-.itemCategory { font-size: 12px; font-weight: bold; margin: 0; color: #000; }
-.itemDate { font-size: 11px; color: #333; margin: 4px 0; }
-.itemDescription { font-size: 11px; color: #666; font-style: italic; }
+.detailsContainer { flex-grow: 1; min-width: 0; }
+.categoryRow { display: flex; align-items: center; gap: 8px; min-width: 0; }
+/* Selo de tipo (Depósito/Saque/...): chip dourado discreto. Vence a regra
+   global de badge do identity (que faria gold-on-gold pesado). */
+.typeBadge {
+    flex-shrink: 0;
+    padding: 1px 6px;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ger-gold, #c9a052);
+    background: rgba(201,160,82,0.1);
+    border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+    border-radius: 5px;
+    line-height: 1.5;
+}
+.itemCategory { font-size: 12px; font-weight: bold; margin: 0; color: var(--ger-text, #f0f0f5); }
+.itemDate { font-size: 11px; color: var(--ger-text-muted, rgba(255,255,255,0.65)); margin: 4px 0; }
+.itemDescription { font-size: 11px; color: var(--ger-text-dim, rgba(255,255,255,0.35)); font-style: italic; }
 
-.itemAmount { 
-    font-size: 12px; 
-    font-weight: bold; 
+.itemAmount {
+    font-size: 12px;
+    font-weight: bold;
     /* Cor baseada na prop (positivo/negativo) */
 }
-.itemAmount[style*="rgb(90, 138, 106)"], /* Verde (positivo) */
+.itemAmount[style*="rgb(90, 138, 106)"], /* Verde (positivo = ganho/depósito) */
 .itemAmount[style*="#5A8A6A"] {
-    color: #0054E3 !important; /* Mudar para Azul */
+    color: var(--ger-success, #34d399) !important;
 }
-.itemAmount[style*="rgb(164, 74, 74)"], /* Vermelho (negativo) */
+.itemAmount[style*="rgb(164, 74, 74)"], /* Vermelho (negativo = perda/saque) */
 .itemAmount[style*="#A44A4A"] {
-    color: #333333 !important; /* Mudar para Cinza Escuro */
+    color: var(--ger-danger, #f87171) !important;
 }
 
 
@@ -132,112 +192,130 @@
     gap: 5px;
     padding-right: 10px;
 }
+/* Ghost dourado: !important vence a regra global `button` (ouro preenchido),
+   senão o ícone ouro some sobre fundo ouro. */
 .editButton, .deleteButton {
-    background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
-    border: 1px solid #7F9DB9;
-    border-radius: 3px;
+    background: transparent !important;
+    border: 1px solid var(--ger-border, rgba(180,120,50,0.18)) !important;
+    border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28)) !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
     padding: 4px;
     cursor: pointer;
-    color: #000; /* Cor do ícone */
+    color: var(--ger-gold, #c9a052) !important; /* Cor do ícone */
+    transition: all 0.2s ease;
 }
-/* REMOVIDO: Cores de borda/texto (dourado/vermelho) */
+.editButton:hover, .deleteButton:hover {
+    background: rgba(201,160,82,0.08) !important;
+    color: var(--ger-gold-bright, #d4ac5c) !important;
+}
+.editButton svg, .deleteButton svg { color: inherit !important; }
 
-/* --- Modal (Estilo Janela XP) --- */
-.modalOverlay { 
-    position: fixed; 
-    inset: 0; 
-    background: rgba(0, 84, 227, 0.3); /* Overlay Azul */
-    display: flex; 
-    justify-content: center; 
-    align-items: center; 
-    backdrop-filter: blur(2px);
-}
-.modalContainer { 
-    background: #ECE9D8; 
-    border-radius: 8px 8px 0 0; 
-    border: 2px solid #0054E3;
-    width: 95%; 
-    max-width: 450px; 
-    max-height: 90vh; 
-    display: flex; 
-    flex-direction: column;
-    box-shadow: 4px 4px 12px rgba(0,0,0,0.4);
-}
-.modalHeader { 
-    display: flex; 
-    justify-content: space-between; 
+/* --- Modal (Janela glass) --- */
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75); /* Overlay escuro */
+    display: flex;
+    justify-content: center;
     align-items: center;
-    padding: 4px 8px; 
-    border-bottom: none;
-    /* Barra de título azul */
-    background: linear-gradient(180deg, #0054E3 0%, #0040B0 100%);
+    backdrop-filter: blur(8px);
+}
+.modalContainer {
+    background: linear-gradient(165deg, rgba(20,18,14,0.96) 0%, rgba(10,8,6,0.92) 100%);
+    border-radius: 14px;
+    overflow: hidden; /* cantos arredondados recortam header/footer */
+    border: 1px solid var(--ger-border-strong, rgba(201,160,82,0.45));
+    border-top: 1px solid var(--ger-border-strong, rgba(201,160,82,0.45));
+    width: 95%;
+    max-width: 450px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--ger-shadow-deep, 0 16px 48px rgba(0,0,0,0.7));
+}
+.modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+    /* Barra de título dourada */
+    background: linear-gradient(165deg, rgba(201,160,82,0.18) 0%, rgba(201,160,82,0.05) 100%);
 }
 .modalHeader h3 {
     font-size: 11px;
     font-weight: bold;
-    color: #FFFFFF;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    color: var(--ger-gold, #c9a052);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-shadow: 0 0 12px rgba(201,160,82,0.18);
 }
-.modalHeader button { 
-    background: linear-gradient(180deg, #FFFFFF 0%, #BFCCE0 100%);
-    border: 1px solid #003C74;
-    color: #000; 
-    cursor: pointer; 
+/* Botão fechar (ghost): !important vence a regra global `button`. */
+.modalHeader button {
+    background: transparent !important;
+    border: 1px solid var(--ger-border, rgba(180,120,50,0.18)) !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    color: var(--ger-gold, #c9a052) !important;
+    cursor: pointer;
     width: 21px;
     height: 21px;
     padding: 0;
+    transition: all 0.2s ease;
 }
-.modalContent { 
-    overflow-y: auto; 
-    padding: 5px 20px; 
-    background: #ECE9D8;
+.modalHeader button:hover { background: rgba(201,160,82,0.12) !important; }
+.modalContent {
+    overflow-y: auto;
+    padding: 5px 20px;
+    background: transparent;
 }
-.modalActions { 
-    display: flex; 
-    gap: 10px; 
-    padding: 12px; 
-    border-top: 1px solid #7F9DB9; 
-    background: #ECE9D8;
+.modalActions {
+    display: flex;
+    gap: 10px;
+    padding: 12px;
+    border-top: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+    background: transparent;
 }
 .inputGroup { margin: 15px 0; }
-.inputGroup label { 
-    display: block; 
-    margin-bottom: 8px; 
-    font-weight: 600; 
-    color: #000; /* Preto */
+.inputGroup label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--ger-text-muted, rgba(255,255,255,0.65));
     font-size: 11px;
 }
-/* Inputs Padrão XP */
-.inputGroup input, .inputGroup textarea, .inputGroup select { 
-    width: 100%; 
-    background: #FFFFFF; 
-    border: 1px solid #7F9DB9; 
-    border-radius: 0; 
-    padding: 4px 6px; 
-    color: #000; 
-    font-size: 11px; 
-    box-sizing: border-box; 
+/* Inputs */
+.inputGroup input, .inputGroup textarea, .inputGroup select {
+    width: 100%;
+    background: var(--ger-bg-glass, linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%));
+    border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+    border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+    border-radius: 8px;
+    padding: 6px 8px;
+    color: var(--ger-text, #f0f0f5);
+    font-size: 11px;
+    box-sizing: border-box;
 }
 .dateTimeContainer { display: flex; gap: 10px; }
 .dateTimeContainer input { flex: 1; }
 
-.cancelButton, .saveButton { 
-    flex: 1; 
-    padding: 6px 12px; 
-    border-radius: 3px; 
-    border: 1px solid #7F9DB9; 
-    font-weight: bold; 
-    cursor: pointer; 
+/* Gradiente ouro/uppercase do .saveButton vêm da regra global `button`
+   (identity.css). Aqui só layout + arredondamento. */
+.cancelButton, .saveButton {
+    flex: 1;
+    padding: 6px 12px;
+    border-radius: 9px;
+    cursor: pointer;
     font-size: 11px;
+    transition: all 0.2s ease;
 }
-/* Botão Cinza */
-.cancelButton { 
-    background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%); 
-    color: #000; 
+/* Botão secundário / ghost — !important vence a regra global `button`. */
+.cancelButton {
+    background: transparent !important;
+    border: 1px solid var(--ger-border, rgba(180,120,50,0.18)) !important;
+    border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28)) !important;
+    box-shadow: none !important;
+    color: var(--ger-gold, #c9a052) !important;
 }
-/* Botão Azul */
-.saveButton { 
-    background: linear-gradient(180deg, #0078D7 0%, #0054E3 50%, #0040B0 100%);
-    color: #FFFFFF; 
-    border-color: #003C74;
-}
+.cancelButton:hover { background: rgba(201,160,82,0.08) !important; color: var(--ger-gold-bright, #d4ac5c) !important; }

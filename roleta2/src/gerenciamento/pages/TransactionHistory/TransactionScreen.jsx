@@ -187,6 +187,12 @@ const TransactionScreen = () => {
             </div>
           )}
 
+          {transactionType === 'deposit' && isInitialBank && (
+            <p className={styles.initialBankWarning}>
+              ⚠️ Essa ação irá redefinir sua banca inicial.
+            </p>
+          )}
+
           <button type="submit" className={styles.submitButton} disabled={!isValid || loading}>
             {loading ? 'Processando...' : `Processar ${TRANSACTION_TYPES.find(t => t.key === transactionType)?.name}`}
           </button>

@@ -42,7 +42,6 @@ import {
 } from 'react-icons/fa';
 
 // --- Assets ---
-import logo from '../../assets/logo.png';
 // import background from '../../assets/fundoLuxo.jpg'; // ⛔ Removido no tema XP
 
 // --- Avatares Locais ---
@@ -109,15 +108,26 @@ const Dashboard = () => {
         }
     }, [user, refreshData]);
 
-    // ✅ NOVO: Lógica para agrupar transações por dia (copiado de CalendarScreen)
+    // Agrupa transações por dia (mesma lógica à prova de fuso do CalendarScreen).
+    // Pega YYYY-MM-DD direto da string para não deixar o navegador converter para
+    // o dia anterior por causa do timezone (toISOString jogava ±1 dia em fusos extremos).
     const transactionsByDay = useMemo(() => {
         const map = {};
         transactions.forEach(tx => {
             try {
-                // Usamos new Date(tx.date) para garantir que datas em string sejam processadas
-                const dateKey = new Date(tx.date).toISOString().split('T')[0];
+                let dateKey;
+                if (typeof tx.date === 'string' && tx.date.length >= 10) {
+                    dateKey = tx.date.substring(0, 10);
+                } else if (tx.date instanceof Date) {
+                    const y = tx.date.getFullYear();
+                    const m = String(tx.date.getMonth() + 1).padStart(2, '0');
+                    const d = String(tx.date.getDate()).padStart(2, '0');
+                    dateKey = `${y}-${m}-${d}`;
+                } else {
+                    dateKey = new Date(tx.date).toISOString().split('T')[0];
+                }
                 if (!map[dateKey]) {
-                map[dateKey] = [];
+                    map[dateKey] = [];
                 }
                 map[dateKey].push(tx);
             } catch (e) {
@@ -205,8 +215,8 @@ const Dashboard = () => {
     const getProfileIcon = () => {
         if (!bettingProfile?.isInitialized) return null;
         
-        // No tema XP, forçamos o ícone a ser branco 
-        const color = '#FFFFFF'; 
+        // Identidade Mogno & Ouro: ícone dourado
+        const color = '#c9a052';
         const iconName = bettingProfile.iconName || 'dice';
         
         switch(iconName) {
@@ -304,34 +314,27 @@ const Dashboard = () => {
                 <button className={styles.menuButton} onClick={openMenu}>
                     <span className={styles.menuIcon}></span>
                 </button>
-                
-                <div className={styles.greetingContainer}>
-                    <h1 className={styles.greeting}>
-                        Olá, {user?.name || 'Jogador'}!
-                        <img src={logo} alt="Logo" className={styles.logoImg} />
-                    </h1>
-                    
-                    <div className={styles.profileWrapper}>
-                        <div className={styles.profileAvatarContainer}>
-                            {avatarUrl ? (
-                                <img 
-                                    src={avatarUrl} 
-                                    alt="Avatar" 
-                                    className={styles.profileAvatar} 
-                                />
-                            ) : (
-                                <div className={`${styles.profileAvatar} ${styles.profileAvatarPlaceholder}`}>
-                                    <span>{getInitials()}</span>
-                                </div>
-                            )}
-                        </div>
-                        
-                        {bettingProfile?.isInitialized && (
-                            <div className={styles.profileIconBadge} title={bettingProfile.title}>
-                                {getProfileIcon()}
+
+                <div className={styles.profileWrapper} style={{ marginLeft: 'auto', marginRight: 12 }}>
+                    <div className={styles.profileAvatarContainer}>
+                        {avatarUrl ? (
+                            <img
+                                src={avatarUrl}
+                                alt="Avatar"
+                                className={styles.profileAvatar}
+                            />
+                        ) : (
+                            <div className={`${styles.profileAvatar} ${styles.profileAvatarPlaceholder}`}>
+                                <span>{getInitials()}</span>
                             </div>
                         )}
                     </div>
+
+                    {bettingProfile?.isInitialized && (
+                        <div className={styles.profileIconBadge} title={bettingProfile.title}>
+                            {getProfileIcon()}
+                        </div>
+                    )}
                 </div>
 
                 <button
@@ -340,7 +343,7 @@ const Dashboard = () => {
                     title="Resetar dados"
                     aria-label="Resetar dados"
                 >
-                    <MdRefresh size={18} />
+                    <MdRefresh size={15} /> Reset
                 </button>
             </header>
 
@@ -357,8 +360,10 @@ const Dashboard = () => {
         <div className={styles.cardHeader}>
             <MdAccountBalanceWallet size={20} />
             <span>Banca Inicial</span>
-            {/* Ícone visual de edição opcional */}
-            <MdRefresh size={14} style={{ marginLeft: 'auto', opacity: 0.5 }} />
+            {/* Ícone visual: editar quando já existe, adicionar quando ainda é 0 */}
+            {initialBalance > 0
+                ? <MdRefresh size={14} style={{ marginLeft: 'auto', opacity: 0.5 }} />
+                : <MdAdd size={16} style={{ marginLeft: 'auto', opacity: 0.7 }} />}
         </div>
         {initialBalance > 0 ? (
             <p className={`${styles.balanceAmount} ${styles.initial}`}>

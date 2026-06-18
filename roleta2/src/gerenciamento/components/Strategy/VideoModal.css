@@ -4,7 +4,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.85);
+    background: rgba(0, 0, 0, 0.75);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -18,14 +18,17 @@
     to { opacity: 1; }
 }
 
+/* Fundo escuro OPACO + cantos retos. !important vence o `[class*='modal']`
+   do identity.css (que senao aplica gradiente glass + border-radius 14px). */
 .video-modal-content {
-    background: #000;
-    border-radius: 10px;
+    background: #0a0806 !important;
+    border: 1px solid var(--ger-border-strong, rgba(201,160,82,0.45)) !important;
+    border-radius: 0 !important;
     padding: 0;
     position: relative;
     width: 90%;
     max-width: 960px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    box-shadow: var(--ger-shadow-deep, 0 16px 48px rgba(0,0,0,0.7)) !important;
     animation: slideIn 0.3s ease-out;
 }
 
@@ -40,7 +43,7 @@
     right: 0;
     background: transparent;
     border: none;
-    color: #fff;
+    color: var(--ger-text, #f0f0f5);
     font-size: 2.5rem;
     font-weight: 200;
     cursor: pointer;
@@ -49,7 +52,7 @@
 }
 
 .video-modal-close:hover {
-    color: #d4af37; /* Cor dourada do seu tema */
+    color: var(--ger-gold, #c9a052); /* Cor dourada do tema */
 }
 
 .video-player-container {
@@ -58,7 +61,7 @@
     padding-bottom: 56.25%; /* 16:9 */
     height: 0;
     overflow: hidden;
-    border-radius: 8px;
+    border-radius: 0;
 }
 
 .video-player-container iframe {

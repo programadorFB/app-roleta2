@@ -1,21 +1,23 @@
 /* ========================================
-   Tema XP (Branco, Azul, Cinza)
+   Tema Mogno & Ouro Premium
    PerformanceChart.module.css - Mobile First
+   (migrado do tema XP Branco/Azul/Cinza)
    ======================================== */
 
-/* Container (Estilo Group Box XP) */
+/* Container (Card glass dourado) */
 .chartContainer {
-    background: #ECE9D8; /* Fundo Cinza XP */
-    border: 1px solid #7F9DB9; /* Borda Cinza-Azul */
-    border-radius: 0;
+    background: var(--ger-bg-glass, linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%));
+    border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+    border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+    border-radius: 14px;
+    box-shadow: var(--ger-shadow, 0 8px 24px rgba(0,0,0,0.55));
     padding: 12px; /* Padding menor para mobile */
-    
+
     /* Mobile First: Ocupa largura disponível */
-    width: 100%; 
+    width: 100%;
     max-width: 100%;
     margin: 0 auto 24px auto; /* Centralizado e sem margem esquerda fixa */
-    
-    font-family: 'Tahoma', 'Trebuchet MS', sans-serif;
+
     box-sizing: border-box; /* Garante que padding não estoure a largura */
     overflow: hidden; /* Evita vazamento de conteúdo */
 }
@@ -34,12 +36,12 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    color: #003399;
+    color: var(--ger-gold, #c9a052);
 }
 
 .chartTitle svg {
     font-size: 20px;
-    color: #0054E3;
+    color: var(--ger-gold, #c9a052);
     flex-shrink: 0; /* Ícone não encolhe */
 }
 
@@ -47,6 +49,7 @@
     margin: 0;
     font-size: 14px;
     font-weight: 600;
+    text-shadow: 0 0 12px rgba(201,160,82,0.18);
 }
 
 /* Filtros de Data */
@@ -56,46 +59,48 @@
     background: transparent;
     padding: 2px 0;
     border-radius: 0;
-    
+
     /* Mobile: Scroll horizontal se faltar espaço */
     width: 100%;
     overflow-x: auto;
     white-space: nowrap;
     -webkit-overflow-scrolling: touch;
-    
+
     /* Remove barra de rolagem visual mas mantém funcionalidade */
-    scrollbar-width: none; 
+    scrollbar-width: none;
 }
 
 .dateFilters::-webkit-scrollbar {
     display: none;
 }
 
-/* Botão de Filtro (XP) */
+/* Botão de Filtro */
 .filterButton {
     padding: 8px 16px; /* Área de toque maior para mobile */
-    background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
-    border: 1px solid #7F9DB9;
-    border-radius: 3px;
-    color: #000;
+    background: transparent;
+    border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+    border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+    border-radius: 8px;
+    color: var(--ger-text-muted, rgba(255,255,255,0.65));
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
-    transition: none;
+    transition: all 0.2s ease;
     white-space: nowrap;
     flex-shrink: 0; /* Impede botões de esmagarem */
 }
 
 .filterButton:hover {
-    background: linear-gradient(180deg, #FFFEF9 0%, #F5F3E8 100%);
-    color: #000;
+    background: rgba(201,160,82,0.08);
+    color: var(--ger-gold, #c9a052);
 }
 
 .filterButton.active {
-    background: #C1D2EE;
-    color: #000;
+    background: rgba(201,160,82,0.14);
+    color: var(--ger-gold-bright, #d4ac5c);
     font-weight: 600;
-    border-color: #003399;
+    border-color: var(--ger-border-strong, rgba(201,160,82,0.45));
+    text-shadow: 0 0 8px rgba(201,160,82,0.25);
 }
 
 /* Estatísticas (Grid Responsivo) */
@@ -108,14 +113,15 @@
 }
 
 .statCard {
-    background: #FFFFFF;
-    border: 1px solid #C0C0C0;
-    border-radius: 4px;
+    background: var(--ger-bg-glass, linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%));
+    border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+    border-radius: 12px;
     padding: 12px;
     display: flex;
     flex-direction: column;
     gap: 6px;
     min-width: 0; /* Evita overflow em grids flex */
+    box-shadow: var(--ger-shadow, 0 8px 24px rgba(0,0,0,0.55));
 }
 
 .statLabel {
@@ -123,7 +129,7 @@
     align-items: center;
     gap: 6px;
     font-size: 11px;
-    color: #333;
+    color: var(--ger-text-muted, rgba(255,255,255,0.65));
     font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
@@ -132,11 +138,11 @@
 
 .statLabel svg {
     font-size: 14px;
-    color: #0054E3 !important;
+    color: var(--ger-gold, #c9a052) !important;
     flex-shrink: 0;
 }
 
-/* Valores Estatísticos */
+/* Valores Estatísticos — tipografia compartilhada (base) */
 .statValueGains,
 .statValueLosses,
 .statValueNet,
@@ -146,30 +152,32 @@
     word-break: break-all; /* Quebra números muito grandes */
 }
 
-.statValueGains { color: #0054E3; }
-.statValueLosses { color: #333333; }
-.statValueBalance { color: #003399; }
+/* Cores por variante: ganhos = success, perdas = danger, saldo = ouro.
+   Net é neutro até receber .positive/.negative do JSX. */
+.statValueGains { color: var(--ger-success, #34d399); }
+.statValueLosses { color: var(--ger-danger, #f87171); }
+.statValueBalance { color: var(--ger-gold, #c9a052); }
 
-.statValueNet.positive { color: #0054E3; }
-.statValueNet.negative { color: #333333; }
+.statValueNet.positive { color: var(--ger-success, #34d399); }
+.statValueNet.negative { color: var(--ger-danger, #f87171); }
 
 .statAvg {
     font-size: 10px;
-    color: #666;
+    color: var(--ger-text-dim, rgba(255,255,255,0.35));
 }
 
-.statAvg.positive { color: #0054E3; }
-.statAvg.negative { color: #333333; }
+.statAvg.positive { color: var(--ger-success, #34d399); }
+.statAvg.negative { color: var(--ger-danger, #f87171); }
 
 /* Gráfico Wrapper */
 .chartWrapper {
     margin-top: 16px;
     padding: 8px; /* Menos padding no mobile */
-    background: #FFFFFF;
-    border-radius: 0;
-    border: 1px solid #7F9DB9;
-    box-shadow: inset 1px 1px 3px rgba(0,0,0,0.3);
-    
+    background: rgba(255,255,255,0.02);
+    border-radius: 10px;
+    border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.4);
+
     /* Garante responsividade do canvas do gráfico (Recharts/ChartJS) */
     width: 100%;
     min-height: 250px; /* Altura mínima garantida */
@@ -178,11 +186,11 @@
 
 /* Tooltip Customizado */
 .customTooltip {
-    background: #FFFFFF;
-    border: 1px solid #000000;
-    border-radius: 2px;
+    background: linear-gradient(165deg, rgba(20,18,14,0.96) 0%, rgba(10,8,6,0.92) 100%);
+    border: 1px solid var(--ger-border-strong, rgba(201,160,82,0.45));
+    border-radius: 10px;
     padding: 8px;
-    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--ger-shadow-deep, 0 16px 48px rgba(0,0,0,0.7));
     min-width: 140px;
     max-width: 90vw; /* Não ultrapassa largura da tela */
     z-index: 1000;
@@ -190,11 +198,11 @@
 
 .tooltipDate {
     font-size: 11px;
-    color: #000;
+    color: var(--ger-gold, #c9a052);
     font-weight: 600;
     margin: 0 0 6px 0;
     text-align: center;
-    border-bottom: 1px solid #C0C0C0;
+    border-bottom: 1px solid var(--ger-border, rgba(180,120,50,0.18));
     padding-bottom: 4px;
 }
 
@@ -211,28 +219,28 @@
     align-items: center;
     gap: 4px;
     font-size: 11px;
-    color: #000;
+    color: var(--ger-text-muted, rgba(255,255,255,0.65));
 }
 
 .tooltipLabel svg {
-    color: #0054E3 !important;
+    color: var(--ger-gold, #c9a052) !important;
 }
 
 .tooltipValueBalance {
     font-weight: 700;
-    color: #000;
+    color: var(--ger-text, #f0f0f5);
     font-size: 12px;
 }
 
 .tooltipInfo {
     margin-top: 5px;
     padding-top: 5px;
-    border-top: 1px dotted #C0C0C0;
+    border-top: 1px dotted var(--ger-border, rgba(180,120,50,0.18));
     text-align: center;
 }
 
 .tooltipInfo small {
-    color: #333;
+    color: var(--ger-text-dim, rgba(255,255,255,0.35));
     font-size: 10px;
 }
 
@@ -243,12 +251,12 @@
     align-items: center;
     justify-content: center;
     padding: 30px 10px;
-    color: #333;
+    color: var(--ger-text-muted, rgba(255,255,255,0.65));
     text-align: center;
 }
 
 .emptyChart svg {
-    color: #7F9DB9;
+    color: var(--ger-gold-soft, rgba(201,160,82,0.7));
     margin-bottom: 12px;
     font-size: 32px;
 }
@@ -256,13 +264,13 @@
 .emptyChart p {
     font-size: 13px;
     margin: 0 0 4px 0;
-    color: #000;
+    color: var(--ger-text, #f0f0f5);
     font-weight: bold;
 }
 
 .emptyChart small {
     font-size: 11px;
-    color: #333;
+    color: var(--ger-text-muted, rgba(255,255,255,0.65));
 }
 
 /* ========================================
@@ -273,7 +281,7 @@
         padding: 20px;
         /* Limita a largura em telas grandes para não ficar esticado demais */
         /* Pode remover o max-width se quiser que ocupe 100% real do container pai */
-        max-width: 100%; 
+        max-width: 100%;
     }
 
     .chartHeader {
@@ -298,7 +306,7 @@
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 16px;
     }
-    
+
     .statValueGains,
     .statValueLosses,
     .statValueNet,

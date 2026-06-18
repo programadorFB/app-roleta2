@@ -1,47 +1,50 @@
 /* ========================================
-   Tema XP (Branco, Azul, Cinza)
+   Tema Mogno & Ouro Premium
    ObjectiveModal.module.css
+   (migrado do tema XP Branco/Azul/Cinza)
    ======================================== */
 
 :root {
-  /* Cores XP */
-  --xp-blue: #0054E3;
-  --xp-blue-dark: #003399;
-  --xp-gray-light: #ECE9D8;
-  --xp-gray-medium: #D6D3CE;
-  --xp-gray-border: #7F9DB9;
-  --xp-white: #FFFFFF;
-  --xp-black: #000000;
-  --xp-error-red: #BF0000;
-  --xp-success-green: #008000;
+  /* Mapeamento Mogno & Ouro (mantém nomes legados p/ não quebrar) */
+  --xp-blue: #c9a052;
+  --xp-blue-dark: #a07830;
+  --xp-gray-light: #1c1812;
+  --xp-gray-medium: #14120e;
+  --xp-gray-border: rgba(180,120,50,0.18);
+  --xp-white: #f0f0f5;
+  --xp-black: #f0f0f5;
+  --xp-error-red: #f87171;
+  --xp-success-green: #34d399;
 }
 
 /* ========================================
-   MODAL PRINCIPAL (Janela XP)
+   MODAL PRINCIPAL (Janela Mogno & Ouro)
    ======================================== */
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 84, 227, 0.3); /* Overlay Azul */
+  background: rgba(0, 0, 0, 0.75); /* Overlay escuro */
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: 20px;
-  backdrop-filter: blur(2px);
-  font-family: 'Tahoma', 'Trebuchet MS', sans-serif;
+  backdrop-filter: blur(8px);
 }
 
 .modal {
-  background: var(--xp-gray-light);
-  border-radius: 8px 8px 0 0;
+  background: linear-gradient(165deg, rgba(20,18,14,0.96) 0%, rgba(10,8,6,0.92) 100%);
+  border-radius: 14px;
+  overflow: hidden; /* mantém o header arredondado dentro do raio */
   width: 100%;
   max-width: 480px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  border: 2px solid var(--xp-blue);
-  box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--ger-border-strong, rgba(201,160,82,0.45));
+  border-top: 1px solid var(--ger-border-strong, rgba(201,160,82,0.45));
+  box-shadow: var(--ger-shadow-deep, 0 16px 48px rgba(0,0,0,0.7), inset 0 1px 0 rgba(201,160,82,0.12));
+  backdrop-filter: blur(40px) saturate(180%);
   animation: modalSlideIn 0.3s ease-out;
 }
 
@@ -57,58 +60,67 @@
 }
 
 /* ========================================
-   HEADER DO MODAL (Barra de Título XP)
+   HEADER DO MODAL (Barra de Título dourada)
    ======================================== */
 .modalHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 4px 8px;
-  border-bottom: none;
-  background: linear-gradient(180deg, var(--xp-blue) 0%, #0040B0 100%);
-  border-top-left-radius: 6px; /* Ajuste para borda */
-  border-top-right-radius: 6px;
+  border-bottom: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  background: linear-gradient(165deg, rgba(201,160,82,0.18) 0%, rgba(201,160,82,0.05) 100%);
 }
 
 .modalTitle {
   font-size: 11px;
   font-weight: 700;
-  color: var(--xp-white);
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  color: var(--ger-gold, #c9a052);
+  text-shadow: 0 0 12px rgba(201,160,82,0.18);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   margin: 0;
 }
 
-/* Botões do Header (Cinza e Azul) */
+/* Botões do Header (Ghost dourado e Ouro pleno) */
 .btnCancel,
 .btnSave {
   padding: 4px 12px;
-  border-radius: 3px;
+  border-radius: 8px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   cursor: pointer;
-  transition: none;
-  border: 1px solid var(--xp-gray-border);
+  transition: all 0.2s ease;
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
 }
 
 .btnCancel {
-  background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
-  color: var(--xp-black);
+  background: transparent;
+  color: var(--ger-gold, #c9a052);
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
 }
 .btnCancel:hover {
-  background: linear-gradient(180deg, #FFFEF9 0%, #F5F3E8 100%);
+  background: rgba(201,160,82,0.08);
+  color: var(--ger-gold-bright, #d4ac5c);
 }
 
 .btnSave {
-  background: linear-gradient(180deg, #0078D7 0%, #0054E3 50%, #0040B0 100%);
-  color: var(--xp-white);
-  border-color: #003C74;
+  background: linear-gradient(165deg, var(--ger-gold, #c9a052) 0%, var(--ger-gold-dark, #a07830) 100%);
+  color: var(--ger-bg-deep, #0a0806);
+  border-color: var(--ger-border-strong, rgba(201,160,82,0.45));
+  border-top: 1px solid rgba(220,185,105,0.7);
+  box-shadow: 0 4px 14px rgba(201,160,82,0.18), inset 0 1px 0 rgba(255,255,255,0.22);
 }
 .btnSave:disabled {
-  background: linear-gradient(180deg, #999999 0%, #808080 100%);
-  color: #CCCCCC;
+  background: rgba(255,255,255,0.05);
+  color: var(--ger-text-dim, rgba(255,255,255,0.35));
+  box-shadow: none;
+  opacity: 0.5;
 }
 .btnSave:not(:disabled):hover {
-  background: linear-gradient(180deg, #008FE5 0%, #0065F0 50%, #0050C5 100%);
+  background: linear-gradient(165deg, var(--ger-gold-bright, #d4ac5c) 0%, var(--ger-gold, #c9a052) 100%);
+  box-shadow: 0 6px 22px rgba(201,160,82,0.28), inset 0 1px 0 rgba(255,255,255,0.3);
 }
 
 /* ========================================
@@ -118,12 +130,12 @@
   flex: 1;
   overflow-y: auto;
   padding: 24px;
-  background: var(--xp-gray-light);
+  background: transparent;
 }
-.modalBody::-webkit-scrollbar { width: 16px; }
-.modalBody::-webkit-scrollbar-track { background: #ECE9D8; border: 1px solid #7F9DB9; }
-.modalBody::-webkit-scrollbar-thumb { background: #BFCCE0; border: 1px solid #7F9DB9; }
-.modalBody::-webkit-scrollbar-thumb:hover { background: #7F9DB9; }
+.modalBody::-webkit-scrollbar { width: 6px; }
+.modalBody::-webkit-scrollbar-track { background: rgba(180,120,50,0.03); }
+.modalBody::-webkit-scrollbar-thumb { background: rgba(180,120,50,0.18); }
+.modalBody::-webkit-scrollbar-thumb:hover { background: rgba(201,160,82,0.32); }
 
 /* ========================================
    CAMPOS DE FORMULÁRIO
@@ -135,40 +147,43 @@
   display: block;
   font-size: 11px;
   font-weight: 600;
-  color: var(--xp-black);
+  color: var(--ger-text-muted, rgba(255,255,255,0.65));
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   margin-bottom: 6px;
 }
 .fieldError {
-  color: var(--xp-error-red);
+  color: var(--ger-danger, #f87171);
   font-size: 11px;
   font-weight: 500;
 }
 
-/* Input Padrão XP */
+/* Input Padrão Mogno & Ouro */
 .fieldInput,
 .datePickerInput {
   width: 100%;
-  background: var(--xp-white);
-  border: 1px solid var(--xp-gray-border);
-  border-radius: 0;
+  background: var(--ger-bg-glass, linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%));
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+  border-radius: 8px;
   padding: 4px 6px;
   font-size: 11px;
-  color: var(--xp-black);
-  transition: none;
+  color: var(--ger-text, #f0f0f5);
+  transition: all 0.2s ease;
   box-sizing: border-box;
-  box-shadow: inset 1px 1px 2px rgba(0,0,0,0.1);
 }
 .fieldInput:focus,
 .datePickerInput:focus {
-  outline: 1px solid var(--xp-blue);
-  border-color: var(--xp-gray-border);
+  outline: none;
+  border-color: var(--ger-border-strong, rgba(201,160,82,0.45));
+  box-shadow: 0 0 0 2px rgba(201,160,82,0.12);
 }
 .fieldInput::placeholder,
 .datePickerInput::placeholder {
-  color: #888;
+  color: var(--ger-text-dim, rgba(255,255,255,0.35));
 }
 .fieldInputError {
-  border-color: var(--xp-error-red) !important;
+  border-color: var(--ger-danger, #f87171) !important;
 }
 
 /* ========================================
@@ -188,31 +203,31 @@
   right: 6px;
   font-size: 16px;
   pointer-events: none;
-  opacity: 0.7;
-  color: var(--xp-blue);
+  opacity: 0.85;
+  color: var(--ger-gold, #c9a052);
 }
 
 /* ========================================
-   CUSTOMIZAÇÃO DO REACT-DATEPICKER (XP)
+   CUSTOMIZAÇÃO DO REACT-DATEPICKER (Mogno & Ouro)
    ======================================== */
 :global(.react-datepicker) {
-  background: var(--xp-white) !important;
-  border: 1px solid var(--xp-gray-border) !important;
-  border-radius: 0 !important;
-  font-family: 'Tahoma', sans-serif !important;
-  box-shadow: 2px 2px 5px rgba(0,0,0,0.3) !important;
+  background: linear-gradient(165deg, rgba(20,18,14,0.96) 0%, rgba(10,8,6,0.92) 100%) !important;
+  border: 1px solid var(--ger-border-strong, rgba(201,160,82,0.45)) !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  box-shadow: var(--ger-shadow-deep, 0 16px 48px rgba(0,0,0,0.7)) !important;
 }
 :global(.react-datepicker-popper) {
   z-index: 9999 !important;
 }
 :global(.react-datepicker__header) {
-  background: var(--xp-blue) !important; /* Header Azul */
-  border-bottom: 1px solid var(--xp-gray-border) !important;
+  background: linear-gradient(165deg, rgba(201,160,82,0.18) 0%, rgba(201,160,82,0.05) 100%) !important;
+  border-bottom: 1px solid var(--ger-border, rgba(180,120,50,0.18)) !important;
   border-radius: 0 !important;
   padding: 8px 0 !important;
 }
 :global(.react-datepicker__current-month) {
-  color: var(--xp-white) !important;
+  color: var(--ger-gold, #c9a052) !important;
   font-size: 12px !important;
   font-weight: 700 !important;
 }
@@ -221,7 +236,7 @@
   margin-bottom: 0 !important;
 }
 :global(.react-datepicker__day-name) {
-  color: var(--xp-white) !important; /* Dias da semana brancos */
+  color: var(--ger-gold-soft, rgba(201,160,82,0.7)) !important;
   font-weight: 700 !important;
   font-size: 11px !important;
   width: 30px !important;
@@ -235,40 +250,42 @@
   justify-content: space-around !important;
 }
 :global(.react-datepicker__day) {
-  color: var(--xp-black) !important;
+  color: var(--ger-text, #f0f0f5) !important;
   width: 30px !important;
   line-height: 30px !important;
   margin: 2px !important;
-  border-radius: 0 !important;
-  transition: none !important;
+  border-radius: 7px !important;
+  transition: all 0.2s ease !important;
   font-weight: 600 !important;
   font-size: 11px !important;
 }
 :global(.react-datepicker__day:hover) {
-  background: #C1D2EE !important; /* Hover azul claro */
-  border-radius: 0 !important;
+  background: rgba(201,160,82,0.12) !important;
+  border-radius: 7px !important;
   transform: none !important;
 }
 :global(.react-datepicker__day--selected),
 :global(.react-datepicker__day--selected:hover) {
-  background: var(--xp-blue) !important; /* Seleção Azul */
-  color: var(--xp-white) !important;
+  background: linear-gradient(165deg, var(--ger-gold, #c9a052) 0%, var(--ger-gold-dark, #a07830) 100%) !important;
+  color: var(--ger-bg-deep, #0a0806) !important;
   font-weight: 700 !important;
+  border-radius: 7px !important;
   box-shadow: none !important;
   transform: none !important;
 }
 :global(.react-datepicker__day--today) {
-  border: 1px solid var(--xp-blue) !important;
+  border: 1px solid var(--ger-border-strong, rgba(201,160,82,0.45)) !important;
+  border-radius: 7px !important;
   background: transparent !important;
-  color: var(--xp-blue) !important;
+  color: var(--ger-gold, #c9a052) !important;
   font-weight: 700 !important;
 }
 :global(.react-datepicker__day--disabled) {
-  color: #888 !important;
+  color: var(--ger-text-dim, rgba(255,255,255,0.35)) !important;
   opacity: 1 !important;
 }
 :global(.react-datepicker__day--outside-month) {
-  color: #888 !important;
+  color: var(--ger-text-dim, rgba(255,255,255,0.35)) !important;
   opacity: 1 !important;
 }
 :global(.react-datepicker__navigation) {
@@ -277,14 +294,14 @@
   height: 24px !important;
 }
 :global(.react-datepicker__navigation-icon::before) {
-  border-color: var(--xp-white) !important;
+  border-color: var(--ger-gold, #c9a052) !important;
 }
 :global(.react-datepicker__triangle) {
   display: none !important;
 }
 
 /* ========================================
-   BOTÕES DE DATA RÁPIDA (Botões Cinza XP)
+   BOTÕES DE DATA RÁPIDA (Botões Ghost dourados)
    ======================================== */
 .quickDateButtons {
   display: flex;
@@ -295,23 +312,27 @@
 }
 .quickDateLabel {
   font-size: 11px;
-  color: var(--xp-black);
+  color: var(--ger-text-muted, rgba(255,255,255,0.65));
   font-weight: 500;
 }
 .quickDateBtn {
-  background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
-  border: 1px solid var(--xp-gray-border);
-  border-radius: 3px;
+  background: transparent;
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+  border-radius: 8px;
   padding: 4px 10px;
   font-size: 11px;
-  color: var(--xp-black);
+  color: var(--ger-gold, #c9a052);
   cursor: pointer;
-  transition: none;
+  transition: all 0.2s ease;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 .quickDateBtn:hover {
-  background: linear-gradient(180deg, #FFFEF9 0%, #F5F3E8 100%);
-  border-color: var(--xp-gray-border);
+  background: rgba(201,160,82,0.08);
+  border-color: var(--ger-border-strong, rgba(201,160,82,0.45));
+  color: var(--ger-gold-bright, #d4ac5c);
   transform: none;
   box-shadow: none;
 }
@@ -323,38 +344,41 @@
    PRÉVIA DE PROGRESSO (Group Box)
    ======================================== */
 .progressPreview {
-  background: #ECE9D8;
-  border: 1px solid var(--xp-gray-border);
-  border-radius: 0;
+  background: var(--ger-bg-glass, linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%));
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+  border-radius: 12px;
   padding: 15px;
   margin-top: 8px;
 }
 .progressTitle {
   font-size: 12px;
   font-weight: 700;
-  color: var(--xp-blue-dark);
+  color: var(--ger-gold, #c9a052);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   margin: 0 0 16px 0;
 }
 .progressBarContainer {
   width: 100%;
   height: 16px;
-  background: var(--xp-white);
-  border-radius: 0;
+  background: rgba(255,255,255,0.05);
+  border-radius: 999px;
   overflow: hidden;
   margin-bottom: 10px;
-  border: 1px solid var(--xp-gray-border);
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
 }
 .progressBarFill {
   height: 100%;
-  background: var(--xp-blue); /* Verde -> Azul */
-  border-radius: 0;
+  background: linear-gradient(90deg, var(--ger-gold-dark, #a07830) 0%, var(--ger-gold, #c9a052) 100%);
+  border-radius: 999px;
   transition: width 0.4s ease;
-  box-shadow: none;
+  box-shadow: 0 0 12px rgba(201,160,82,0.4);
 }
 .progressPercentage {
   font-size: 11px;
   font-weight: 600;
-  color: var(--xp-black);
+  color: var(--ger-text, #f0f0f5);
   margin: 0;
 }
 

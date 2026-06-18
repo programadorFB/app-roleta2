@@ -66,7 +66,9 @@ const RiskSlider = ({
 
   const controls = useAnimation();
   const x = useMotionValue(0);
-  const knobRadius = 20; // Metade do knob
+  // 0: o knob percorre toda a largura do trilho. O recuo (pra knob/números/barra
+  // ficarem alinhados) vem do padding lateral do .sliderWrapper no CSS.
+  const knobRadius = 0;
 
   // Função para calcular valor baseada na posição visual
   const calculateValueFromX = useCallback((currentX) => {

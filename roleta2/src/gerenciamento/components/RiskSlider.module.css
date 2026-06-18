@@ -1,40 +1,57 @@
 /* ========================================
-   Tema XP (Branco, Azul, Cinza)
+   Tema Mogno & Ouro Premium
    RiskSlider.module.css
    ======================================== */
 
+/* Sem caixa: controle aberto, integrado à página. Um brilho radial sutil
+   no topo dá foco às interações sem desenhar uma borda dura. */
 .sliderContainer {
-  padding: 20px;
-  background-color: #ECE9D8; /* Fundo Cinza XP */
-  margin: 20px;
+  padding: 6px 4px 4px;
+  background: radial-gradient(120% 80% at 50% -10%, rgba(201,160,82,0.06) 0%, transparent 60%);
+  margin: 0;
+  border: none;
   border-radius: 0;
-  border: 1px solid #7F9DB9; /* Borda Group Box */
   box-shadow: none;
-  backdrop-filter: none;
-  font-family: 'Tahoma', 'Trebuchet MS', sans-serif;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 .compactContainer {
   padding: 15px;
   margin: 20px 0;
-  background-color: #ECE9D8;
-  border: 1px solid #7F9DB9;
+  background: var(--ger-bg-glass, linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%));
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
 }
 
-.sliderHeader, .compactHeader {
-  text-align: left; /* Alinhamento clássico */
-  margin-bottom: 20px;
+/* Cabeçalho premium: título à esquerda, chip do perfil à direita,
+   separados por um divisor dourado tênue. */
+.sliderHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(201,160,82,0.15);
+}
+.compactHeader {
+  text-align: left;
+  margin-bottom: 16px;
 }
 
 .sliderTitle, .compactTitle {
-  font-weight: bold;
-  color: #003399; /* Azul Escuro */
-  text-shadow: none;
+  font-weight: 700;
+  color: var(--ger-gold, #c9a052); /* Ouro */
+  text-shadow: 0 0 12px rgba(201,160,82,0.18);
 }
 
 .sliderTitle {
-  font-size: 14px;
-  margin-bottom: 15px;
+  font-size: 12px;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ger-gold-soft, rgba(201,160,82,0.85));
 }
 .compactTitle {
   font-size: 12px;
@@ -45,26 +62,27 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background-color: #FFFFFF;
-  border: 1px solid #7F9DB9;
-  padding: 6px 10px;
-  border-radius: 4px;
+  background: rgba(201,160,82,0.1);
+  border: 1px solid var(--ger-border-strong, rgba(201,160,82,0.45));
+  padding: 7px 12px;
+  border-radius: 9px;
   font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(201,160,82,0.1);
 }
 .compactProfileDisplay {
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 5px 10px;
+  border-radius: 8px;
   font-size: 11px;
 }
 
-/* Força os ícones e textos do perfil a serem azuis, sobrescrevendo o JSX */
+/* Força os ícones e textos do perfil a serem dourados, sobrescrevendo o JSX */
 .currentProfileIndicator span[style*="color"],
 .compactProfileDisplay span[style*="color"] {
-  color: #003399 !important;
+  color: var(--ger-gold, #c9a052) !important;
 }
 .currentProfileIndicator svg,
 .compactProfileDisplay svg {
-  color: #0054E3 !important;
+  color: var(--ger-gold, #c9a052) !important;
 }
 
 
@@ -80,27 +98,42 @@
   align-items: center;
   gap: 5px;
   flex: 1;
+  transition: transform 0.25s cubic-bezier(0.22,1,0.36,1);
 }
 .sliderLabel {
   font-size: 11px;
-  color: #333;
+  color: var(--ger-text-dim, rgba(255,255,255,0.4));
   font-weight: 600;
-  transition: none;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition: color 0.25s ease, text-shadow 0.25s ease;
 }
 .activeLabel {
-  color: #003399; /* Azul Escuro */
+  color: var(--ger-gold, #c9a052); /* Ouro */
+  text-shadow: 0 0 10px rgba(201,160,82,0.35);
 }
-/* Força as cores dos ícones das labels */
+/* Ícones das zonas: inativos discretos */
 .sliderLabels svg {
-  color: #7F9DB9 !important; /* Cinza-Azul Inativo */
+  color: var(--ger-text-dim, rgba(255,255,255,0.3)) !important;
+  transition: color 0.25s ease, transform 0.25s cubic-bezier(0.22,1,0.36,1), filter 0.25s ease;
 }
-.activeLabel svg {
-  color: #0054E3 !important; /* Azul Ativo */
+/* Zona ativa (o `span` irmão tem .activeLabel): ícone pulsa em ouro com glow */
+.labelContainer:has(.activeLabel) {
+  transform: translateY(-3px);
+}
+.labelContainer:has(.activeLabel) svg {
+  color: var(--ger-gold, #c9a052) !important;
+  transform: scale(1.25);
+  filter: drop-shadow(0 0 9px rgba(201,160,82,0.55));
 }
 
 .sliderWrapper {
   position: relative;
   padding-top: 50px; /* Espaço para o ícone flutuante */
+  /* Recuo lateral = metade do knob (20px): trilho/knob/balão/números compartilham
+     o mesmo intervalo [20px, largura−20px], ficando todos alinhados. */
+  padding-left: 20px;
+  padding-right: 20px;
   margin-bottom: 15px;
 }
 .compactSliderWrapper {
@@ -109,8 +142,8 @@
 
 .floatingIconAnchor {
   position: absolute;
-  top: 50px; 
-  left: 0;
+  top: 50px;
+  left: 20px; /* acompanha o recuo do trilho p/ o balão alinhar com o knob */
   pointer-events: none;
 }
 
@@ -118,7 +151,7 @@
   position: absolute;
   bottom: 0;
   left: 0;
-  transform: translate(-50%, -100%) translateY(-15px); 
+  transform: translate(-50%, -100%) translateY(-15px);
   z-index: 10;
   display: flex;
   flex-direction: column;
@@ -126,15 +159,17 @@
   pointer-events: none;
 }
 
-/* Estilo Tooltip XP */
+/* Estilo Tooltip Premium */
 .iconBubble {
-  background-color: #FFFFFF !important; /* Fundo branco (sobrescreve JSX) */
-  border-radius: 2px;
-  padding: 4px 8px;
+  background: linear-gradient(165deg, rgba(28,24,18,0.97) 0%, rgba(10,8,6,0.94) 100%) !important; /* Glass escuro (sobrescreve JSX) */
+  border-radius: 8px;
+  padding: 5px 9px;
   border-width: 1px;
   border-style: solid;
-  border-color: #000000 !important; /* Borda preta (sobrescreve JSX) */
-  box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+  border-color: var(--ger-border-strong, rgba(201,160,82,0.45)) !important; /* Borda dourada (sobrescreve JSX) */
+  box-shadow:
+    0 4px 14px rgba(0,0,0,0.5),
+    0 0 12px rgba(201,160,82,0.25);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -144,11 +179,11 @@
   font-size: 11px;
   font-weight: bold;
   margin-left: 5px;
-  color: #000000 !important; /* Texto preto (sobrescreve JSX) */
+  color: var(--ger-gold, #c9a052) !important; /* Texto dourado (sobrescreve JSX) */
 }
 /* Ícone dentro do Tooltip */
 .iconBubble svg {
-  color: #0054E3 !important; /* Ícone azul (sobrescreve JSX) */
+  color: var(--ger-gold, #c9a052) !important; /* Ícone dourado (sobrescreve JSX) */
 }
 
 .iconArrow {
@@ -158,26 +193,32 @@
   border-right: 6px solid transparent;
   border-top-width: 8px;
   border-top-style: solid;
-  border-top-color: #000000 !important; /* Seta preta (sobrescreve JSX) */
+  border-top-color: var(--ger-border-strong, rgba(201,160,82,0.45)) !important; /* Seta dourada (sobrescreve JSX) */
   margin-top: 0px; /* Ajuste fino */
 }
 
 /* Trilho do Slider (Trackbar) */
 .sliderTrack {
-  height: 6px;
-  background-color: #C0C0C0; /* Trilho Cinza */
-  border: 1px solid #7F9DB9;
-  border-radius: 0;
+  height: 10px;
+  background: rgba(255,255,255,0.05); /* Sulco escuro */
+  border: 1px solid rgba(201,160,82,0.14);
+  border-radius: 999px; /* Pontas arredondadas premium */
   position: relative;
   cursor: pointer;
+  box-shadow: inset 0 1px 4px rgba(0,0,0,0.5);
 }
 .sliderTrack:active {
   cursor: pointer;
 }
 .sliderTrackFill {
   height: 100%;
-  border-radius: 0;
-  background: #0054E3 !important; /* Azul (sobrescreve gradiente do JSX) */
+  border-radius: 999px;
+  /* Escala de risco: baixo (success) → médio (warning) → alto (danger), com realce ouro */
+  background: linear-gradient(90deg,
+    var(--ger-success, #34d399) 0%,
+    var(--ger-gold, #c9a052) 50%,
+    var(--ger-danger, #f87171) 100%) !important; /* (sobrescreve gradiente do JSX) */
+  box-shadow: 0 0 10px rgba(201,160,82,0.35);
 }
 
 /* Polegar (Knob) do Slider */
@@ -185,7 +226,7 @@
   position: absolute;
   top: -16px; /* (40px - 8px) / 2 */
   left: 0;
-  transform: translateX(-50%); 
+  transform: translateX(-50%);
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -193,56 +234,71 @@
   justify-content: center;
   align-items: center;
   z-index: 5;
-  background-color: transparent; 
+  background-color: transparent;
 }
 .knobCenter {
-  width: 12px;
-  height: 20px; /* Retângulo do XP */
-  border-radius: 0;
-  border: 1px solid #003C74; /* Borda Azul Escura */
-  background: #0054E3 !important; /* Azul (sobrescreve JSX) */
-  pointer-events: none; 
+  width: 20px;
+  height: 20px;
+  border-radius: 50%; /* THUMB circular dourado */
+  border: 2px solid rgba(230,200,130,0.85); /* Borda dourada clara */
+  background: radial-gradient(circle at 50% 35%, var(--ger-gold-bright, #d4ac5c) 0%, var(--ger-gold-dark, #a07830) 100%) !important; /* Ouro (sobrescreve JSX) */
+  box-shadow: 0 0 16px rgba(201,160,82,0.55), 0 2px 6px rgba(0,0,0,0.5); /* Glow dourado + profundidade */
+  pointer-events: none;
 }
 
-/* Números da Escala */
+/* Números da Escala — minimalistas (especificidade .scaleNumbers .x p/ vencer
+   a regra global `button` do identity.css, que senão vira ladrilho dourado) */
 .scaleNumbers {
   display: flex;
   justify-content: space-between;
-  padding: 0 5px;
-  margin-top: 10px;
+  /* Alinha os números ao knob: o knob anda em [raio, largura−raio] (raio=20px),
+     então recuamos os centros das pontas em raio − minWidth/2 = 20 − 13 = 7px. */
+  padding: 0 7px;
+  margin-top: 14px;
 }
 .compactScaleNumbers {
-  margin-top: 5px;
+  margin-top: 8px;
 }
-.scaleNumber {
-  font-size: 11px;
-  color: #333;
-  font-weight: 600;
-  background: none;
-  border: none;
+.scaleNumbers .scaleNumber {
+  font-size: 11px !important;
+  color: var(--ger-text-dim, rgba(255,255,255,0.38)) !important;
+  font-weight: 600 !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 9px !important;
   cursor: pointer;
-  padding: 5px;
-  border-radius: 5px;
-  transition: none;
+  padding: 4px 0 !important;
+  min-width: 26px;
+  text-align: center;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  box-shadow: none !important;
+  transition: all 0.2s cubic-bezier(0.22,1,0.36,1);
 }
 .compactScaleNumber {
-  font-size: 10px;
+  font-size: 10px !important;
+  min-width: 20px;
 }
-.scaleNumber:hover {
-  color: #000;
+.scaleNumbers .scaleNumber:hover {
+  color: var(--ger-gold, #c9a052) !important;
+  background: rgba(201,160,82,0.07) !important;
+  border-color: rgba(201,160,82,0.2) !important;
 }
-.activeScaleNumber {
-  color: #003399; /* Azul Escuro */
-  font-size: 12px;
-  font-weight: bold;
+.scaleNumbers .activeScaleNumber {
+  color: var(--ger-bg-deep, #0a0806) !important;
+  background: linear-gradient(165deg, var(--ger-gold-bright, #d4ac5c) 0%, var(--ger-gold-dark, #a07830) 100%) !important;
+  border-color: rgba(220,185,105,0.7) !important;
+  font-weight: 800 !important;
+  box-shadow: 0 3px 12px rgba(201,160,82,0.45), inset 0 1px 0 rgba(255,255,255,0.3) !important;
+  transform: translateY(-2px) scale(1.12);
 }
 
 .compactDescriptionText {
   font-size: 11px;
-  color: #333;
+  color: var(--ger-text-muted, rgba(255,255,255,0.65));
   text-align: center;
   line-height: 1.4;
   margin-top: 15px;
   padding-top: 10px;
-  border-top: 1px solid #C0C0C0;
+  border-top: 1px solid var(--ger-border, rgba(180,120,50,0.18));
 }

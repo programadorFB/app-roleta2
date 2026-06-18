@@ -8,9 +8,17 @@
 
 import axios from 'axios';
 
-// Usa a MESMA base absoluta do tool (VITE_API_URL = dominio do backend), porque
-// o nginx do frontend nao proxia /api. Fallback relativo p/ dev (nginx proxiando).
-const API_BASE_URL = (import.meta.env.VITE_API_URL || '') + '/api/gerenciamento';
+const API_BASE_URL = '/api/gerenciamento';
+
+// Data local (YYYY-MM-DD). NÃO usar toISOString(): ele converte pra UTC e,
+// à noite no Brasil (UTC-3), "hoje" vira amanhã → o valor ia 1 dia pra frente.
+const todayLocalYMD = () => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -137,7 +145,7 @@ const apiService = {
         amount: numeric,
         type: TRANSACTION_TYPES.DEPOSIT,
         description: 'Banca Inicial',
-        date: new Date().toISOString().split('T')[0],
+        date: todayLocalYMD(),
         isInitialBank: true,
       });
     } catch (error) {

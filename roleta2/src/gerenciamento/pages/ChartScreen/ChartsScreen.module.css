@@ -1,6 +1,7 @@
 /* ========================================
-   Tema XP (Branco, Azul, Cinza)
+   Tema Mogno & Ouro Premium
    ChartsScreen.module.css - Mobile First
+   (migrado do tema XP Branco/Azul/Cinza)
    ======================================== */
 
 @keyframes rotate {
@@ -11,20 +12,20 @@
 .casinoContainer {
   min-height: 100vh;
   width: 100%;
-  background: #D6D3CE; /* Fundo Cinza XP */
-  color: #000000;
-  font-family: 'Tahoma', 'Trebuchet MS', sans-serif;
+  background: transparent;
+  color: var(--ger-text, #f0f0f5);
   position: relative;
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
 }
 
-/* ===== HEADER (Barra de Título XP) ===== */
+/* ===== HEADER (Barra de Título — glass dourado) ===== */
 .casinoHeader {
-  background: linear-gradient(180deg, #0054E3 0%, #0040B0 100%);
-  border-bottom: none;
-  box-shadow: none;
+  background: linear-gradient(165deg, rgba(20,18,14,0.9) 0%, rgba(10,8,6,0.78) 100%);
+  border-bottom: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(201,160,82,0.08);
   padding: 6px 12px;
   position: sticky;
   top: 0;
@@ -40,28 +41,30 @@
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  background: linear-gradient(180deg, #FFFFFF 0%, #ECE9D8 100%);
-  border: 1px solid #7F9DB9;
-  border-radius: 3px;
-  color: #000;
+  background: transparent;
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+  border-radius: 9px;
+  color: var(--ger-gold, #c9a052);
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
-  transition: none;
+  transition: all 0.2s ease;
 }
 
 .casinoBackButton:hover {
-  background: linear-gradient(180deg, #FFFEF9 0%, #F5F3E8 100%);
+  background: rgba(201,160,82,0.08);
+  color: var(--ger-gold-bright, #d4ac5c);
 }
 
-/* --- Abas XP (Scroll Horizontal no Mobile) --- */
+/* --- Abas (Scroll Horizontal no Mobile) --- */
 .casinoNav {
   display: flex;
   gap: 4px;
   justify-content: flex-start;
   padding: 0 4px;
-  background: #D6D3CE;
-  border-bottom: 1px solid #7F9DB9;
+  background: transparent;
+  border-bottom: 1px solid var(--ger-border, rgba(180,120,50,0.18));
   width: 100%;
   overflow-x: auto; /* Permite rolagem horizontal */
   -webkit-overflow-scrolling: touch;
@@ -73,42 +76,46 @@
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
-  background: #ECE9D8;
-  border: 1px solid #7F9DB9;
+  background: rgba(201,160,82,0.05);
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
   border-bottom: none;
-  border-radius: 4px 4px 0 0;
-  color: #333;
+  border-radius: 9px 9px 0 0;
+  color: var(--ger-text-muted, rgba(255,255,255,0.65));
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap; /* Impede quebra de texto */
   margin-top: 4px;
   flex-shrink: 0; /* Impede que encolham */
+  transition: all 0.2s ease;
 }
 
 .casinoNavButton:hover {
-  background: #F5F3E8;
-  color: #000;
+  background: rgba(201,160,82,0.1);
+  color: var(--ger-gold, #c9a052);
 }
 
 .casinoNavActive {
-  background: #FFFFFF !important;
-  border: 1px solid #7F9DB9 !important;
-  border-bottom: 1px solid #FFFFFF !important;
-  color: #000 !important;
+  background: rgba(201,160,82,0.14) !important;
+  border: 1px solid var(--ger-border-strong, rgba(201,160,82,0.45)) !important;
+  border-bottom: 1px solid transparent !important;
+  border-radius: 9px 9px 0 0 !important;
+  color: var(--ger-gold-bright, #d4ac5c) !important;
   margin-top: 0;
   padding-top: 12px;
   position: relative;
   z-index: 2;
+  text-shadow: 0 0 8px rgba(201,160,82,0.25);
 }
 
 /* ===== MAIN CONTENT ===== */
 .casinoMain {
   padding: 10px;
   width: 100%;
-  background: #FFFFFF;
-  border: 1px solid #7F9DB9;
+  background: var(--ger-bg-glass, linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%));
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
   border-top: none;
+  border-radius: 0 0 14px 14px;
   flex-grow: 1;
 }
 
@@ -121,11 +128,13 @@
 
 /* ===== CARDS PRINCIPAIS ===== */
 .casinoCard {
-  background: #ECE9D8;
-  border: 1px solid #7F9DB9;
-  border-radius: 0;
+  background: var(--ger-bg-glass, linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%));
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-top: 1px solid var(--ger-border-top, rgba(201,160,82,0.28));
+  border-radius: 14px;
   padding: 15px;
   overflow: hidden;
+  box-shadow: var(--ger-shadow, 0 8px 24px rgba(0,0,0,0.55));
 }
 
 .cardHeader {
@@ -138,14 +147,15 @@
 
 .headerIcon {
   font-size: 16px;
-  color: #0054E3;
+  color: var(--ger-gold, #c9a052);
 }
 
 .cardHeader h2 {
   font-size: 13px;
   font-weight: 900;
-  color: #003399;
+  color: var(--ger-gold, #c9a052);
   margin: 0;
+  text-shadow: 0 0 12px rgba(201,160,82,0.18);
 }
 
 .chartZone {
@@ -153,9 +163,10 @@
   position: relative;
   z-index: 1;
   padding: 5px;
-  background: #FFFFFF;
-  border: 1px solid #7F9DB9;
-  box-shadow: inset 1px 1px 3px rgba(0,0,0,0.3);
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-radius: 10px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.4);
 }
 
 /* ===== MÉTRICAS ===== */
@@ -166,20 +177,21 @@
 }
 
 .casinoMetricCard {
-  background: #ECE9D8;
-  border: 1px solid #C0C0C0;
-  border-radius: 4px;
+  background: var(--ger-bg-glass, linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%));
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-radius: 12px;
   padding: 12px;
   display: flex;
   align-items: center;
   gap: 12px;
+  box-shadow: var(--ger-shadow, 0 8px 24px rgba(0,0,0,0.55));
 }
 
 .metricIconGold, .metricIconRed, .metricIconDiamond, .metricIconCircle {
   font-size: 20px;
-  color: #0054E3;
+  color: var(--ger-gold, #c9a052);
 }
-.metricIconCircle svg { color: #0054E3; }
+.metricIconCircle svg { color: var(--ger-gold, #c9a052); }
 
 .metricContent {
   flex: 1;
@@ -190,17 +202,16 @@
 
 .metricLabel {
   font-size: 10px;
-  color: #333;
+  color: var(--ger-text-muted, rgba(255,255,255,0.65));
   font-weight: 600;
 }
 
 .metricValue, .metricValueLarge {
   font-size: 16px;
   font-weight: 900;
-  color: #000;
+  color: var(--ger-text, #f0f0f5);
 }
-/* Força preto no lugar do verde */
-.metricValueLarge[style*="#4CAF50"] { color: #000 !important; }
+/* O destaque verde da winRate vem do style inline (#34d399) no JSX. */
 
 /* ===== RISK LAYOUT ===== */
 .casinoRisk {
@@ -216,10 +227,11 @@
 }
 
 .casinoRiskCard {
-  background: #ECE9D8;
-  border: 1px solid #C0C0C0;
-  border-radius: 4px;
+  background: var(--ger-bg-glass, linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%));
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-radius: 12px;
   padding: 12px;
+  box-shadow: var(--ger-shadow, 0 8px 24px rgba(0,0,0,0.55));
 }
 
 .riskHeader {
@@ -231,27 +243,29 @@
 
 .riskLabel {
   font-size: 10px;
-  color: #333;
+  color: var(--ger-text-muted, rgba(255,255,255,0.65));
   font-weight: 600;
 }
 
+/* A cor de Max Drawdown vem do style inline (danger/warning/success) no JSX;
+   os demais riskValue ficam no branco neutro acima. */
 .riskValue {
   font-size: 16px;
   font-weight: 900;
-  color: #000;
+  color: var(--ger-text, #f0f0f5);
 }
-.riskValue[style*="#F44336"] { color: #BF0000 !important; }
-.riskValue[style*="#FF9800"] { color: #E69100 !important; }
-.riskValue[style*="#4CAF50"] { color: #0054E3 !important; }
 
 .riskBar {
   width: 100%;
   height: 14px;
-  background: #FFFFFF;
-  border: 1px solid #7F9DB9;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
+  border-radius: 999px;
+  overflow: hidden;
 }
 .riskFill {
   height: 100%;
+  border-radius: 999px;
   transition: width 0.5s ease;
 }
 
@@ -266,10 +280,9 @@
   gap: 6px;
   font-size: 11px;
   font-weight: 700;
-  color: #000;
+  color: var(--ger-text, #f0f0f5);
 }
-.splitItem svg[style*="#4CAF50"] { color: #0054E3 !important; }
-.splitItem svg[style*="#F44336"] { color: #333333 !important; }
+/* As setas Wins/Losses já recebem cor (success/danger) via style inline no JSX. */
 
 /* ===== LOADING / EMPTY ===== */
 .casinoEmpty, .casinoLoading {
@@ -278,23 +291,25 @@
   align-items: center;
   justify-content: center;
   min-height: 300px;
-  background: #FFFFFF;
-  border: 1px dashed #7F9DB9;
+  background: transparent;
+  border: 1px dashed var(--ger-border, rgba(180,120,50,0.18));
+  border-radius: 14px;
   padding: 20px;
   text-align: center;
 }
 
-.emptyIcon { font-size: 40px; color: #7F9DB9; margin-bottom: 15px; }
-.casinoEmpty h2 { font-size: 16px; color: #003399; margin-bottom: 10px; }
-.casinoEmpty p { font-size: 11px; color: #333; margin-bottom: 20px; }
+.emptyIcon { font-size: 40px; color: var(--ger-gold-soft, rgba(201,160,82,0.7)); margin-bottom: 15px; }
+.casinoEmpty h2 { font-size: 16px; color: var(--ger-gold, #c9a052); margin-bottom: 10px; text-shadow: 0 0 12px rgba(201,160,82,0.18); }
+.casinoEmpty p { font-size: 11px; color: var(--ger-text-muted, rgba(255,255,255,0.65)); margin-bottom: 20px; }
 
 .loadingSpinner {
   width: 40px;
   height: 40px;
-  border: 4px solid #C0C0C0;
-  border-top-color: #0054E3;
+  border: 4px solid rgba(201,160,82,0.18);
+  border-top-color: var(--ger-gold, #c9a052);
   border-radius: 50%;
   animation: rotate 1s linear infinite;
+  box-shadow: 0 0 16px rgba(201,160,82,0.25);
 }
 
 /* ========================================
@@ -306,7 +321,7 @@
     align-items: center;
     justify-content: space-between;
   }
-  
+
   .casinoBackButton {
     margin-bottom: 0; /* Remove margem extra */
   }
@@ -318,13 +333,13 @@
     overflow-x: visible;
     border-bottom: none; /* No header, a borda é diferente */
   }
-  
+
   .casinoMain {
     width: 95%; /* Centralizado com margem */
     max-width: 1600px;
     margin: 0 auto 20px auto;
     padding: 20px;
-    border: 1px solid #7F9DB9;
+    border: 1px solid var(--ger-border, rgba(180,120,50,0.18));
     /* Borda superior volta se as abas estiverem separadas visualmente */
   }
 
@@ -332,7 +347,7 @@
     grid-template-columns: 1fr; /* Ainda 1 col para gráfico ocupar largura total */
     gap: 20px;
   }
-  
+
   .metricsDisplay {
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Cards lado a lado */
   }
@@ -345,7 +360,7 @@
     height: 500px; /* Gráfico maior */
     padding: 15px;
   }
-  
+
   .cardHeader h2 { font-size: 14px; }
   .metricValue, .riskValue { font-size: 18px; }
 }

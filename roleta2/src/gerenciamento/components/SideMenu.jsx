@@ -95,7 +95,6 @@ export default function SideMenu() {
           </div>
           <div className={styles.profileInfo}>
             <div className={styles.userName} title={displayName}>{displayName}</div>
-            <div className={styles.userEmail} title={displayEmail}>{displayEmail}</div>
           </div>
         </header>
 
