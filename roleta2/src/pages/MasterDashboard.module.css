@@ -41,20 +41,6 @@
   margin-bottom: 0.4rem;
 }
 
-.roundBadge {
-  margin-left: 8px;
-  font-size: 0.6rem;
-  font-weight: 700;
-  font-family: 'Outfit', sans-serif;
-  color: #c9a052;
-  background: rgba(201,160,82,0.1);
-  border: 1px solid rgba(201,160,82,0.2);
-  padding: 3px 8px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
 .modeBtn {
   background: rgba(255,255,255,0.03);
   color: rgba(255,255,255,0.4);
@@ -83,107 +69,6 @@
   text-shadow: 0 0 10px rgba(201,160,82,0.3);
 }
 
-/* Hero layout: WIN | GAUGE | LOSS */
-.heroLayout {
-  display: grid;
-  grid-template-columns: 1fr minmax(0, 2fr) 1fr;
-  align-items: center;
-  gap: 0.3rem;
-  min-height: 80px;
-}
-
-.counterBox {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  padding: 0.4rem 0;
-  overflow: hidden;
-  min-width: 0;
-}
-
-.counterValue {
-  font-size: 1.7rem;
-  font-weight: 800;
-  font-family: 'Outfit', sans-serif;
-  line-height: 1;
-}
-
-.counterLabel {
-  font-size: 0.6rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-family: 'Outfit', sans-serif;
-}
-
-.recentHistoryList {
-  display: flex;
-  gap: 4px;
-  justify-content: center;
-  margin-top: 0.3rem;
-}
-
-.recentItem {
-  width: 14px;
-  height: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.5rem;
-  font-weight: 900;
-  border-radius: 2px;
-}
-
-/* Central gauge wrapper */
-.heroGaugeWrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.heroGaugeWrap .recharts-wrapper {
-  margin: 0 auto;
-}
-
-.heroGaugeOverlay {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  padding-bottom: 0;
-  pointer-events: none;
-}
-
-.heroPercent {
-  font-size: 1.6rem;
-  font-weight: 900;
-  font-family: 'Outfit', sans-serif;
-  line-height: 1;
-  letter-spacing: -0.02em;
-}
-
-.heroPercentSign {
-  font-size: 0.8rem;
-  font-weight: 700;
-  opacity: 0.7;
-  margin-left: 1px;
-}
-
-.heroSubtext {
-  font-size: 0.6rem;
-  color: rgba(255,255,255,0.3);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-top: 2px;
-  font-family: 'Outfit', sans-serif;
-}
 
 /* ================================================
    SIGNAL BAR — Clean, ícones SVG Lucide
@@ -435,19 +320,12 @@
 
 /* ── 1024px: Tablet ── */
 @media (max-width: 1024px) {
-  .heroLayout {
-    grid-template-columns: 1fr minmax(0, 1.8fr) 1fr;
-    min-height: 70px;
-  }
-
-  .counterValue {
-    font-size: 1.4rem;
-  }
 
   .masterGridContainer {
     gap: 0.3rem;
   }
 }
+
 
 /* ── 768px: Mobile ── */
 @media (max-width: 768px) {
@@ -457,28 +335,6 @@
 
   .heroPanel {
     padding: 0.5rem;
-  }
-
-  .heroLayout {
-    grid-template-columns: 1fr minmax(0, 1.8fr) 1fr;
-    min-height: 60px;
-  }
-
-  .heroGaugeWrap {
-    transform: scale(0.9);
-    transform-origin: center bottom;
-  }
-
-  .heroPercent {
-    font-size: 1.4rem;
-  }
-
-  .counterValue {
-    font-size: 1.3rem;
-  }
-
-  .counterBox {
-    padding: 0.3rem 0;
   }
 
   .modeBtn {
@@ -535,6 +391,7 @@
   }
 }
 
+
 /* ── 480px: Mobile compact ── */
 @media (max-width: 480px) {
   .masterDashboardContainer {
@@ -543,36 +400,6 @@
 
   .heroPanel {
     padding: 0.35rem;
-  }
-
-  .heroLayout {
-    grid-template-columns: 1fr minmax(0, 1.6fr) 1fr;
-    min-height: 50px;
-  }
-
-  .heroGaugeWrap {
-    transform: scale(0.78);
-    transform-origin: center bottom;
-  }
-
-  .heroPercent {
-    font-size: 1.3rem;
-  }
-
-  .heroPercentSign {
-    font-size: 0.65rem;
-  }
-
-  .heroSubtext {
-    font-size: 0.5rem;
-  }
-
-  .counterValue {
-    font-size: 1.1rem;
-  }
-
-  .counterLabel {
-    font-size: 0.52rem;
   }
 
   .modeBtn {
@@ -635,37 +462,11 @@
   }
 }
 
+
 /* ── 380px: Mobile small (iPhone SE, Galaxy S) ── */
 @media (max-width: 380px) {
   .heroPanel {
     padding: 0.3rem;
-  }
-
-  .heroLayout {
-    grid-template-columns: 1fr minmax(0, 1.5fr) 1fr;
-    min-height: 45px;
-  }
-
-  .heroGaugeWrap {
-    transform: scale(0.68);
-    transform-origin: center bottom;
-  }
-
-  .heroPercent {
-    font-size: 1.15rem;
-  }
-
-  .counterValue {
-    font-size: 0.95rem;
-  }
-
-  .counterLabel {
-    font-size: 0.45rem;
-    letter-spacing: 0.08em;
-  }
-
-  .counterBox {
-    padding: 0.2rem 0;
   }
 
   .modeBtn {
@@ -723,24 +524,9 @@
   }
 }
 
+
 /* ── 320px: Ultra small ── */
 @media (max-width: 320px) {
-  .heroLayout {
-    grid-template-columns: 1fr minmax(0, 1.4fr) 1fr;
-    min-height: 40px;
-  }
-
-  .heroGaugeWrap {
-    transform: scale(0.6);
-  }
-
-  .heroPercent {
-    font-size: 1rem;
-  }
-
-  .counterValue {
-    font-size: 0.85rem;
-  }
 
   .masterGridContainer {
     grid-template-columns: repeat(2, 1fr);
@@ -765,24 +551,9 @@
   }
 }
 
+
 /* ── Landscape mobile ── */
 @media (max-width: 900px) and (orientation: landscape) {
-  .heroLayout {
-    min-height: 50px;
-  }
-
-  .heroGaugeWrap {
-    transform: scale(0.75);
-    transform-origin: center bottom;
-  }
-
-  .counterValue {
-    font-size: 1.1rem;
-  }
-
-  .heroPercent {
-    font-size: 1.1rem;
-  }
 
   .masterGridContainer {
     grid-template-columns: repeat(5, 1fr);

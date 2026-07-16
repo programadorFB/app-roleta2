@@ -30,34 +30,6 @@ const emptyScoreState = { "1": { wins: 0, losses: 0 }, "2": { wins: 0, losses: 0
 // --- COLOR HELPER ---
 const getScoreColor = (s) => s >= 70 ? '#34d399' : s >= 40 ? '#fbbf24' : '#ef4444';
 
-// --- HERO GAUGE ---
-const HeroGauge = ({ value, color, size = 130 }) => {
-  const data = [{ value: Math.max(0, Math.min(100, value)), fill: color }];
-  return (
-    <RadialBarChart width={size} height={size * 0.52} cx={size / 2} cy={size * 0.46}
-      innerRadius={size * 0.3} outerRadius={size * 0.42} startAngle={180} endAngle={0}
-      data={data} barSize={size * 0.07}>
-      <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
-      <RadialBar background={{ fill: 'rgba(255,255,255,0.06)' }} dataKey="value"
-        angleAxisId={0} cornerRadius={size * 0.05} isAnimationActive={true}
-        animationDuration={800} animationEasing="ease-out" />
-    </RadialBarChart>
-  );
-};
-
-const RecentHistoryItem = ({ result }) => {
-  const isWin = result === 'win';
-  return (
-    <span className={styles.recentItem} style={{ 
-      background: isWin ? 'rgba(52,211,153,0.15)' : 'rgba(239,68,68,0.15)',
-      color: isWin ? '#34d399' : '#ef4444',
-      border: `1px solid ${isWin ? 'rgba(52,211,153,0.3)' : 'rgba(239,68,68,0.3)'}`
-    }}>
-      {isWin ? 'W' : 'L'}
-    </span>
-  );
-};
-
 // --- MINI GAUGE (per strategy) ---
 const StrategyGauge = React.memo(({ name, score }) => {
   const clamped = Math.max(0, Math.min(100, score));
@@ -91,12 +63,7 @@ const StrategyGauge = React.memo(({ name, score }) => {
 // HERO SCOREBOARD — Clean, sem emojis
 // ══════════════════════════════════════════════════════════════
 
-const HeroScoreboard = ({ wins, losses, neighborMode, setNeighborMode, entrySignal, totalUnits, coveredCount, timeText, timeStatusColor, isSignalAccepted, signalRound, recentHistory = [] }) => {
-  const totalEntries = wins + losses;
-  const assertiveness = totalEntries > 0 ? ((wins / totalEntries) * 100) : 0;
-  const assertText = assertiveness.toFixed(1);
-  const scoreColor = totalEntries > 0 ? getScoreColor(assertiveness) : 'rgba(255,255,255,0.3)';
-
+const HeroScoreboard = ({ neighborMode, setNeighborMode }) => {
   return (
     <div className={styles.heroPanel}>
       <div className={styles.heroShine} />
@@ -109,43 +76,7 @@ const HeroScoreboard = ({ wins, losses, neighborMode, setNeighborMode, entrySign
             {`${v} Viz`}
           </button>
         ))}
-        {entrySignal && signalRound > 0 && (
-          <span className={styles.roundBadge}>
-            {signalRound}/{entrySignal.validFor} rod.
-          </span>
-        )}
       </div>
-
-      <div className={styles.heroLayout}>
-        <div className={styles.counterBox}>
-          <div className={styles.counterValue} style={{ color: '#34d399', textShadow: '0 0 16px rgba(52,211,153,0.4)' }}>{wins}</div>
-          <div className={styles.counterLabel} style={{ color: 'rgba(52,211,153,0.6)' }}>WIN</div>
-        </div>
-
-        <div className={styles.heroGaugeWrap}>
-          <HeroGauge value={assertiveness} color={scoreColor} size={150} />
-          <div className={styles.heroGaugeOverlay}>
-            <div className={styles.heroPercent} style={{ color: scoreColor, textShadow: `0 0 24px ${scoreColor}44` }}>
-              {assertText}<span className={styles.heroPercentSign}>%</span>
-            </div>
-            <div className={styles.heroSubtext}>{totalEntries} entradas</div>
-          </div>
-        </div>
-
-        <div className={styles.counterBox}>
-          <div className={styles.counterValue} style={{ color: '#ef4444', textShadow: '0 0 16px rgba(239,68,68,0.4)' }}>{losses}</div>
-          <div className={styles.counterLabel} style={{ color: 'rgba(239,68,68,0.7)' }}>LOSS</div>
-        </div>
-      </div>
-
-      {recentHistory && recentHistory.length > 0 && (
-        <div className={styles.recentHistoryList}>
-          {recentHistory.map((h, i) => (
-            <RecentHistoryItem key={h.id || i} result={h.modes?.[String(neighborMode)]} />
-          ))}
-        </div>
-      )}
-
     </div>
   );
 };
@@ -159,7 +90,6 @@ const SIGNAL_HOLD_SPINS = 2; // Sinal segura por N resultados antes de mudar
 
 const MasterDashboard = ({ spinHistory, onSignalUpdate, backendMotorAnalysis, historyFilter, selectedRoulette, userEmail }) => {
   const [neighborMode, setNeighborMode] = useState(1);
-  const [isSignalAccepted, setIsSignalAccepted] = useState(false);
   const lockedSignalRef = useRef(null);
   const lockSpinIdRef = useRef(null);
 
@@ -197,8 +127,6 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate, backendMotorAnalysis, hi
       .catch(err => { console.error('[DEBUG SignalHistory] Fetch error:', err); });
   }, [selectedRoulette, historyFilter, userEmail, backendMotorAnalysis?.timestamp]);
 
-  const modeScore = filteredScores[String(neighborMode)] || { wins: 0, losses: 0 };
-
   // Trava o sinal por SIGNAL_HOLD_SPINS resultados
   const entrySignal = useMemo(() => {
     if (!spinHistory || spinHistory.length === 0) return rawEntrySignal;
@@ -229,10 +157,9 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate, backendMotorAnalysis, hi
     return lockedSignalRef.current;
   }, [rawEntrySignal, spinHistory]);
 
-  // Atualiza UI: onSignalUpdate e isSignalAccepted
+  // Atualiza UI: onSignalUpdate
   useEffect(() => {
     if (!entrySignal) {
-      setIsSignalAccepted(false);
       onSignalUpdate({ targets: [], expanded: [] });
       return;
     }
@@ -240,18 +167,7 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate, backendMotorAnalysis, hi
     const rawSignal = entrySignal.suggestedNumbers;
     const expanded = getCoveredNumbers(rawSignal, neighborMode);
     onSignalUpdate({ targets: rawSignal, expanded });
-
-    if (spinHistory && spinHistory.length > 0) {
-      setIsSignalAccepted(expanded.includes(spinHistory[0].number));
-    }
-  }, [entrySignal, neighborMode, onSignalUpdate, spinHistory]);
-
-  // Calcula em qual rodada o sinal está (1/2 do validFor)
-  const signalRound = useMemo(() => {
-    if (!entrySignal || !spinHistory || spinHistory.length === 0) return 0;
-    const lockIdx = spinHistory.findIndex(s => s.signalId === lockSpinIdRef.current);
-    return lockIdx === -1 ? 0 : lockIdx + 1;
-  }, [entrySignal, spinHistory]);
+  }, [entrySignal, neighborMode, onSignalUpdate]);
 
   // Aguardando backend processar
   if (!backendMotorAnalysis || backendMotorAnalysis.source !== selectedRoulette || strategyScores.length === 0) {
@@ -262,26 +178,12 @@ const MasterDashboard = ({ spinHistory, onSignalUpdate, backendMotorAnalysis, hi
     );
   }
 
-  const unitsPerTarget = 1 + (neighborMode * 2);
-  const totalUnits = entrySignal ? entrySignal.suggestedNumbers.length * unitsPerTarget : 0;
-  const coveredCount = entrySignal ? getCoveredNumbers(entrySignal.suggestedNumbers, neighborMode).length : 0;
-
-  let timeStatusColor = '#fbbf24';
-  let timeText = '';
-  if (isSignalAccepted) { timeStatusColor = '#34d399'; timeText = 'WIN'; }
-  else if (entrySignal) { timeStatusColor = '#fbbf24'; timeText = 'ATIVO'; }
-
   return (
     <div className={styles.masterDashboardContainer}>
       <QuickRegisterActions />
 
       <HeroScoreboard
-        wins={modeScore.wins} losses={modeScore.losses}
         neighborMode={neighborMode} setNeighborMode={setNeighborMode}
-        entrySignal={entrySignal} totalUnits={totalUnits} coveredCount={coveredCount}
-        timeText={timeText} timeStatusColor={timeStatusColor}
-        isSignalAccepted={isSignalAccepted} signalRound={signalRound}
-        recentHistory={filteredScores.recentHistory}
       />
 
       <div className={styles.masterGridContainer}>

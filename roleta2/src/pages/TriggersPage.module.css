@@ -104,101 +104,6 @@
   gap: 0.5rem;
 }
 
-/* ═══ SCOREBOARD — matches MasterDashboard heroPanel ═══ */
-.scoreboard {
-  position: relative;
-  background: linear-gradient(165deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.018) 40%, rgba(255,255,255,0.004) 100%);
-  border: 1px solid rgba(180,120,50,0.09);
-  border-top: 1px solid rgba(201,160,82,0.18);
-  padding: 0.6rem 0.6rem 0.5rem;
-  overflow: hidden;
-  box-shadow:
-    0 20px 60px rgba(0,0,0,0.8),
-    inset 0 1px 2px rgba(201,160,82,0.05),
-    inset 0 -1px 2px rgba(0,0,0,0.3);
-}
-
-.scoreShine {
-  position: absolute;
-  top: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, transparent 5%, rgba(255,255,255,0.18) 35%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.18) 65%, transparent 95%);
-  pointer-events: none;
-}
-
-.scoreLayout {
-  display: grid;
-  grid-template-columns: 1fr 1.6fr 1fr;
-  align-items: center;
-  gap: 0;
-  min-height: 60px;
-}
-
-.scoreCounter {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  padding: 0.3rem 0;
-}
-
-.scoreValue {
-  font-size: 1.7rem;
-  font-weight: 800;
-  font-family: 'Outfit', sans-serif;
-  line-height: 1;
-  letter-spacing: -0.03em;
-}
-
-.scoreLabel {
-  font-size: 0.6rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  margin-top: 2px;
-  font-family: 'Outfit', sans-serif;
-}
-
-.scoreCenter {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-}
-
-.scoreRate {
-  font-size: 1.6rem;
-  font-weight: 900;
-  font-family: 'Outfit', sans-serif;
-  line-height: 1;
-  letter-spacing: -0.02em;
-}
-
-.scorePercSign {
-  font-size: 0.8rem;
-  font-weight: 700;
-  opacity: 0.7;
-  margin-left: 1px;
-}
-
-.scoreEntries {
-  font-size: 0.6rem;
-  color: rgba(255,255,255,0.3);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-family: 'Outfit', sans-serif;
-}
-
-.scoreMissNote {
-  font-size: 0.5rem;
-  color: rgba(201,160,82,0.35);
-  margin-top: 1px;
-  font-family: 'Outfit', sans-serif;
-  letter-spacing: 0.02em;
-}
-
 /* ═══ ACTIVE SIGNALS PANEL ═══ */
 .signalsPanel {
   background: linear-gradient(165deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.015) 100%);
@@ -496,6 +401,7 @@
   }
 }
 
+
 /* 1050px: colapsa left col */
 @media (max-width: 1050px) {
   .layout {
@@ -507,6 +413,7 @@
     display: none;
   }
 }
+
 
 /* 800px: stack vertical */
 @media (max-width: 800px) {
@@ -533,15 +440,8 @@
   .leftCol {
     display: none;
   }
-
-  .scoreValue {
-    font-size: 1.5rem;
-  }
-
-  .scoreRate {
-    font-size: 1.3rem;
-  }
 }
+
 
 /* 480px: mobile */
 @media (max-width: 480px) {
@@ -556,51 +456,11 @@
   .gameWrapper {
     max-height: 40vh;
   }
-
-  .scoreLayout {
-    min-height: 50px;
-  }
-
-  .scoreValue {
-    font-size: 1.3rem;
-  }
-
-  .scoreRate {
-    font-size: 1.1rem;
-  }
-
-  .scoreLabel {
-    font-size: 0.52rem;
-  }
-
-  .scoreEntries {
-    font-size: 0.5rem;
-  }
-
-  .scoreMissNote {
-    font-size: 0.45rem;
-  }
 }
+
 
 /* 380px: ultra small */
 @media (max-width: 380px) {
-  .scoreLayout {
-    grid-template-columns: 1fr 1.4fr 1fr;
-    min-height: 45px;
-  }
-
-  .scoreValue {
-    font-size: 1.1rem;
-  }
-
-  .scoreRate {
-    font-size: 1rem;
-  }
-
-  .scoreLabel {
-    font-size: 0.48rem;
-    letter-spacing: 0.08em;
-  }
 
   .signalChip {
     width: 20px; height: 20px;
@@ -611,3 +471,4 @@
     font-size: 0.58rem;
   }
 }
+

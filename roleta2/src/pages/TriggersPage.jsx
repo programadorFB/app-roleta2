@@ -1,11 +1,10 @@
 // pages/TriggersPage.jsx — v5 BACKEND-DRIVEN SIGNALS + expand history
 
-import React, { useMemo, useState, useCallback, useEffect, Suspense, lazy } from 'react';
+import React, { useMemo, useState, useCallback, Suspense, lazy } from 'react';
 import { Zap, Clock, ChevronDown, Crosshair } from 'lucide-react';
 import TriggerStrategiesPanel from '../components/TriggerStrategiesPanel';
 import { buildTriggerMap, getActiveTriggers, getActiveSignals as getActiveSignalsFn } from '../analysis/triggerAnalysis';
-import { getRouletteColor, LOSS_THRESHOLD, API_URL } from '../constants/roulette';
-import { signedFetch } from '../lib/signedFetch';
+import { getRouletteColor, LOSS_THRESHOLD } from '../constants/roulette';
 import TriggerRadar from '../components/TriggerRadar';
 import styles from './TriggersPage.module.css';
 
@@ -54,36 +53,6 @@ function buildTriggerHistory(triggerNumber, spinHistory, triggerMap, fallbackSig
     recentResults: results.slice(0, 20).map(r => r.label),
   };
 }
-
-// ── Scoreboard ─────────────────────────────────────────────────
-const TriggerScoreboard = ({ wins, losses }) => {
-  const total = wins + losses;
-  const rate = total > 0 ? (wins / total) * 100 : 0;
-  const color = rate >= 55 ? '#34d399' : rate >= 40 ? '#fbbf24' : '#ef4444';
-
-  return (
-    <div className={styles.scoreboard}>
-      <div className={styles.scoreShine} />
-      <div className={styles.scoreLayout}>
-        <div className={styles.scoreCounter}>
-          <div className={styles.scoreValue} style={{ color: '#34d399', textShadow: '0 0 16px rgba(52,211,153,0.35)' }}>{wins}</div>
-          <div className={styles.scoreLabel} style={{ color: 'rgba(52,211,153,0.6)' }}>WIN</div>
-        </div>
-        <div className={styles.scoreCenter}>
-          <div className={styles.scoreRate} style={{ color, textShadow: `0 0 20px ${color}44` }}>
-            {rate.toFixed(1)}<span className={styles.scorePercSign}>%</span>
-          </div>
-          <div className={styles.scoreEntries}>{total} entradas</div>
-          <div className={styles.scoreMissNote}>cada gatilho = 1 entrada</div>
-        </div>
-        <div className={styles.scoreCounter}>
-          <div className={styles.scoreValue} style={{ color: '#ef4444', textShadow: '0 0 16px rgba(239,68,68,0.35)' }}>{losses}</div>
-          <div className={styles.scoreLabel} style={{ color: 'rgba(239,68,68,0.6)' }}>LOSS</div>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // Chave única por evento (id do DB; fallback p/ análise local sem id)
 const signalKey = (sig) => sig.id ?? `${sig.triggerNumber}-${sig.timestamp ?? sig.spinsAgo}`;
@@ -232,8 +201,6 @@ const TriggersPage = ({
   onNumberClick,
   backendTriggerAnalysis,
   selectedRoulette,
-  historyFilter,
-  userEmail,
 }) => {
   const latestNumbers = filteredSpinHistory;
 
@@ -244,18 +211,6 @@ const TriggersPage = ({
       : new Map(),
     [filteredSpinHistory]
   );
-
-  // Scoreboard: vem do backend (DB), filtrado por rodadas
-  const [backendScoreboard, setBackendScoreboard] = useState({ wins: 0, losses: 0 });
-
-  useEffect(() => {
-    if (!selectedRoulette || !userEmail) return;
-    const limit = historyFilter === 'all' ? 'all' : Number(historyFilter);
-    signedFetch(`${API_URL}/api/trigger-score?source=${selectedRoulette}&limit=${limit}&userEmail=${encodeURIComponent(userEmail)}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data) setBackendScoreboard({ wins: data.wins, losses: data.losses }); })
-      .catch(() => {});
-  }, [selectedRoulette, historyFilter, userEmail, backendTriggerAnalysis?.timestamp]);
 
   // Histórico: últimos N gatilhos qualificados (≥ MIN_CONFIDENCE),
   // ordenados do mais recente para o mais antigo.
@@ -348,10 +303,9 @@ const TriggersPage = ({
           </div>
         </section>
 
-        {/* ── DIREITA: Placar + Sinais + Gatilhos ── */}
+        {/* ── DIREITA: Sinais + Gatilhos ── */}
         <aside className={styles.rightCol}>
           <div className={styles.rightContent}>
-            <TriggerScoreboard wins={backendScoreboard.wins} losses={backendScoreboard.losses} />
             <TriggerHistoryPanel
               signals={activeSignals}
               spinHistory={filteredSpinHistory}
