@@ -69,18 +69,12 @@ const QUIZ = [
     options: ['Apenas 1', '3 ou mais', 'Todas as 5'], answer: 1 },
   { q: 'O que significa a estrategia "Ausentes"?',
     options: ['Numeros que mais saem', 'Numeros ha muito tempo sem sair', 'Numeros vermelhos'], answer: 1 },
-  { q: 'Um gatilho marcado como "RED" significa que ele...',
-    options: ['Acertou na 1a rodada', 'Nao acertou nas 3 tentativas', 'E um numero vermelho'], answer: 1 },
   { q: 'Qual temperatura indica o padrao mais confiavel?',
     options: ['FRIO', 'MORNO', 'QUENTE'], answer: 2 },
   { q: 'A estrategia "Vizinhos" analisa numeros...',
     options: ['Na ordem 1, 2, 3...', 'Proximos no cilindro fisico', 'Da mesma cor'], answer: 1 },
   { q: 'Por quantas rodadas vale um sinal de entrada do Dashboard?',
     options: ['1 rodada', '2 rodadas', '5 rodadas'], answer: 1 },
-  { q: 'O gatilho "Terminal 7" cobre quais numeros?',
-    options: ['7, 14, 21', '7, 17, 27', '1, 7, 70'], answer: 1 },
-  { q: 'Um gatilho dispara e acerta so na 3a tentativa. Como e marcado?',
-    options: ['G1', 'G3', 'RED'], answer: 1 },
   { q: 'Se a assertividade da mesa cai abaixo de 40%, o ideal e...',
     options: ['Apostar o dobro', 'Trocar de mesa', 'Ignorar e continuar'], answer: 1 },
   { q: 'Quanto da banca se recomenda arriscar por entrada?',
@@ -92,7 +86,6 @@ const CHAPTERS = [
   { t: 'Estrategias',   icon: BarChart3 },
   { t: 'Convergencia',  icon: Zap },
   { t: 'Cilindro',      icon: Compass },
-  { t: 'Gatilhos',      icon: Crosshair },
   { t: 'Temperatura',   icon: Flame },
   { t: 'Analise',       icon: ListChecks },
   { t: 'Quiz',          icon: HelpCircle },
@@ -413,7 +406,6 @@ const ANALYSIS_STEPS = [
   { Icon: Zap, title: 'Confirme a convergencia', text: 'So considere entrar quando 3+ estrategias apontarem os mesmos numeros. Convergencia fraca = sinal fraco.' },
   { Icon: Flame, title: 'Cheque a temperatura', text: 'Priorize sinais QUENTE ou AQUECIDO. Ignore os FRIOS, por mais tentador que pareca.' },
   { Icon: Gauge, title: 'Olhe o placar da mesa', text: 'Veja o WIN/LOSS recente. Mesa com assertividade alta e mais confiavel para operar agora.' },
-  { Icon: Crosshair, title: 'Valide o gatilho ativo', text: 'Confira a porcentagem individual do gatilho que disparou. Abaixo de 40%, melhor esperar.' },
   { Icon: TrendingUp, title: 'Cruze as janelas', text: 'Poucas rodadas = padrao recente; muitas = padrao consolidado. Use as duas visoes antes de decidir.' },
   { Icon: Shield, title: 'Gestao de banca', text: 'Aposte no maximo 2-3% da banca por entrada. Disciplina vale mais que qualquer sinal.' },
 ];
@@ -705,13 +697,6 @@ const TutorialPage = () => {
                 <h4>Dashboard</h4>
                 <p>5 estrategias combinadas que convergem para gerar entradas precisas.</p>
               </div>
-              <div className={styles.featureCard}>
-                <div className={styles.featureIconWrap} style={{ background: 'rgba(249,115,22,0.06)', borderColor: 'rgba(249,115,22,0.15)' }}>
-                  <Crosshair size={24} style={{ color: '#f97316' }} />
-                </div>
-                <h4>Gatilhos</h4>
-                <p>Quando um numero sai, indica quais tem mais chance de sair em seguida.</p>
-              </div>
             </div>
           </div>
         </Reveal>
@@ -796,88 +781,11 @@ const TutorialPage = () => {
 
       <div className={styles.divider}><span className={styles.dividerDiamond} /></div>
 
-      {/* ═══ 05 — GATILHOS ═══ */}
+      {/* ═══ 05 — TEMPERATURA (medidor) ═══ */}
       <article id="sec-4" data-sec="4" ref={setRef(4)} className={styles.article}>
         <Reveal>
           <div className={styles.articleHead}>
             <div className={styles.chapterBadge}><span className={styles.chapterNum}>05</span></div>
-            <div><h2 className={styles.chapterTitle}>Gatilhos</h2><p className={styles.chapterSub}>Numeros que acionam apostas</p></div>
-          </div>
-        </Reveal>
-        <Reveal>
-          <p className={styles.leadText}>
-            <span className={styles.dropCap}>C</span>
-            ada numero pode ser um gatilho. Quando ele sai, a ferramenta analisa o historico
-            (chi-quadrado, p &lt; 0.05) e indica quais numeros tem mais chance de sair nas proximas 3 rodadas.
-          </p>
-        </Reveal>
-
-        <Reveal>
-          <h3 className={styles.subHeading}><CircleDot size={14} /> Os 2 tipos de gatilho</h3>
-          <div className={styles.twoCards}>
-            <div className={styles.featureCard}>
-              <div className={styles.featureIconWrap} style={{ background: 'rgba(96,165,250,0.06)', borderColor: 'rgba(96,165,250,0.15)' }}>
-                <Crosshair size={24} style={{ color: '#60a5fa' }} />
-              </div>
-              <h4>Regiao</h4>
-              <p>Baseado em vizinhos no cilindro fisico. Testa raios de 2 a 5 vizinhos ao redor do numero. Ex.: "17 com 3 vizinhos" cobre o 17 e os 3 de cada lado (7 numeros).</p>
-              <div className={styles.featureSubtypes}>
-                <span><strong>Curta</strong> (2-3 viz): area menor, mais precisa.</span>
-                <span><strong>Larga</strong> (4-5 viz): area maior, mais cobertura.</span>
-              </div>
-            </div>
-            <div className={styles.featureCard}>
-              <div className={styles.featureIconWrap} style={{ background: 'rgba(167,139,250,0.06)', borderColor: 'rgba(167,139,250,0.15)' }}>
-                <Target size={24} style={{ color: '#a78bfa' }} />
-              </div>
-              <h4>Terminal</h4>
-              <p>Baseado no ultimo digito. Terminal 7 cobre 7, 17, 27. Pode ser combinado com vizinhos para ampliar a cobertura.</p>
-              <div className={styles.featureSubtypes}>
-                <span><strong>Puro</strong>: so os numeros do terminal (3-4).</span>
-                <span><strong>+ Vizinhos</strong>: terminal expandido com 1-2 vizinhos.</span>
-              </div>
-            </div>
-          </div>
-        </Reveal>
-
-        <Reveal>
-          <h3 className={styles.subHeading}><CircleDot size={14} /> Porcentagem individual</h3>
-          <p className={styles.bodyText}>
-            Cada gatilho tem sua propria taxa de acerto, calculada separadamente. Ao expandir uma
-            categoria na tabela de assertividade, voce ve o desempenho de cada numero (ex.: "17 → 65%, 11/17"),
-            o que ajuda a identificar quais gatilhos sao mais confiaveis na mesa atual.
-          </p>
-        </Reveal>
-
-        <Reveal>
-          <h3 className={styles.subHeading}><CircleDot size={14} /> Assertividade — G1 / G2 / G3 / RED</h3>
-          <div className={styles.gGrid}>
-            {[
-              { code: 'G1', color: '#34d399', text: 'Acertou na 1a rodada — resultado ideal.' },
-              { code: 'G2', color: '#34d399', text: 'Acertou na 2a rodada — bom resultado.' },
-              { code: 'G3', color: '#34d399', text: 'Acertou na 3a rodada — acerto no limite.' },
-              { code: 'RED', color: '#ef4444', text: 'Nao acertou em nenhuma das 3 tentativas.' },
-            ].map((g, i) => (
-              <div key={i} className={styles.gItem} style={{ '--g-color': g.color }}>
-                <span className={styles.gCode} style={{ color: g.color }}>{g.code}</span>
-                <span className={styles.gText}>{g.text}</span>
-              </div>
-            ))}
-          </div>
-          <div className={styles.infoBox}>
-            <TrendingUp size={16} className={styles.infoBoxIcon} />
-            <div><strong>Dica:</strong> priorize gatilhos com alta porcentagem individual e temperatura QUENTE ou AQUECIDO. Abaixo de 40%, evite.</div>
-          </div>
-        </Reveal>
-      </article>
-
-      <div className={styles.divider}><span className={styles.dividerDiamond} /></div>
-
-      {/* ═══ 06 — TEMPERATURA (medidor) ═══ */}
-      <article id="sec-5" data-sec="5" ref={setRef(5)} className={styles.article}>
-        <Reveal>
-          <div className={styles.articleHead}>
-            <div className={styles.chapterBadge}><span className={styles.chapterNum}>06</span></div>
             <div><h2 className={styles.chapterTitle}>Temperatura</h2><p className={styles.chapterSub}>Arraste e veja a forca</p></div>
           </div>
         </Reveal>
@@ -892,11 +800,11 @@ const TutorialPage = () => {
 
       <div className={styles.divider}><span className={styles.dividerDiamond} /></div>
 
-      {/* ═══ 07 — SUGESTOES DE ANALISE ═══ */}
-      <article id="sec-6" data-sec="6" ref={setRef(6)} className={styles.article}>
+      {/* ═══ 06 — SUGESTOES DE ANALISE ═══ */}
+      <article id="sec-5" data-sec="5" ref={setRef(5)} className={styles.article}>
         <Reveal>
           <div className={styles.articleHead}>
-            <div className={styles.chapterBadge}><span className={styles.chapterNum}>07</span></div>
+            <div className={styles.chapterBadge}><span className={styles.chapterNum}>06</span></div>
             <div><h2 className={styles.chapterTitle}>Sugestoes de Analise</h2><p className={styles.chapterSub}>Como ler a ferramenta na pratica</p></div>
           </div>
         </Reveal>
@@ -912,7 +820,7 @@ const TutorialPage = () => {
             <AlertTriangle size={16} className={styles.alertBoxIcon} />
             <div>
               <strong>Sinais de alerta — quando NAO entrar:</strong> convergencia abaixo de 3 estrategias,
-              temperatura FRIA, mesa com placar recente negativo, ou gatilho com menos de 40% de acerto.
+              temperatura FRIA ou mesa com placar recente negativo.
               Na duvida, espere o proximo sinal — a paciencia protege a banca.
             </div>
           </div>
@@ -927,11 +835,11 @@ const TutorialPage = () => {
 
       <div className={styles.divider}><span className={styles.dividerDiamond} /></div>
 
-      {/* ═══ 08 — QUIZ ═══ */}
-      <article id="sec-7" data-sec="7" ref={setRef(7)} className={styles.article}>
+      {/* ═══ 07 — QUIZ ═══ */}
+      <article id="sec-6" data-sec="6" ref={setRef(6)} className={styles.article}>
         <Reveal>
           <div className={styles.articleHead}>
-            <div className={styles.chapterBadge}><span className={styles.chapterNum}>08</span></div>
+            <div className={styles.chapterBadge}><span className={styles.chapterNum}>07</span></div>
             <div><h2 className={styles.chapterTitle}>Teste seu Conhecimento</h2><p className={styles.chapterSub}>10 perguntas rapidas</p></div>
           </div>
         </Reveal>

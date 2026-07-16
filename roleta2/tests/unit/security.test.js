@@ -346,20 +346,35 @@ describe('Rate limiting — configuração', () => {
 describe('Endpoints protegidos — sem acesso público', () => {
   const code = readFile('server/server.js');
 
-  it('motor-score GET requer assinatura ativa', () => {
-    expect(code).toMatch(/motor-score.*requireActiveSubscription/s);
+  // Estes casos ancoram no app.get/app.post da PRÓPRIA rota. Antes usavam
+  // /rota.*middleware/s (dotall), que casava com um middleware de QUALQUER rota
+  // mais abaixo no arquivo — passavam sem verificar nada.
+  it('motor-score GET exige usuário válido', () => {
+    // requireValidUser e não requireActiveSubscription: no modo free unificado o
+    // placar do motor é acessível ao usuário free. Premium é /api/fetch/*.
+    expect(code).toMatch(/app\.get\('\/api\/motor-score',\s*requireValidUser/);
   });
 
   it('motor-score RESET requer admin auth', () => {
-    expect(code).toMatch(/motor-score\/reset.*requireAdminAuth/s);
+    expect(code).toMatch(/app\.post\('\/api\/motor-score\/reset',[^)]*requireAdminAuth/);
   });
 
-  it('trigger-score GET requer assinatura ativa', () => {
-    expect(code).toMatch(/trigger-score.*requireActiveSubscription/s);
+  // Gatilhos descontinuados (Portarias SPA/MF 1.964/2026 e Interministerial
+  // 73/2026): 410 para todo mundo — mais restritivo que exigir assinatura.
+  it('trigger-score GET está descontinuado (410)', () => {
+    expect(code).toMatch(/app\.get\('\/api\/trigger-score',\s*gatilhosGone\)/);
   });
 
-  it('trigger-score RESET requer admin auth', () => {
-    expect(code).toMatch(/trigger-score\/reset.*requireAdminAuth/s);
+  it('trigger-score RESET está descontinuado (410)', () => {
+    expect(code).toMatch(/app\.post\('\/api\/trigger-score\/reset',\s*gatilhosGone\)/);
+  });
+
+  it('trigger-analysis está descontinuado (410)', () => {
+    expect(code).toMatch(/app\.get\('\/api\/trigger-analysis',\s*gatilhosGone\)/);
+  });
+
+  it('gatilhosGone responde 410', () => {
+    expect(code).toMatch(/gatilhosGone\s*=\s*\(_req,\s*res\)\s*=>\s*res\.status\(410\)/);
   });
 
   it('full-history requer assinatura ativa', () => {

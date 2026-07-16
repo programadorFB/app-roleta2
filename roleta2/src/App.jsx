@@ -29,7 +29,7 @@ const RacingTrack       = lazy(() => import('./components/RacingTrack.jsx'));
 const DeepAnalysisPanel = lazy(() => import('./components/DeepAnalysisPanel.jsx'));
 const ResultsGrid       = lazy(() => import('./components/ResultGrid.jsx'));
 const GameIframe        = lazy(() => import('./components/GameIframe.jsx'));
-const TriggersPage      = lazy(() => import('./pages/TriggersPage.jsx'));
+const TriggersDisabledNotice = lazy(() => import('./pages/TriggersDisabledNotice.jsx'));
 const TutorialPage      = lazy(() => import('./pages/TutorialPage.jsx'));
 const ToolsPage         = lazy(() => import('./pages/ToolsPage.jsx'));
 const GerenciamentoApp  = lazy(() => import('./gerenciamento/GerenciamentoApp.jsx'));
@@ -176,7 +176,7 @@ const App = () => {
   // ── Hooks ─────────────────────────────────────────────────
 
   const {
-    spinHistory, filteredSpinHistory, selectedResult,
+    filteredSpinHistory, selectedResult,
     numberPullStats, numberPreviousStats, stats, clearHistory,
   } = useSpinHistory({
     selectedRoulette,
@@ -204,7 +204,7 @@ const App = () => {
     onTimeout: handleLogout,
   });
 
-  const { motorAnalysis, triggerAnalysis } = useAnalysisSocket({
+  const { motorAnalysis } = useAnalysisSocket({
     selectedRoulette,
     userEmail: userInfo?.email || '',
     jwtToken,
@@ -519,56 +519,12 @@ const App = () => {
         </main>
       )}
 
+      {/* Gatilhos desativados (Portarias SPA/MF 1.964/2026 e Interministerial 73/2026).
+          A aba continua no menu — sem ela, ninguém leria a explicação. */}
       {activeView === 'triggers' && (
-        isFreeUser ? (
-          <div className="premium-locked-wrapper premium-locked-wrapper--full">
-            <PremiumLockedCard
-              title="Gatilhos Inteligentes"
-              description="Análise de padrões estatísticos e gatilhos automáticos com sinais em tempo real."
-              features={[
-                'Sinais em tempo real',
-                'Análise de terminais e setores',
-                'Histórico completo de gatilhos',
-              ]}
-              onSubscribe={() => setIsPaywallOpen(true)}
-            />
-            <div className="premium-locked-blur">
-              <Suspense fallback={<Spinner />}>
-                <TriggersPage
-                  filteredSpinHistory={filteredSpinHistory}
-                  fullHistory={spinHistory}
-                  gameIframeComponent={null}
-                  selectedResult={selectedResult}
-                  numberPullStats={numberPullStats}
-                  numberPreviousStats={numberPreviousStats}
-                  onResultClick={handleResultBoxClick}
-                  onNumberClick={handleNumberClick}
-                  backendTriggerAnalysis={triggerAnalysis}
-                  selectedRoulette={selectedRoulette}
-                  historyFilter={historyFilter}
-                  userEmail={userInfo?.email || ''}
-                />
-              </Suspense>
-            </div>
-          </div>
-        ) : (
-          <Suspense fallback={<Spinner />}>
-            <TriggersPage
-              filteredSpinHistory={filteredSpinHistory}
-              fullHistory={spinHistory}
-              gameIframeComponent={gameIframeComponent}
-              selectedResult={selectedResult}
-              numberPullStats={numberPullStats}
-              numberPreviousStats={numberPreviousStats}
-              onResultClick={handleResultBoxClick}
-              onNumberClick={handleNumberClick}
-              backendTriggerAnalysis={triggerAnalysis}
-              selectedRoulette={selectedRoulette}
-              historyFilter={historyFilter}
-              userEmail={userInfo?.email || ''}
-            />
-          </Suspense>
-        )
+        <Suspense fallback={<Spinner />}>
+          <TriggersDisabledNotice />
+        </Suspense>
       )}
 
       {activeView === 'tutorial' && (

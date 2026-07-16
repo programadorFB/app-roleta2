@@ -26,7 +26,9 @@ import {
   ACTIVE_STATUSES,
 } from './subscriptionService.js';
 import { processSource, initMotorEngine, getLatestMotorAnalysis, computeMotorAnalysisOnDemand, computeFilteredMotorScore, backfillMotorScores } from './motorScoreEngine.js';
-import { processTriggerSource, initTriggerEngine, getLatestTriggerAnalysis } from './triggerScoreEngine.js';
+// O motor de gatilhos não emite mais nada ao usuário (Portarias 1.964/2026 e 73/2026);
+// só persiste o placar interno, então não precisa mais do Socket.IO.
+import { processTriggerSource } from './triggerScoreEngine.js';
 import { gerenciamentoAuthMiddleware, gerenciamentoProxy } from './gerenciamentoGateway.js';
 
 dotenv.config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.env') });
@@ -749,61 +751,28 @@ app.post('/api/motor-score/reset', adminLimiter, requireAdminAuth, express.json(
   }
 });
 
-// ── Trigger Score (wins/losses persistence — PostgreSQL) ─────
-
-app.get('/api/trigger-score', requireActiveSubscription, async (req, res) => {
-  const source = req.query.source;
-  if (!source) return res.status(400).json({ error: 'source required' });
-  const limit = req.query.limit;
-  try {
-    // Quando limit é um número, filtra sinais resolvidos dentro das últimas N rodadas
-    if (limit && limit !== 'all' && Number.isFinite(Number(limit)) && Number(limit) > 0) {
-      const offset = Math.max(0, Number(limit) - 1);
-      const { rows } = await query(
-        `WITH cutoff AS (
-           SELECT "timestamp" FROM signals
-           WHERE source = $1
-           ORDER BY "timestamp" DESC
-           OFFSET $2 LIMIT 1
-         )
-         SELECT
-           COUNT(*) FILTER (WHERE result = 'win') AS wins,
-           COUNT(*) FILTER (WHERE result = 'loss') AS losses
-         FROM trigger_pending_signals
-         WHERE source = $1
-           AND resolved = TRUE
-           AND created_at >= COALESCE((SELECT "timestamp" FROM cutoff), '1970-01-01')`,
-        [source, offset]
-      );
-      const r = rows[0] || { wins: 0, losses: 0 };
-      return res.json({ wins: parseInt(r.wins, 10), losses: parseInt(r.losses, 10) });
-    }
-
-    // Sem limit ou 'all': retorna total acumulado
-    const { rows } = await query(
-      'SELECT wins, losses FROM trigger_scores WHERE source = $1',
-      [source]
-    );
-    const score = rows[0] || { wins: 0, losses: 0 };
-    res.json({ wins: score.wins, losses: score.losses });
-  } catch (e) {
-    Sentry.captureException(e);
-    res.status(500).json({ error: e.message });
-  }
+// ── Gatilhos: endpoints descontinuados ───────────────────────
+//
+// Os gatilhos saíram do ar em adequação à Portaria SPA/MF nº 1.964, de 3 de julho
+// de 2026, e à Portaria Interministerial MF/SECOM/MJSP nº 73, de 10 de julho de
+// 2026 (art. 4º, VII, "b", "c" e "d"). 410 e não 404: clientes com bundle antigo
+// em cache recebem o motivo em vez de um erro genérico.
+//
+// O motor de gatilhos continua rodando internamente (triggerScoreEngine alimenta
+// o placar) — o que foi cortado é a exposição ao usuário.
+const GATILHOS_DESCONTINUADOS = Object.freeze({
+  error: 'Recurso descontinuado',
+  reason: 'Os gatilhos foram desativados em adequação à Portaria SPA/MF nº 1.964/2026 e à Portaria Interministerial MF/SECOM/MJSP nº 73/2026.',
+  sources: [
+    'https://www.in.gov.br/web/dou/-/portaria-spa/mf-n-1.964-de-3-de-julho-de-2026-718408857',
+    'https://www.in.gov.br/en/web/dou/-/portaria-interministerial-mf/secom/mjsp-n-73-de-10-de-julho-de-2026-718408679',
+  ],
 });
 
-app.post('/api/trigger-score/reset', adminLimiter, requireAdminAuth, express.json({ limit: '1kb' }), async (req, res) => {
-  const { source } = req.body;
-  if (!source) return res.status(400).json({ error: 'source required' });
-  try {
-    await query('DELETE FROM trigger_scores WHERE source = $1', [source]);
-    await query('DELETE FROM trigger_pending_signals WHERE source = $1', [source]);
-    res.json({ ok: true });
-  } catch (e) {
-    Sentry.captureException(e);
-    res.status(500).json({ error: e.message });
-  }
-});
+const gatilhosGone = (_req, res) => res.status(410).json(GATILHOS_DESCONTINUADOS);
+
+app.get('/api/trigger-score', gatilhosGone);
+app.post('/api/trigger-score/reset', gatilhosGone);
 
 app.post('/api/admin/backfill-motor', adminLimiter, requireAdminAuth, express.json({ limit: '1kb' }), async (req, res) => {
   const { source } = req.body;
@@ -835,12 +804,8 @@ app.get('/api/motor-analysis', requireValidUser, async (req, res) => {
   res.json(data || { source, timestamp: 0, globalAssertiveness: 0, totalSignals: 0, strategyScores: [], entrySignal: null, motorScores: emptyScores() });
 });
 
-app.get('/api/trigger-analysis', requireActiveSubscription, async (req, res) => {
-  const source = req.query.source;
-  if (!source) return res.status(400).json({ error: 'source required' });
-  const data = getLatestTriggerAnalysis(source);
-  res.json(data || { source, timestamp: 0, activeSignals: [], topTriggers: [], activeTrigger: null, scoreboard: { wins: 0, losses: 0 }, assertivity: { types: [], totals: { g1: 0, g2: 0, g3: 0, red: 0, total: 0, pct: 0 }, perTrigger: {} }, allTriggersCount: 0 });
-});
+// Descontinuado — ver GATILHOS_DESCONTINUADOS acima.
+app.get('/api/trigger-analysis', gatilhosGone);
 
 // ── Health & debug ────────────────────────────────────────────
 
@@ -982,7 +947,6 @@ const startServer = async () => {
 
     // Inicializa engines com acesso ao Socket.IO
     await initMotorEngine(io);
-    initTriggerEngine(io);
 
     // Em cluster mode, só o worker 0 faz fetch para evitar duplicação
     const isMainWorker = !process.env.NODE_APP_INSTANCE || process.env.NODE_APP_INSTANCE === '0';
