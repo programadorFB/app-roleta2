@@ -20,6 +20,7 @@ import { testConnection, poolStats, query } from './db.js';
 import { initRedis, redisHealthCheck, closeRedis, cacheSet, cacheDel, KEY, TTL, getPubSubClients, publishSignals } from './redisService.js';
 import {
   hasActiveAccess, processHublaWebhook, verifyHublaWebhook,
+  processKirvanoWebhook, verifyKirvanoWebhook,
   getSubscriptionStats, getActiveSubscriptions, getWebhookLogs,
   getSubscriptionByEmail, getSubscriptionAuditLog, getAllAuditLogs,
   sendExpirationReminders, ensureUserRegistered,
@@ -71,6 +72,7 @@ const FRONTEND_URL        = process.env.FRONTEND_URL;
 const BACKEND_PUBLIC_URL  = process.env.BACKEND_PUBLIC_URL;
 const HUBLA_WEBHOOK_TOKEN = process.env.HUBLA_WEBHOOK_TOKEN;
 const HUBLA_CHECKOUT_URL  = process.env.HUBLA_CHECKOUT_URL;
+const KIRVANO_WEBHOOK_TOKEN = process.env.KIRVANO_WEBHOOK_TOKEN;
 const ADMIN_SECRET        = process.env.ADMIN_SECRET;
 const AUTH_PROXY_TARGET   = process.env.AUTH_PROXY_TARGET;
 const FETCH_INTERVAL_MS   = 1000;
@@ -195,7 +197,9 @@ app.use((req, res, next) => {
   }
 
   // Bloquear requests sem User-Agent em endpoints protegidos
-  if (req.url.startsWith('/api/') && !ua && !req.headers['x-crawler-secret']) {
+  // (webhooks Hubla/Kirvano são server-to-server e podem vir sem UA)
+  if (req.url.startsWith('/api/') && !ua && !req.headers['x-crawler-secret']
+      && !req.headers['x-hubla-token'] && !req.headers['x-kirvano-token']) {
     return res.status(403).json({ error: 'Acesso negado' });
   }
 
@@ -212,7 +216,7 @@ app.use((req, res, next) => {
   if (!isApiRoute) return next();
 
   // Rotas com autenticação própria — não precisam de HMAC
-  if (req.headers['x-crawler-secret'] || req.headers['x-hubla-token']) return next();
+  if (req.headers['x-crawler-secret'] || req.headers['x-hubla-token'] || req.headers['x-kirvano-token']) return next();
   // Health check
   if (req.url === '/api/health' || req.url === '/health') return next();
 
@@ -248,7 +252,7 @@ app.use((req, res, next) => {
 
   const isApiRoute = req.url.startsWith('/api/') || req.url.startsWith('/login') || req.url.startsWith('/start-game');
   if (!isApiRoute) return next();
-  if (req.headers['x-crawler-secret'] || req.headers['x-hubla-token']) return next();
+  if (req.headers['x-crawler-secret'] || req.headers['x-hubla-token'] || req.headers['x-kirvano-token']) return next();
 
   const origin = req.headers['origin'] || '';
   const referer = req.headers['referer'] || '';
@@ -290,7 +294,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Email', 'x-hubla-token', 'x-crawler-secret', 'X-Sig', 'X-Ts'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Email', 'x-hubla-token', 'x-kirvano-token', 'x-crawler-secret', 'X-Sig', 'X-Ts'],
 }));
 
 app.use(compression({
@@ -562,6 +566,29 @@ app.post('/api/webhooks/hubla', webhookLimiter, express.json({ limit: '64kb' }),
       return res.status(401).json({ error: 'Token inválido' });
     }
     const result = await processHublaWebhook(req.body.type, req.body);
+    res.json({ success: true, result });
+  } catch (err) {
+    Sentry.captureException(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Webhook Kirvano ───────────────────────────────────────────
+// A Kirvano envia o evento no campo `event` e (quando configurado) o token
+// no header `x-kirvano-token`. Espelha a integração do roleta3, adaptada.
+// Validação "se-configurado": se KIRVANO_WEBHOOK_TOKEN estiver setado no
+// .env, o token é exigido; caso contrário aceita com aviso (rollout).
+// Para travar: setar KIRVANO_WEBHOOK_TOKEN e cadastrar o mesmo token na Kirvano.
+app.post('/api/webhooks/kirvano', webhookLimiter, express.json({ limit: '64kb' }), async (req, res) => {
+  try {
+    if (KIRVANO_WEBHOOK_TOKEN) {
+      if (!verifyKirvanoWebhook(req.headers['x-kirvano-token'], KIRVANO_WEBHOOK_TOKEN)) {
+        return res.status(401).json({ error: 'Token inválido' });
+      }
+    } else {
+      console.warn('⚠️ [KIRVANO] KIRVANO_WEBHOOK_TOKEN não configurado — webhook aceito sem verificação');
+    }
+    const result = await processKirvanoWebhook(req.body.event, req.body);
     res.json({ success: true, result });
   } catch (err) {
     Sentry.captureException(err);
