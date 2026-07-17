@@ -12,7 +12,7 @@ import crypto from 'crypto';
 import compression from 'compression';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { createProxyMiddleware } from 'http-proxy-middleware';
+import { createProxyMiddleware, responseInterceptor } from 'http-proxy-middleware';
 
 import { loadAllExistingSignalIds, saveNewSignals, getFullHistory, getLatestSpins, getNewSignalsSince } from './dbService.js';
 import { SOURCES } from './constants.js';
@@ -20,13 +20,16 @@ import { testConnection, poolStats, query } from './db.js';
 import { initRedis, redisHealthCheck, closeRedis, cacheSet, cacheDel, KEY, TTL, getPubSubClients, publishSignals } from './redisService.js';
 import {
   hasActiveAccess, processHublaWebhook, verifyHublaWebhook,
+  processKirvanoWebhook, verifyKirvanoWebhook,
   getSubscriptionStats, getActiveSubscriptions, getWebhookLogs,
   getSubscriptionByEmail, getSubscriptionAuditLog, getAllAuditLogs,
   sendExpirationReminders,
   ACTIVE_STATUSES,
 } from './subscriptionService.js';
 import { processSource, initMotorEngine, getLatestMotorAnalysis, computeMotorAnalysisOnDemand, computeFilteredMotorScore, backfillMotorScores } from './motorScoreEngine.js';
-import { processTriggerSource, initTriggerEngine, getLatestTriggerAnalysis } from './triggerScoreEngine.js';
+// O motor de gatilhos não emite mais nada ao usuário (Portarias 1.964/2026 e 73/2026);
+// só persiste o placar interno, então não precisa mais do Socket.IO.
+import { processTriggerSource } from './triggerScoreEngine.js';
 import { gerenciamentoAuthMiddleware, gerenciamentoProxy } from './gerenciamentoGateway.js';
 
 dotenv.config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.env') });
@@ -69,6 +72,7 @@ const FRONTEND_URL        = process.env.FRONTEND_URL;
 const BACKEND_PUBLIC_URL  = process.env.BACKEND_PUBLIC_URL;
 const HUBLA_WEBHOOK_TOKEN = process.env.HUBLA_WEBHOOK_TOKEN;
 const HUBLA_CHECKOUT_URL  = process.env.HUBLA_CHECKOUT_URL;
+const KIRVANO_WEBHOOK_TOKEN = process.env.KIRVANO_WEBHOOK_TOKEN;
 const ADMIN_SECRET        = process.env.ADMIN_SECRET;
 const AUTH_PROXY_TARGET   = process.env.AUTH_PROXY_TARGET;
 const FETCH_INTERVAL_MS   = 1000;
@@ -193,7 +197,9 @@ app.use((req, res, next) => {
   }
 
   // Bloquear requests sem User-Agent em endpoints protegidos
-  if (req.url.startsWith('/api/') && !ua && !req.headers['x-crawler-secret']) {
+  // (webhooks Hubla/Kirvano são server-to-server e podem vir sem UA)
+  if (req.url.startsWith('/api/') && !ua && !req.headers['x-crawler-secret']
+      && !req.headers['x-hubla-token'] && !req.headers['x-kirvano-token']) {
     return res.status(403).json({ error: 'Acesso negado' });
   }
 
@@ -210,7 +216,7 @@ app.use((req, res, next) => {
   if (!isApiRoute) return next();
 
   // Rotas com autenticação própria — não precisam de HMAC
-  if (req.headers['x-crawler-secret'] || req.headers['x-hubla-token']) return next();
+  if (req.headers['x-crawler-secret'] || req.headers['x-hubla-token'] || req.headers['x-kirvano-token']) return next();
   // Health check
   if (req.url === '/api/health' || req.url === '/health') return next();
 
@@ -246,7 +252,7 @@ app.use((req, res, next) => {
 
   const isApiRoute = req.url.startsWith('/api/') || req.url.startsWith('/login') || req.url.startsWith('/start-game');
   if (!isApiRoute) return next();
-  if (req.headers['x-crawler-secret'] || req.headers['x-hubla-token']) return next();
+  if (req.headers['x-crawler-secret'] || req.headers['x-hubla-token'] || req.headers['x-kirvano-token']) return next();
 
   const origin = req.headers['origin'] || '';
   const referer = req.headers['referer'] || '';
@@ -288,7 +294,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Email', 'x-hubla-token', 'x-crawler-secret', 'X-Sig', 'X-Ts'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Email', 'x-hubla-token', 'x-kirvano-token', 'x-crawler-secret', 'X-Sig', 'X-Ts'],
 }));
 
 app.use(compression({
@@ -362,7 +368,14 @@ async function checkSubscriptionWithFallback(email) {
     sub && ACTIVE_STATUSES.includes(sub.status) &&
     (!sub.expires_at || new Date(sub.expires_at) >= new Date());
 
-  const cached = await getSubscriptionByEmail(email);
+  let cached = null;
+  try {
+    cached = await getSubscriptionByEmail(email);
+  } catch (cacheErr) {
+    console.error('[checkSub] Erro no cached lookup - fail-open:', cacheErr.message);
+    Sentry.captureException(cacheErr, { tags: { context: 'subscription-cached-check' }, extra: { email } });
+    return { canPlay: true, subscription: null };
+  }
   if (isActive(cached)) return { canPlay: true, subscription: cached };
 
   try {
@@ -386,57 +399,39 @@ async function checkSubscriptionWithFallback(email) {
 app.use('/login', createProxyMiddleware({
   target: AUTH_PROXY_TARGET,
   changeOrigin: true,
-  timeout: 60000,
   followRedirects: true,
+  timeout: 60000,
   pathRewrite: { '^/': '/login' },
-
-  onProxyReq: (proxyReq) => {
-    proxyReq.setHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
-    proxyReq.setHeader('Accept', 'application/json');
-  },
-
-  onProxyRes: (proxyRes, req, res) => {
-    const chunks = [];
-    proxyRes.on('data', c => chunks.push(c));
-    proxyRes.on('end', async () => {
-      const body       = Buffer.concat(chunks).toString('utf8');
-      const statusCode = proxyRes.statusCode;
-
-      if (statusCode < 200 || statusCode >= 300) {
-        Object.keys(proxyRes.headers).forEach(k => res.setHeader(k, proxyRes.headers[k]));
-        return res.status(statusCode).send(body);
+  selfHandleResponse: true,
+  // Entrada validada SOMENTE pelo proxy de entrada (auth externo).
+  // Free e premium entram igual; o plano e resolvido via
+  // /api/subscription/status e as rotas premium por requireActiveSubscription.
+  on: {
+    // O auth externo responde 5xx (errCode LOGIN_ERROR) para credencial
+    // invalida. Traduzimos para 400 + code INVALID_CREDENTIALS, que o
+    // frontend ja mapeia para "E-mail ou senha incorretos.". Evitamos 401
+    // de proposito: ele dispara auto-logout no front.
+    proxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
+      const status = proxyRes.statusCode || 0;
+      if (status >= 500) {
+        try {
+          const j = JSON.parse(responseBuffer.toString('utf8'));
+          const detail = String(j.details || j.message || '');
+          if (j.errCode === 'LOGIN_ERROR' && /incorret|senha|password|credenc|invalid/i.test(detail)) {
+            res.statusCode = 400;
+            return JSON.stringify({ error: true, code: 'INVALID_CREDENTIALS', message: detail || 'E-mail ou senha incorretos.' });
+          }
+        } catch { /* corpo nao-JSON: repassa intacto */ }
       }
-
-      try {
-        let email = null;
-        if (req.headers.authorization?.startsWith('Basic ')) {
-          const decoded = Buffer.from(req.headers.authorization.split(' ')[1], 'base64').toString('utf-8');
-          email = decoded.split(':')[0];
-        }
-        if (!email) {
-          try { email = JSON.parse(body).user?.email || JSON.parse(body).email; } catch { /* ignore */ }
-        }
-        if (!email) return res.status(500).json({ error: true, message: 'Email não identificado' });
-
-        const cleanEmail = email.trim().toLowerCase();
-        // Modo free unificado: sem assinatura ativa o login segue normal —
-        // o frontend resolve o plano via /api/subscription/status e bloqueia
-        // só os recursos premium (paywall com "Continuar no Modo Free").
-        const { canPlay } = await checkSubscriptionWithFallback(cleanEmail);
-        if (!canPlay) console.log(`🆓 [login] Sem assinatura ativa — entrando como free: ${cleanEmail}`);
-
-        Object.keys(proxyRes.headers).forEach(k => res.setHeader(k, proxyRes.headers[k]));
-        res.status(statusCode).send(body);
-      } catch (dbErr) {
-        Sentry.captureException(dbErr);
-        res.status(500).json({ error: true, message: 'Erro ao verificar assinatura' });
+      return responseBuffer;
+    }),
+    error: (err, req, res) => {
+      console.error('[login] proxy error (conexao upstream):', err && err.message);
+      Sentry.captureException(err);
+      if (res && !res.headersSent && typeof res.status === 'function') {
+        res.status(502).json({ error: true, message: 'Servico de login indisponivel. Tente novamente em instantes.' });
       }
-    });
-  },
-
-  onError: (err, req, res) => {
-    Sentry.captureException(err);
-    if (!res.headersSent) res.status(500).json({ error: true, message: 'Erro no proxy de login' });
+    },
   },
 }));
 
@@ -549,6 +544,29 @@ app.post('/api/webhooks/hubla', webhookLimiter, express.json({ limit: '64kb' }),
       return res.status(401).json({ error: 'Token inválido' });
     }
     const result = await processHublaWebhook(req.body.type, req.body);
+    res.json({ success: true, result });
+  } catch (err) {
+    Sentry.captureException(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Webhook Kirvano ───────────────────────────────────────────
+// A Kirvano envia o evento no campo `event` e (quando configurado) o token
+// no header `x-kirvano-token`. Espelha a integração do roleta3, adaptada.
+// Validação "se-configurado": se KIRVANO_WEBHOOK_TOKEN estiver setado no
+// .env, o token é exigido; caso contrário aceita com aviso (rollout).
+// Para travar: setar KIRVANO_WEBHOOK_TOKEN e cadastrar o mesmo token na Kirvano.
+app.post('/api/webhooks/kirvano', webhookLimiter, express.json({ limit: '64kb' }), async (req, res) => {
+  try {
+    if (KIRVANO_WEBHOOK_TOKEN) {
+      if (!verifyKirvanoWebhook(req.headers['x-kirvano-token'], KIRVANO_WEBHOOK_TOKEN)) {
+        return res.status(401).json({ error: 'Token inválido' });
+      }
+    } else {
+      console.warn('⚠️ [KIRVANO] KIRVANO_WEBHOOK_TOKEN não configurado — webhook aceito sem verificação');
+    }
+    const result = await processKirvanoWebhook(req.body.event, req.body);
     res.json({ success: true, result });
   } catch (err) {
     Sentry.captureException(err);
@@ -738,61 +756,28 @@ app.post('/api/motor-score/reset', adminLimiter, requireAdminAuth, express.json(
   }
 });
 
-// ── Trigger Score (wins/losses persistence — PostgreSQL) ─────
-
-app.get('/api/trigger-score', requireActiveSubscription, async (req, res) => {
-  const source = req.query.source;
-  if (!source) return res.status(400).json({ error: 'source required' });
-  const limit = req.query.limit;
-  try {
-    // Quando limit é um número, filtra sinais resolvidos dentro das últimas N rodadas
-    if (limit && limit !== 'all' && Number.isFinite(Number(limit)) && Number(limit) > 0) {
-      const offset = Math.max(0, Number(limit) - 1);
-      const { rows } = await query(
-        `WITH cutoff AS (
-           SELECT "timestamp" FROM signals
-           WHERE source = $1
-           ORDER BY "timestamp" DESC
-           OFFSET $2 LIMIT 1
-         )
-         SELECT
-           COUNT(*) FILTER (WHERE result = 'win') AS wins,
-           COUNT(*) FILTER (WHERE result = 'loss') AS losses
-         FROM trigger_pending_signals
-         WHERE source = $1
-           AND resolved = TRUE
-           AND created_at >= COALESCE((SELECT "timestamp" FROM cutoff), '1970-01-01')`,
-        [source, offset]
-      );
-      const r = rows[0] || { wins: 0, losses: 0 };
-      return res.json({ wins: parseInt(r.wins, 10), losses: parseInt(r.losses, 10) });
-    }
-
-    // Sem limit ou 'all': retorna total acumulado
-    const { rows } = await query(
-      'SELECT wins, losses FROM trigger_scores WHERE source = $1',
-      [source]
-    );
-    const score = rows[0] || { wins: 0, losses: 0 };
-    res.json({ wins: score.wins, losses: score.losses });
-  } catch (e) {
-    Sentry.captureException(e);
-    res.status(500).json({ error: e.message });
-  }
+// ── Gatilhos: endpoints descontinuados ───────────────────────
+//
+// Os gatilhos saíram do ar em adequação à Portaria SPA/MF nº 1.964, de 3 de julho
+// de 2026, e à Portaria Interministerial MF/SECOM/MJSP nº 73, de 10 de julho de
+// 2026 (art. 4º, VII, "b", "c" e "d"). 410 e não 404: clientes com bundle antigo
+// em cache recebem o motivo em vez de um erro genérico.
+//
+// O motor de gatilhos continua rodando internamente (triggerScoreEngine alimenta
+// o placar) — o que foi cortado é a exposição ao usuário.
+const GATILHOS_DESCONTINUADOS = Object.freeze({
+  error: 'Recurso descontinuado',
+  reason: 'Os gatilhos foram desativados em adequação à Portaria SPA/MF nº 1.964/2026 e à Portaria Interministerial MF/SECOM/MJSP nº 73/2026.',
+  sources: [
+    'https://www.in.gov.br/web/dou/-/portaria-spa/mf-n-1.964-de-3-de-julho-de-2026-718408857',
+    'https://www.in.gov.br/en/web/dou/-/portaria-interministerial-mf/secom/mjsp-n-73-de-10-de-julho-de-2026-718408679',
+  ],
 });
 
-app.post('/api/trigger-score/reset', adminLimiter, requireAdminAuth, express.json({ limit: '1kb' }), async (req, res) => {
-  const { source } = req.body;
-  if (!source) return res.status(400).json({ error: 'source required' });
-  try {
-    await query('DELETE FROM trigger_scores WHERE source = $1', [source]);
-    await query('DELETE FROM trigger_pending_signals WHERE source = $1', [source]);
-    res.json({ ok: true });
-  } catch (e) {
-    Sentry.captureException(e);
-    res.status(500).json({ error: e.message });
-  }
-});
+const gatilhosGone = (_req, res) => res.status(410).json(GATILHOS_DESCONTINUADOS);
+
+app.get('/api/trigger-score', gatilhosGone);
+app.post('/api/trigger-score/reset', gatilhosGone);
 
 app.post('/api/admin/backfill-motor', adminLimiter, requireAdminAuth, express.json({ limit: '1kb' }), async (req, res) => {
   const { source } = req.body;
@@ -824,12 +809,8 @@ app.get('/api/motor-analysis', requireValidUser, async (req, res) => {
   res.json(data || { source, timestamp: 0, globalAssertiveness: 0, totalSignals: 0, strategyScores: [], entrySignal: null, motorScores: emptyScores() });
 });
 
-app.get('/api/trigger-analysis', requireActiveSubscription, async (req, res) => {
-  const source = req.query.source;
-  if (!source) return res.status(400).json({ error: 'source required' });
-  const data = getLatestTriggerAnalysis(source);
-  res.json(data || { source, timestamp: 0, activeSignals: [], topTriggers: [], activeTrigger: null, scoreboard: { wins: 0, losses: 0 }, assertivity: { types: [], totals: { g1: 0, g2: 0, g3: 0, red: 0, total: 0, pct: 0 }, perTrigger: {} }, allTriggersCount: 0 });
-});
+// Descontinuado — ver GATILHOS_DESCONTINUADOS acima.
+app.get('/api/trigger-analysis', gatilhosGone);
 
 // ── Health & debug ────────────────────────────────────────────
 
@@ -971,7 +952,6 @@ const startServer = async () => {
 
     // Inicializa engines com acesso ao Socket.IO
     await initMotorEngine(io);
-    initTriggerEngine(io);
 
     // Em cluster mode, só o worker 0 faz fetch para evitar duplicação
     const isMainWorker = !process.env.NODE_APP_INSTANCE || process.env.NODE_APP_INSTANCE === '0';

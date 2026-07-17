@@ -376,6 +376,144 @@ export async function processHublaWebhook(eventType, payload) {
   }
 }
 
+// ── Kirvano Webhook ────────────────────────────────────────────
+// Espelhado da integração do roleta3. A Kirvano envia o evento no campo
+// `event` do corpo e os dados do cliente em `customer`. O preço vem como
+// string BR ("R$ 97,00"). Adaptado ao schema do roleta2: sem coluna
+// `source` (o sale_id vai no campo hubla_customer_id, reaproveitado).
+
+function extractKirvanoCustomerData(payload) {
+  const c = payload.customer;
+  if (c?.email) return { email: c.email, name: c.name, saleId: payload.sale_id };
+  return { email: null, name: null, saleId: null };
+}
+
+function parseKirvanoPrice(priceStr) {
+  if (!priceStr) return null;
+  const cleaned = String(priceStr).replace(/[R$\s.]/g, '').replace(',', '.');
+  const cents = Math.round(parseFloat(cleaned) * 100);
+  return isNaN(cents) ? null : cents;
+}
+
+function getKirvanoExpiration(payload) {
+  const nextDate = payload.plan?.next_charge_date;
+  if (nextDate) {
+    const d = new Date(nextDate);
+    if (!isNaN(d.getTime())) return d;
+  }
+  const freq = payload.plan?.charge_frequency;
+  const date = new Date();
+  if (freq === 'ANNUALLY')        date.setFullYear(date.getFullYear() + 1);
+  else if (freq === 'QUARTERLY')  date.setDate(date.getDate() + 90);
+  else if (freq === 'MONTHLY')    date.setDate(date.getDate() + 30);
+  else                            date.setDate(date.getDate() + 30); // ONE_TIME → 30 dias
+  return date;
+}
+
+async function handleKirvanoSaleApproved(payload) {
+  const { email, name, saleId } = extractKirvanoCustomerData(payload);
+  if (!email) throw new Error('Email não encontrado no payload Kirvano');
+
+  const planName  = payload.plan?.name || payload.products?.[0]?.name || 'Premium';
+  const expiresAt = getKirvanoExpiration(payload);
+  const existing  = await getSubscriptionByEmail(email);
+  const userId    = existing?.user_id || email.split('@')[0];
+
+  const result = await upsertSubscription({
+    userId: userId.toString(), email, hublaCustomerId: saleId,
+    subscriptionId: payload.checkout_id, status: 'active', planName, expiresAt,
+  });
+
+  console.log(`✅ [KIRVANO] Venda aprovada: ${email} | ${planName}`);
+
+  if (!existing || existing.status !== 'active') {
+    sendWelcomeEmail({ name, email, planName, expiresAt }).catch(err =>
+      console.error(`❌ [KIRVANO] Falha ao enviar email para ${email}:`, err.message),
+    );
+  }
+
+  return result;
+}
+
+async function handleKirvanoSubscriptionRenewed(payload) {
+  const { email, saleId } = extractKirvanoCustomerData(payload);
+  if (!email) throw new Error('Email não encontrado (SUBSCRIPTION_RENEWED)');
+
+  const planName  = payload.plan?.name || 'Premium';
+  const expiresAt = getKirvanoExpiration(payload);
+  const existing  = await getSubscriptionByEmail(email);
+  const userId    = existing?.user_id || email.split('@')[0];
+
+  const result = await upsertSubscription({
+    userId: userId.toString(), email, hublaCustomerId: saleId,
+    status: 'active', planName, expiresAt,
+  });
+
+  console.log(`🔄 [KIRVANO] Renovada: ${email} | até ${expiresAt?.toLocaleDateString()}`);
+  return result;
+}
+
+async function handleKirvanoSubscriptionCanceled(payload) {
+  const { email } = extractKirvanoCustomerData(payload);
+  if (!email) throw new Error('Email não encontrado (SUBSCRIPTION_CANCELED)');
+
+  const existing = await getSubscriptionByEmail(email);
+  if (!existing) return;
+
+  await upsertSubscription({ userId: existing.user_id, email, status: 'canceled' });
+  console.log(`🚫 [KIRVANO] Cancelada: ${email}`);
+}
+
+async function handleKirvanoSaleRefunded(payload) {
+  const { email } = extractKirvanoCustomerData(payload);
+  if (!email) throw new Error('Email não encontrado (SALE_REFUNDED)');
+
+  const existing = await getSubscriptionByEmail(email);
+  if (!existing) return;
+
+  await upsertSubscription({ userId: existing.user_id, email, status: 'canceled' });
+  console.log(`↩️ [KIRVANO] Reembolso — acesso revogado: ${email}`);
+}
+
+export function verifyKirvanoWebhook(tokenFromHeader, expectedToken) {
+  if (!expectedToken || !tokenFromHeader) return false;
+  try {
+    const a = Buffer.from(String(tokenFromHeader));
+    const b = Buffer.from(String(expectedToken));
+    if (a.length !== b.length) return false;
+    return crypto.timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
+}
+
+export async function processKirvanoWebhook(eventType, payload) {
+  console.log(`\n🔔 [KIRVANO] Evento: ${eventType}`);
+  try {
+    let result;
+    switch (eventType) {
+      case 'SALE_APPROVED':
+        result = await handleKirvanoSaleApproved(payload); break;
+      case 'SUBSCRIPTION_RENEWED':
+        result = await handleKirvanoSubscriptionRenewed(payload); break;
+      case 'SUBSCRIPTION_CANCELED':
+        result = await handleKirvanoSubscriptionCanceled(payload); break;
+      case 'SALE_REFUNDED':
+        result = await handleKirvanoSaleRefunded(payload); break;
+      default:
+        console.log(`⚠️ [KIRVANO] Evento não tratado: ${eventType}`);
+        await logWebhookEvent(`kirvano:${eventType}`, payload, 'ignored', 'Evento não tratado');
+        return { status: 'ignored' };
+    }
+    await logWebhookEvent(`kirvano:${eventType}`, payload, 'success');
+    return result;
+  } catch (err) {
+    console.error(`❌ [KIRVANO] Erro ao processar ${eventType}:`, err);
+    await logWebhookEvent(`kirvano:${eventType}`, payload, 'error', err.message);
+    throw err;
+  }
+}
+
 export async function getActiveSubscriptions() {
   return cacheAside(KEY.activeSubs(), TTL.ACTIVE_SUBS, async () => {
     const { rows } = await query(
