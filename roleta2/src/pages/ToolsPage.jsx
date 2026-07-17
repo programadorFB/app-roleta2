@@ -21,10 +21,9 @@ const TOOLS = [
     name: 'Smart Analise',
     tagline: 'Analise estatistica de roletas em tempo real',
     link: null, // current app
-    desc: 'Sistema completo de analise estatistica que monitora roletas ao vivo, identifica padroes e gera sinais de entrada com base em dados. Combina 5 estrategias independentes no Dashboard e analise individual de gatilhos para maximizar suas chances.',
+    desc: 'Sistema completo de analise estatistica que monitora roletas ao vivo e acompanha padroes com base em dados. Combina 5 estrategias independentes no Dashboard.',
     features: [
       { icon: Target, color: '#c9a052', text: '5 Estrategias combinadas (Cavalos, Setores, Vizinhos, Ocultos, Croupier)' },
-      { icon: Crosshair, color: '#34d399', text: 'Gatilhos inteligentes com assertividade individual por numero' },
       { icon: Flame, color: '#f97316', text: 'Temperatura de padroes (Quente, Aquecido, Morno, Frio)' },
       { icon: TrendingUp, color: '#60a5fa', text: 'Motor de Score automatico com placar em tempo real' },
       { icon: Zap, color: '#fbbf24', text: 'Sinais em progresso com rastreamento G1/G2/G3' },

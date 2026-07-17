@@ -18,19 +18,10 @@ export const useAnalysisSocket = ({
   isAuthenticated,
 }) => {
   const [motorAnalysis, setMotorAnalysis] = useState(null);
-  const [triggerAnalysis, setTriggerAnalysis] = useState(null);
   const socketRef = useRef(null);
   const lastSocketEventRef = useRef(0);
 
-  // ── Setters seguros: rejeitam timestamp=0 e nunca regrediram ──
-  const safeTriggerUpdate = useCallback((data) => {
-    if (!data || !data.timestamp || data.timestamp === 0) return; // default vazio do backend
-    setTriggerAnalysis(prev => {
-      if (prev && prev.timestamp > data.timestamp) return prev; // não regredir
-      return data;
-    });
-  }, []);
-
+  // ── Setter seguro: rejeita timestamp=0 e nunca regride ──
   const safeMotorUpdate = useCallback((data) => {
     if (!data || !data.timestamp || data.timestamp === 0) return;
     setMotorAnalysis(prev => {
@@ -44,24 +35,18 @@ export const useAnalysisSocket = ({
     if (!userEmail || !selectedRoulette) return;
 
     try {
-      const [motorRes, triggerRes] = await Promise.allSettled([
-        signedFetch(`${API_URL}/api/motor-analysis?source=${selectedRoulette}&userEmail=${encodeURIComponent(userEmail)}`),
-        signedFetch(`${API_URL}/api/trigger-analysis?source=${selectedRoulette}&userEmail=${encodeURIComponent(userEmail)}`),
-      ]);
+      const res = await signedFetch(
+        `${API_URL}/api/motor-analysis?source=${selectedRoulette}&userEmail=${encodeURIComponent(userEmail)}`
+      );
 
-      if (motorRes.status === 'fulfilled' && motorRes.value.ok) {
-        const data = await motorRes.value.json();
+      if (res.ok) {
+        const data = await res.json();
         if (data.source === selectedRoulette) safeMotorUpdate(data);
-      }
-
-      if (triggerRes.status === 'fulfilled' && triggerRes.value.ok) {
-        const data = await triggerRes.value.json();
-        if (data.source === selectedRoulette) safeTriggerUpdate(data);
       }
     } catch (err) {
       console.error('[useAnalysisSocket] Erro no fetch:', err.message);
     }
-  }, [selectedRoulette, userEmail, safeTriggerUpdate, safeMotorUpdate]);
+  }, [selectedRoulette, userEmail, safeMotorUpdate]);
 
   // Reset de segurança apenas se mudar de roleta (opcional: manter dados antigos até os novos chegarem)
   useEffect(() => {
@@ -96,20 +81,12 @@ export const useAnalysisSocket = ({
       }
     });
 
-    socket.on('trigger-analysis', (data) => {
-      if (data.source === selectedRoulette) {
-        lastSocketEventRef.current = Date.now();
-        safeTriggerUpdate(data);
-      }
-    });
-
     return () => {
       socket.off('motor-analysis');
-      socket.off('trigger-analysis');
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [isAuthenticated, jwtToken, userEmail, selectedRoulette, safeTriggerUpdate, safeMotorUpdate]);
+  }, [isAuthenticated, jwtToken, userEmail, selectedRoulette, safeMotorUpdate]);
 
   // Polling de backup — se Socket.IO parou de enviar eventos
   useEffect(() => {
@@ -125,5 +102,5 @@ export const useAnalysisSocket = ({
     return () => clearInterval(interval);
   }, [isAuthenticated, userEmail, selectedRoulette, fetchData]);
 
-  return { motorAnalysis, triggerAnalysis };
+  return { motorAnalysis };
 };

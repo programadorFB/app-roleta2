@@ -28,7 +28,7 @@ services:
       - DB_PORT=5432
       - DB_NAME=phantom-roleta
       - DB_USER=postgres
-      - DB_PASSWORD=UtLzuw7fh5XyfTLZ3S1bwaczwf1JF8GntdbtywtT
+      - DB_PASSWORD=1234
 
       # ── Redis ───────────────────────────────────
       - REDIS_URL=redis://redis:6379
@@ -77,7 +77,7 @@ services:
       - GATEWAY_SECRET=${GATEWAY_SECRET}
       - GERENCIAMENTO_BACKEND_URL=http://gerenciamento_backend_roleta2:5004
       - FETCH_INTERVAL_MS=5000
-      - DB_POOL_MAX=30
+      - DB_POOL_MAX=10
     restart: unless-stopped
     stop_grace_period: 30s
     networks:
@@ -121,7 +121,7 @@ services:
       dockerfile: Dockerfile
     environment:
       - FLASK_ENV=production
-      - DATABASE_URL=postgresql://postgres:UtLzuw7fh5XyfTLZ3S1bwaczwf1JF8GntdbtywtT@postgres_principal:5432/phantom-roleta
+      - DATABASE_URL=postgresql://postgres:1234@postgres_principal:5432/phantom-roleta
       - DB_POOL_SIZE=5
       - DB_POOL_MAX_OVERFLOW=10
       - GATEWAY_SECRET=${GATEWAY_SECRET}
