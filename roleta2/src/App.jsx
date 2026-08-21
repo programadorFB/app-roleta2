@@ -2,7 +2,7 @@ import React, {
   useState, useMemo, useCallback, useEffect, lazy, Suspense,
 } from 'react';
 import {
-  X, BarChart3, Clock, Hash, Percent, LogOut, PlayCircle, Crosshair, BookOpen, Headset, Wrench, Wallet,
+  X, BarChart3, Clock, Hash, Percent, LogOut, PlayCircle, BookOpen, Headset, Wrench, Wallet,
   Lock, Crown, Sparkles,
 } from 'lucide-react';
 
@@ -30,7 +30,6 @@ const RacingTrack       = lazy(() => import('./components/RacingTrack.jsx'));
 const DeepAnalysisPanel = lazy(() => import('./components/DeepAnalysisPanel.jsx'));
 const ResultsGrid       = lazy(() => import('./components/ResultGrid.jsx'));
 const GameIframe        = lazy(() => import('./components/GameIframe.jsx'));
-const TriggersDisabledNotice = lazy(() => import('./pages/TriggersDisabledNotice.jsx'));
 const TutorialPage      = lazy(() => import('./pages/TutorialPage.jsx'));
 const ToolsPage         = lazy(() => import('./pages/ToolsPage.jsx'));
 const GerenciamentoApp  = lazy(() => import('./gerenciamento/GerenciamentoApp.jsx'));
@@ -175,14 +174,18 @@ const App = () => {
         // Boas-vindas do trial: só no primeiro acesso (linha recém-criada) e 1x por sessão.
         if (data.subscription) {
           const isTrial = data.subscription.status === 'trialing' || data.subscription.source === 'trial';
-          const sessionKey = `welcomeTrialShown_${email.toLowerCase()}`;
+          // v2: a marca de "ja mostrei" e gravada quando o usuario FECHA o modal.
+          // Gravar na abertura sumia com o modal em dev — o StrictMode monta o efeito
+          // duas vezes: a 1a abria e marcava, a 2a ja achava a marca e nao abria (o
+          // state tinha voltado a false no remount). Em prod, um reload com o modal
+          // aberto tambem queimava o aviso sem o usuario ter lido.
+          const sessionKey = `welcomeTrial:v2:${email.toLowerCase()}`;
           const isNewlyCreated = data.subscription.created_at
             ? (Date.now() - new Date(data.subscription.created_at).getTime()) < 10 * 60 * 1000
             : true;
 
           if (isTrial && isNewlyCreated && !sessionStorage.getItem(sessionKey)) {
             setIsWelcomeModalOpen(true);
-            sessionStorage.setItem(sessionKey, 'true');
           }
         }
         if (!data.hasAccess && !paywallShownRef.current) {
@@ -279,7 +282,6 @@ const App = () => {
   }, []);
 
   const setDashboard = useCallback(() => setActiveView('dashboard'), []);
-  const setTriggers  = useCallback(() => setActiveView('triggers'),  []);
   const setTutorial  = useCallback(() => setActiveView('tutorial'),  []);
   const setTools     = useCallback(() => setActiveView('tools'),     []);
   const setGerenciamento = useCallback(() => setActiveView('gerenciamento'), []);
@@ -359,12 +361,6 @@ const App = () => {
             onClick={setDashboard}
           >
             <BarChart3 size={16} /><span className="navbar-tab-text">Dashboard</span>
-          </button>
-          <button
-            className={`navbar-tab ${activeView === 'triggers' ? 'navbar-tab--active' : ''}`}
-            onClick={setTriggers}
-          >
-            <Crosshair size={16} /><span className="navbar-tab-text">Gatilhos</span>
           </button>
           <button
             className={`navbar-tab ${activeView === 'tutorial' ? 'navbar-tab--active' : ''}`}
@@ -552,13 +548,6 @@ const App = () => {
         </main>
       )}
 
-      {/* Gatilhos desativados (Portarias SPA/MF 1.964/2026 e Interministerial 73/2026).
-          A aba continua no menu — sem ela, ninguém leria a explicação. */}
-      {activeView === 'triggers' && (
-        <Suspense fallback={<Spinner />}>
-          <TriggersDisabledNotice />
-        </Suspense>
-      )}
 
       {activeView === 'tutorial' && (
         <Suspense fallback={<Spinner />}>
@@ -590,7 +579,12 @@ const App = () => {
       />
       <WelcomeTrialModal
         isOpen={isWelcomeModalOpen}
-        onClose={() => setIsWelcomeModalOpen(false)}
+        onClose={() => {
+          setIsWelcomeModalOpen(false);
+          try {
+            sessionStorage.setItem(`welcomeTrial:v2:${(userInfo?.email || "").toLowerCase()}`, "true");
+          } catch { /* modo privado/sem storage: no maximo reabre na proxima visita */ }
+        }}
         userEmail={userInfo?.email}
       />
       <NumberStatsPopup isOpen={isPopupOpen} onClose={closePopup} number={popupNumber} stats={popupStats} />

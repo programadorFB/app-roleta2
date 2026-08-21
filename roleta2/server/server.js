@@ -418,6 +418,13 @@ app.use('/login', createProxyMiddleware({
   // Free e premium entram igual; o plano e resolvido via
   // /api/subscription/status e as rotas premium por requireActiveSubscription.
   on: {
+    // O upstream comprime com zstd, que o responseInterceptor NÃO descomprime
+    // (só gzip/deflate/brotli). Sem isto o corpo chega corrompido no browser
+    // (Content-Encoding removido, mas bytes ainda zstd) → response.json() quebra
+    // com "Erro de rede". Forçamos um encoding que o interceptor trata.
+    proxyReq: (proxyReq) => {
+      proxyReq.setHeader('Accept-Encoding', 'gzip, deflate');
+    },
     // O auth externo responde 5xx (errCode LOGIN_ERROR) para credencial
     // invalida. Traduzimos para 400 + code INVALID_CREDENTIALS, que o
     // frontend ja mapeia para "E-mail ou senha incorretos.". Evitamos 401
