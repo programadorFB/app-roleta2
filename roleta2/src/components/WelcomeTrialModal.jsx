@@ -1,9 +1,24 @@
 // WelcomeTrialModal.jsx - Pop-up de Boas-Vindas Ultra-Sofisticado (Primeiro Acesso)
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Crown, Sparkles, X, ChevronRight, ShieldCheck, Zap, BarChart3 } from 'lucide-react';
 import './WelcomeTrialModal.css';
 
+// Player VTurb (converteai). O <script> injeta o custom element <vturb-smartplayer>;
+// por isso ele é carregado sob demanda, uma única vez, quando o modal abre.
+const VTURB_PLAYER_ID  = 'vid-6a88bb5df917d565e46060e5';
+const VTURB_SCRIPT_SRC = 'https://scripts.converteai.net/ef9987e4-45c8-4851-adea-85ddfad5d0d1/players/6a88bb5df917d565e46060e5/v4/player.js';
+
 export const WelcomeTrialModal = ({ isOpen, onClose }) => {
+  // Hook antes do early return: as regras de hooks não permitem chamada condicional.
+  useEffect(() => {
+    if (!isOpen) return;
+    if (document.querySelector(`script[src="${VTURB_SCRIPT_SRC}"]`)) return;
+    const script = document.createElement('script');
+    script.src = VTURB_SCRIPT_SRC;
+    script.async = true;
+    document.head.appendChild(script);
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -26,6 +41,18 @@ export const WelcomeTrialModal = ({ isOpen, onClose }) => {
         <p className="welcome-subtitle">
           Sua conta foi ativada com sucesso. Preparamos uma cortesia especial para dar início à sua jornada com máxima performance.
         </p>
+
+        <div className="welcome-video">
+          <vturb-smartplayer
+            id={VTURB_PLAYER_ID}
+            style={{ display: 'block', margin: '0 auto', width: '100%' }}
+          >
+            <div
+              className="vturb-player-placeholder"
+              style={{ position: 'relative', width: '100%', padding: '56.25% 0 0', zIndex: 0, backgroundColor: 'black' }}
+            />
+          </vturb-smartplayer>
+        </div>
 
         <div className="welcome-period-pill">
           <Sparkles size={16} /> 7 Dias de Degustação Premium Concedidos
