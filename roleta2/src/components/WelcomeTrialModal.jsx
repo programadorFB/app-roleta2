@@ -36,7 +36,7 @@ export const WelcomeTrialModal = ({ isOpen, onClose }) => {
           ✦ CONVITE VIP EXCLUSIVO ✦
         </div>
 
-        <h2 className="welcome-title">Seja bem-vindo à Experiência Smart Analise</h2>
+        <h2 className="welcome-title">Seja bem-vindo à <span>Experiência Smart Analise</span></h2>
 
         <p className="welcome-subtitle">
           Sua conta foi ativada com sucesso. Preparamos uma cortesia especial para dar início à sua jornada com máxima performance.
