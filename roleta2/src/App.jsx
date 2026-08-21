@@ -180,14 +180,18 @@ const App = () => {
         // Boas-vindas do trial: só no primeiro acesso (linha recém-criada) e 1x por sessão.
         if (data.subscription) {
           const isTrial = data.subscription.status === 'trialing' || data.subscription.source === 'trial';
-          const sessionKey = `welcomeTrialShown_${email.toLowerCase()}`;
+          // v2: a marca de "ja mostrei" e gravada quando o usuario FECHA o modal.
+          // Gravar na abertura sumia com o modal em dev — o StrictMode monta o efeito
+          // duas vezes: a 1a abria e marcava, a 2a ja achava a marca e nao abria (o
+          // state tinha voltado a false no remount). Em prod, um reload com o modal
+          // aberto tambem queimava o aviso sem o usuario ter lido.
+          const sessionKey = `welcomeTrial:v2:${email.toLowerCase()}`;
           const isNewlyCreated = data.subscription.created_at
             ? (Date.now() - new Date(data.subscription.created_at).getTime()) < 10 * 60 * 1000
             : true;
 
           if (isTrial && isNewlyCreated && !sessionStorage.getItem(sessionKey)) {
             setIsWelcomeModalOpen(true);
-            sessionStorage.setItem(sessionKey, 'true');
           }
         }
         if (!data.hasAccess && !paywallShownRef.current) {
@@ -587,7 +591,12 @@ const App = () => {
       />
       <WelcomeTrialModal
         isOpen={isWelcomeModalOpen}
-        onClose={() => setIsWelcomeModalOpen(false)}
+        onClose={() => {
+          setIsWelcomeModalOpen(false);
+          try {
+            sessionStorage.setItem(`welcomeTrial:v2:${(userInfo?.email || "").toLowerCase()}`, "true");
+          } catch { /* modo privado/sem storage: no maximo reabre na proxima visita */ }
+        }}
         userEmail={userInfo?.email}
       />
       <NumberStatsPopup isOpen={isPopupOpen} onClose={closePopup} number={popupNumber} stats={popupStats} />
