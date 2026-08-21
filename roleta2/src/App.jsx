@@ -9,6 +9,7 @@ import {
 import Login        from './components/Login.jsx';
 import InstallAppButton from './components/InstallAppButton.jsx';
 import PaywallModal from './components/PaywallModal.jsx';
+import WelcomeTrialModal from './components/WelcomeTrialModal.jsx';
 import './components/PaywallModal.css';
 import './components/NotificationsCenter.css';
 import './App.modules.css';
@@ -117,6 +118,8 @@ const App = () => {
   // null = ainda resolvendo (trata como premium para não piscar cadeados),
   // 'premium' | 'free' depois que /api/subscription/status responde.
   const [plan,            setPlan]            = useState(null);
+  const [subscriptionInfo, setSubscriptionInfo] = useState(null);
+  const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
   const [selectedRoulette,     setSelectedRoulette]     = useState(Object.keys(ROULETTE_SOURCES)[0]);
   const [popupNumber,          setPopupNumber]          = useState(null);
   const [isPopupOpen,          setIsPopupOpen]          = useState(false);
@@ -127,6 +130,14 @@ const App = () => {
     try { return localStorage.getItem('roleta2.activeView') || 'dashboard'; }
     catch { return 'dashboard'; }
   });
+
+  // Dias restantes do acesso (trial ou assinatura paga) exibidos na navbar.
+  const getRemainingDays = useCallback((expiresAt) => {
+    if (!expiresAt) return null;
+    const diffMs = new Date(expiresAt).getTime() - Date.now();
+    if (diffMs <= 0) return 0;
+    return Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+  }, []);
 
   // ── Paywall event bus ─────────────────────────────────────
 
@@ -151,7 +162,7 @@ const App = () => {
 
   useEffect(() => {
     const email = userInfo?.email;
-    if (!isAuthenticated || !email) { setPlan(null); paywallShownRef.current = false; return; }
+    if (!isAuthenticated || !email) { setPlan(null); setSubscriptionInfo(null); paywallShownRef.current = false; return; }
 
     let cancelled = false;
     (async () => {
@@ -161,7 +172,22 @@ const App = () => {
         if (!res.ok) return; // mantém comportamento atual (premium) em erro
         const data = await res.json();
         if (cancelled) return;
+        setSubscriptionInfo(data.subscription);
         setPlan(data.hasAccess ? 'premium' : 'free');
+
+        // Boas-vindas do trial: só no primeiro acesso (linha recém-criada) e 1x por sessão.
+        if (data.subscription) {
+          const isTrial = data.subscription.status === 'trialing' || data.subscription.source === 'trial';
+          const sessionKey = `welcomeTrialShown_${email.toLowerCase()}`;
+          const isNewlyCreated = data.subscription.created_at
+            ? (Date.now() - new Date(data.subscription.created_at).getTime()) < 10 * 60 * 1000
+            : true;
+
+          if (isTrial && isNewlyCreated && !sessionStorage.getItem(sessionKey)) {
+            setIsWelcomeModalOpen(true);
+            sessionStorage.setItem(sessionKey, 'true');
+          }
+        }
         if (!data.hasAccess && !paywallShownRef.current) {
           // Mostra a oferta uma vez por sessão; dá pra fechar e seguir no free.
           paywallShownRef.current = true;
@@ -404,6 +430,22 @@ const App = () => {
         </div>
 
         <div className="navbar-right">
+          {subscriptionInfo && (
+            <div
+              className="navbar-premium-days"
+              title={subscriptionInfo.expires_at ? `Acesso expira em: ${new Date(subscriptionInfo.expires_at).toLocaleDateString('pt-BR')}` : 'Acesso Ativo'}
+            >
+              <Crown size={14} className="navbar-premium-crown" />
+              <span className="navbar-premium-days-text">
+                {(() => {
+                  const days = getRemainingDays(subscriptionInfo.expires_at);
+                  if (days === null) return 'Acesso Vitalício';
+                  if (days <= 0) return 'Expirado';
+                  return `${days} dia${days > 1 ? 's' : ''} de Premium`;
+                })()}
+              </span>
+            </div>
+          )}
           <InstallAppButton />
           <a href="https://betou.bet.br/" target="_blank" rel="noopener noreferrer" className="nav-btn">
             PLATAFORMA<img src={W600} alt="Logo" style={{ height: '13px', marginLeft: '4px' }} />
@@ -554,6 +596,11 @@ const App = () => {
         onClose={() => setIsPaywallOpen(false)}
         userId={userInfo?.email}
         checkoutUrl={checkoutUrl}
+      />
+      <WelcomeTrialModal
+        isOpen={isWelcomeModalOpen}
+        onClose={() => setIsWelcomeModalOpen(false)}
+        userEmail={userInfo?.email}
       />
       <NumberStatsPopup isOpen={isPopupOpen} onClose={closePopup} number={popupNumber} stats={popupStats} />
     </div>

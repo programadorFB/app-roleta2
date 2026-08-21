@@ -52,12 +52,12 @@ const VALID_TRANSITIONS = {
   // 'free' = usuário registrado no login que nunca assinou. Pode evoluir para
   // qualquer estado quando um webhook de compra/assinatura chegar.
   free:     ['pending', 'active', 'trialing', 'canceled', 'failed'],
-  pending:  ['active', 'canceled', 'failed'],
-  active:   ['canceled', 'expired'],
-  trialing: ['active', 'canceled'],
-  canceled: ['active'],
-  failed:   ['pending', 'active'],
-  expired:  ['active'],
+  pending:  ['active', 'trialing', 'canceled', 'failed'],
+  active:   ['canceled', 'expired', 'trialing'],
+  trialing: ['active', 'canceled', 'expired'],
+  canceled: ['active', 'trialing'],
+  failed:   ['pending', 'active', 'trialing'],
+  expired:  ['active', 'trialing'],
 };
 
 function isValidStatusTransition(current, next) {
@@ -223,6 +223,59 @@ export async function ensureUserRegistered(email) {
     console.error('❌ [REGISTER] Falha ao registrar usuário:', err.message);
     return null;
   }
+}
+
+// Um trial por pessoa, para sempre. A prova de que o usuário já ganhou não é o status
+// atual (webhook/cancelamento sobrescrevem), e sim o audit: toda entrada em 'trialing'
+// fica registrada em subscription_audit. Para reconceder de propósito, o DEV apaga as
+// linhas to_status='trialing' desse email no audit e volta a linha para 'free'.
+async function hasEverHadTrial(email, userId) {
+  try {
+    const { rows } = await query(
+      `SELECT 1 FROM subscription_audit
+        WHERE to_status = 'trialing' AND (LOWER(email) = $1 OR LOWER(user_id) = $1)
+        LIMIT 1`,
+      [email],
+    );
+    return rows.length > 0;
+  } catch (err) {
+    // Fail-safe: na dúvida NÃO concede — melhor um free sem trial do que trial repetido.
+    console.error('❌ [TRIAL] Falha ao checar histórico no audit:', err.message);
+    return true;
+  }
+}
+// Concede 7 dias grátis (status 'trialing') no primeiro acesso do usuário.
+// O login já cria a linha 'free' via ensureUserRegistered, então aqui a conta free
+// recém-criada (sem expires_at) é promovida a trialing. Qualquer outra linha volta
+// como está: trial consumido fica em trialing/expired com expires_at no passado,
+// então ninguém ganha um segundo período grátis.
+export async function createTrialSubscription(email) {
+  if (!email) throw new Error('Email obrigatório para criar trial');
+  const cleanEmail = String(email).trim().toLowerCase();
+
+  const existing = await getSubscriptionByEmail(cleanEmail);
+  const isFreshFreeRow = existing && existing.status === 'free' && !existing.expires_at;
+  if (existing && !isFreshFreeRow) return existing;
+
+  if (await hasEverHadTrial(cleanEmail, existing?.user_id)) {
+    console.log(`⛔ [TRIAL] ${cleanEmail} já usou os 7 dias — nenhum novo trial concedido`);
+    return existing;
+  }
+
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7);
+
+  const newSub = await upsertSubscription({
+    userId: existing ? existing.user_id : cleanEmail,
+    email: existing ? existing.email : cleanEmail,
+    status: 'trialing',
+    planName: '7 Dias Grátis',
+    expiresAt,
+    source: 'trial',
+  });
+
+  console.log(`🎁 [TRIAL] 7 dias grátis concedidos para: ${cleanEmail} (expira em ${expiresAt.toLocaleDateString()})`);
+  return newSub;
 }
 
 export async function hasActiveAccess(userId) {
@@ -694,7 +747,7 @@ export async function getAllAuditLogs(limit = 100) {
 
 export default {
   upsertSubscription, getSubscriptionByUserId, getSubscriptionByEmail,
-  getSubscriptionByHublaId, ensureUserRegistered, hasActiveAccess, processHublaWebhook,
+  getSubscriptionByHublaId, ensureUserRegistered, createTrialSubscription, hasActiveAccess, processHublaWebhook,
   verifyHublaWebhook, getActiveSubscriptions, getSubscriptionStats,
   logWebhookEvent, getWebhookLogs, logSubscriptionAudit,
   getSubscriptionAuditLog, getAllAuditLogs,
