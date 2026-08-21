@@ -2,7 +2,7 @@ import React, {
   useState, useMemo, useCallback, useEffect, lazy, Suspense,
 } from 'react';
 import {
-  X, BarChart3, Clock, Hash, Percent, LogOut, PlayCircle, Crosshair, BookOpen, Headset, Wrench, Wallet,
+  X, BarChart3, Clock, Hash, Percent, LogOut, PlayCircle, BookOpen, Headset, Wrench, Wallet,
   Lock, Crown, Sparkles,
 } from 'lucide-react';
 
@@ -30,7 +30,6 @@ const RacingTrack       = lazy(() => import('./components/RacingTrack.jsx'));
 const DeepAnalysisPanel = lazy(() => import('./components/DeepAnalysisPanel.jsx'));
 const ResultsGrid       = lazy(() => import('./components/ResultGrid.jsx'));
 const GameIframe        = lazy(() => import('./components/GameIframe.jsx'));
-const TriggersDisabledNotice = lazy(() => import('./pages/TriggersDisabledNotice.jsx'));
 const TutorialPage      = lazy(() => import('./pages/TutorialPage.jsx'));
 const ToolsPage         = lazy(() => import('./pages/ToolsPage.jsx'));
 const GerenciamentoApp  = lazy(() => import('./gerenciamento/GerenciamentoApp.jsx'));
@@ -127,8 +126,11 @@ const App = () => {
   const [historyFilter,        setHistoryFilter]        = useState(FILTER_OPTIONS[1].value);
   const [mobileTooltip,        setMobileTooltip]        = useState({ visible: false, content: '', x: 0, y: 0, isBelow: false });
   const [activeView,           setActiveView]           = useState(() => {
-    try { return localStorage.getItem('roleta2.activeView') || 'dashboard'; }
-    catch { return 'dashboard'; }
+    // A aba de Gatilhos foi removida do menu; quem tinha ela salva volta pro dashboard.
+    try {
+      const saved = localStorage.getItem('roleta2.activeView');
+      return (!saved || saved === 'triggers') ? 'dashboard' : saved;
+    } catch { return 'dashboard'; }
   });
 
   // Dias restantes do acesso (trial ou assinatura paga) exibidos na navbar.
@@ -282,7 +284,6 @@ const App = () => {
   }, []);
 
   const setDashboard = useCallback(() => setActiveView('dashboard'), []);
-  const setTriggers  = useCallback(() => setActiveView('triggers'),  []);
   const setTutorial  = useCallback(() => setActiveView('tutorial'),  []);
   const setTools     = useCallback(() => setActiveView('tools'),     []);
   const setGerenciamento = useCallback(() => setActiveView('gerenciamento'), []);
@@ -368,12 +369,6 @@ const App = () => {
             onClick={setDashboard}
           >
             <BarChart3 size={16} /><span className="navbar-tab-text">Dashboard</span>
-          </button>
-          <button
-            className={`navbar-tab ${activeView === 'triggers' ? 'navbar-tab--active' : ''}`}
-            onClick={setTriggers}
-          >
-            <Crosshair size={16} /><span className="navbar-tab-text">Gatilhos</span>
           </button>
           <button
             className={`navbar-tab ${activeView === 'tutorial' ? 'navbar-tab--active' : ''}`}
@@ -561,13 +556,6 @@ const App = () => {
         </main>
       )}
 
-      {/* Gatilhos desativados (Portarias SPA/MF 1.964/2026 e Interministerial 73/2026).
-          A aba continua no menu — sem ela, ninguém leria a explicação. */}
-      {activeView === 'triggers' && (
-        <Suspense fallback={<Spinner />}>
-          <TriggersDisabledNotice />
-        </Suspense>
-      )}
 
       {activeView === 'tutorial' && (
         <Suspense fallback={<Spinner />}>
