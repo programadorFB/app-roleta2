@@ -1,7 +1,11 @@
 
 
 export const API_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) || '';
-export const SOCKET_URL = "https://roleta-fuza.sortehub.online";
+// Em dev dá pra apontar pro backend local via VITE_SOCKET_URL (.env.local);
+// sem a env, segue no socket de produção.
+export const SOCKET_URL =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SOCKET_URL) ||
+  "https://roleta-fuza.sortehub.online";
 
 export const ROULETTE_SOURCES = {
   immersivevip:   '🌟 Immersive Vip - Evolution',

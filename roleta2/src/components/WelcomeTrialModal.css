@@ -1,0 +1,197 @@
+/* WelcomeTrialModal.css - Pop-up de Boas-Vindas Ultra-Sofisticado (Design VIP MOGNO & OURO) */
+
+.welcome-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 3, 2, 0.92);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: welcomeOverlayFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes welcomeOverlayFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.welcome-modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  background: linear-gradient(170deg, rgba(20, 16, 11, 0.96) 0%, rgba(9, 7, 5, 0.99) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  box-shadow:
+    0 30px 90px rgba(0, 0, 0, 0.95),
+    0 0 50px rgba(212, 175, 55, 0.15),
+    inset 0 1px 0 rgba(255, 245, 210, 0.25);
+  border-radius: 16px;
+  padding: 40px 36px 36px;
+  text-align: center;
+  color: #f7eedb;
+  font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+  animation: welcomeModalSlideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  overflow: hidden;
+}
+
+.welcome-modal-card::before {
+  content: '';
+  position: absolute;
+  top: -120px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.2) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+@keyframes welcomeModalSlideUp {
+  from { transform: translateY(20px) scale(0.96); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.welcome-close-btn {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  color: #a69880;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.welcome-close-btn:hover {
+  background: rgba(212, 175, 55, 0.2);
+  color: #fff;
+  border-color: #d4af37;
+  transform: rotate(90deg);
+}
+
+.welcome-emblem {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.18) 0%, rgba(20, 16, 11, 0.6) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.6);
+  box-shadow: 0 0 35px rgba(212, 175, 55, 0.35);
+  margin-bottom: 22px;
+  color: #ffd700;
+}
+
+.welcome-vip-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #d4af37;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.welcome-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.25;
+  margin: 0 0 12px;
+  background: linear-gradient(135deg, #ffffff 0%, #f7e5b3 50%, #d4af37 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.4px;
+}
+
+.welcome-subtitle {
+  font-size: 0.92rem;
+  color: #bfae95;
+  line-height: 1.6;
+  margin: 0 0 26px;
+  font-weight: 400;
+}
+
+.welcome-period-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  background: linear-gradient(90deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  border-radius: 30px;
+  color: #ffe6a3;
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 26px;
+}
+
+.welcome-features-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 32px;
+  text-align: left;
+}
+
+.welcome-feature-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(212, 175, 55, 0.12);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #e5d8c3;
+  font-weight: 500;
+  transition: border-color 0.2s ease;
+}
+
+.welcome-feature-row:hover {
+  border-color: rgba(212, 175, 55, 0.35);
+}
+
+.welcome-feature-bullet {
+  color: #d4af37;
+  flex-shrink: 0;
+}
+
+.welcome-action-btn {
+  width: 100%;
+  padding: 15px 28px;
+  background: linear-gradient(135deg, #fce498 0%, #d4af37 50%, #99751d 100%);
+  color: #060504;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 25px rgba(212, 175, 55, 0.35);
+}
+
+.welcome-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 35px rgba(212, 175, 55, 0.6);
+  background: linear-gradient(135deg, #ffffff 0%, #fce498 50%, #d4af37 100%);
+}

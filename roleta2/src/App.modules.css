@@ -434,6 +434,28 @@
     font-family: 'Outfit', sans-serif;
   }
 
+  .navbar-premium-days {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.35rem 0.75rem;
+    background: linear-gradient(135deg, rgba(201, 160, 82, 0.18) 0%, rgba(201, 160, 82, 0.05) 100%);
+    border: 1px solid rgba(201, 160, 82, 0.4);
+    box-shadow: 0 0 12px rgba(201, 160, 82, 0.15);
+    color: #f5e6c8;
+    font-size: 0.72rem;
+    font-weight: 700;
+    font-family: 'Outfit', sans-serif;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    min-height: 36px;
+    box-sizing: border-box;
+  }
+
+  .navbar-premium-crown {
+    color: #ffd700;
+    filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.6));
+  }
   /* --- Right: Platform + Logout --- */
   .navbar-right {
     display: flex;

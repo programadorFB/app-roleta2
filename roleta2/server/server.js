@@ -23,7 +23,7 @@ import {
   processKirvanoWebhook, verifyKirvanoWebhook,
   getSubscriptionStats, getActiveSubscriptions, getWebhookLogs,
   getSubscriptionByEmail, getSubscriptionAuditLog, getAllAuditLogs,
-  sendExpirationReminders,
+  sendExpirationReminders, createTrialSubscription,
   ACTIVE_STATUSES,
 } from './subscriptionService.js';
 import { processSource, initMotorEngine, getLatestMotorAnalysis, computeMotorAnalysisOnDemand, computeFilteredMotorScore, backfillMotorScores } from './motorScoreEngine.js';
@@ -316,7 +316,11 @@ const requireActiveSubscription = async (req, res, next) => {
     const cleanEmail = userEmail.trim().toLowerCase();
     if (!isValidEmail(cleanEmail)) return res.status(400).json({ error: 'Email inválido', requiresSubscription: true });
 
-    const subscription = await getSubscriptionByEmail(cleanEmail);
+    let subscription = await getSubscriptionByEmail(cleanEmail);
+    // Primeiro acesso (ou conta free do login): concede 7 dias de trial em vez de barrar.
+    if (!subscription || subscription.status === 'free') {
+      subscription = await createTrialSubscription(cleanEmail);
+    }
     if (!subscription) {
       return res.status(403).json({ error: 'Assinatura não encontrada', requiresSubscription: true, checkoutUrl: HUBLA_CHECKOUT_URL });
     }
@@ -376,7 +380,14 @@ async function checkSubscriptionWithFallback(email) {
     Sentry.captureException(cacheErr, { tags: { context: 'subscription-cached-check' }, extra: { email } });
     return { canPlay: true, subscription: null };
   }
-  if (isActive(cached)) return { canPlay: true, subscription: cached };
+  if (!cached || cached.status === 'free') {
+    try {
+      const trialSub = await createTrialSubscription(email);
+      if (isActive(trialSub)) return { canPlay: true, subscription: trialSub };
+    } catch { /* fail open / continua a checagem */ }
+  } else if (isActive(cached)) {
+    return { canPlay: true, subscription: cached };
+  }
 
   try {
     const { rows } = await query('SELECT * FROM subscriptions WHERE email = $1', [email]);
@@ -584,7 +595,10 @@ app.get('/api/subscription/status', subscriptionStatusLimiter, async (req, res) 
     const cleanEmail = userEmail.trim().toLowerCase();
     if (!isValidEmail(cleanEmail)) return res.status(400).json({ error: 'Email inválido' });
 
-    const subscription = await getSubscriptionByEmail(cleanEmail);
+    let subscription = await getSubscriptionByEmail(cleanEmail);
+    if (!subscription || subscription.status === 'free') {
+      subscription = await createTrialSubscription(cleanEmail);
+    }
     if (!subscription) return res.json({ hasAccess: false, subscription: null, checkoutUrl: HUBLA_CHECKOUT_URL });
 
     const hasAccess = ACTIVE_STATUSES.includes(subscription.status) &&
