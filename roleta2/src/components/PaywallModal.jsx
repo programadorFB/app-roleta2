@@ -16,23 +16,16 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
     monthly: {
       price: 97,
       period: 'mês',
-      checkoutUrl: 'https://pay.hub.la/1fA5DOZnF8bzlGTNW1XS?utm_source=ph',
+      checkoutUrl: 'https://pay.kirvano.com/a4b7f3b3-83e2-4908-a6dc-5f0857eb1e04?src=0',
       savings: null,
       installments: null
     },
-    quarterly: {
-      price: 197,
-      period: 'trimestre',
-      checkoutUrl: 'https://pay.hub.la/MMSfqPB6rwwmraNweEUh?utm_source=ph',
-      savings: 'Economize R$ 94',
-      installments: '3x R$ 70,04'
-    },
     annual: {
-      price: 497,
+      price: 397,
       period: 'ano',
-      checkoutUrl: 'https://pay.hub.la/zwcPAbXDNlfSzhAcs9bg?utm_source=ph',
-      savings: 'Economize R$ 667',
-      installments: '12x R$ 50,80'
+      checkoutUrl: 'https://pay.kirvano.com/8eb46670-45d4-481c-87b2-a71a54228030?src=0',
+      savings: 'Economize R$ 767',
+      installments: '12x R$ 40,69'
     }
   };
 
@@ -190,28 +183,14 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
                   </div>
                   <div className="plan-option-header">
                     <span className="plan-name">Anual</span>
-                    <span className="plan-savings">Economize R$ 667</span>
+                    <span className="plan-savings">Economize R$ 767</span>
                   </div>
                   {plans.annual.installments && (
                     <div className="plan-monthly">{plans.annual.installments}</div>
                   )}
-                  <div className="plan-price">R$ 497/ano</div>
+                  <div className="plan-price">R$ 397/ano</div>
                 </button>
 
-                <button 
-                  className={`plan-option ${selectedPlan === 'quarterly' ? 'active' : ''}`}
-                  onClick={() => setSelectedPlan('quarterly')}
-                >
-                  <div className="plan-option-header">
-                    <span className="plan-name">Trimestral</span>
-                    <span className="plan-savings">Economize R$ 94</span>
-                  </div>
-                  {plans.quarterly.installments && (
-                    <div className="plan-monthly">{plans.quarterly.installments}</div>
-                  )}
-                  <div className="plan-price">R$ 197/trimestre</div>
-                </button>
-                
                 <button 
                   className={`plan-option ${selectedPlan === 'monthly' ? 'active' : ''}`}
                   onClick={() => setSelectedPlan('monthly')}
@@ -226,7 +205,7 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
               {/* Selected Plan Details */}
               <div className="paywall-pricing">
                 <div className="price-card">
-                  <h4 className="price-title">Plano {selectedPlan === 'monthly' ? 'Mensal' : selectedPlan === 'quarterly' ? 'Trimestral' : 'Anual'}</h4>
+                  <h4 className="price-title">Plano {selectedPlan === 'monthly' ? 'Mensal' : 'Anual'}</h4>
                   <div className="price-value">
                     {plans[selectedPlan].installments ? (
                       <>
@@ -300,7 +279,7 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
 
               {/* Footer */}
               <p className="paywall-footer">
-                Pagamento processado de forma segura pela Hubla
+                Pagamento processado de forma segura pela Kirvano
               </p>
             </>
           )}
