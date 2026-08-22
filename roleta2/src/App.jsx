@@ -417,7 +417,7 @@ const App = () => {
         </div>
 
         <div className="navbar-right">
-          {subscriptionInfo && (
+          {subscriptionInfo && plan === 'premium' && (
             <div
               className="navbar-premium-days"
               title={subscriptionInfo.expires_at ? `Acesso expira em: ${new Date(subscriptionInfo.expires_at).toLocaleDateString('pt-BR')}` : 'Acesso Ativo'}

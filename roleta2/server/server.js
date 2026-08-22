@@ -318,7 +318,7 @@ const requireActiveSubscription = async (req, res, next) => {
 
     let subscription = await getSubscriptionByEmail(cleanEmail);
     // Primeiro acesso (ou conta free do login): concede 7 dias de trial em vez de barrar.
-    if (!subscription || subscription.status === 'free') {
+    if (!subscription || !ACTIVE_STATUSES.includes(subscription.status) || (subscription.expires_at && new Date(subscription.expires_at) < new Date())) {
       subscription = await createTrialSubscription(cleanEmail);
     }
     if (!subscription) {
@@ -380,7 +380,7 @@ async function checkSubscriptionWithFallback(email) {
     Sentry.captureException(cacheErr, { tags: { context: 'subscription-cached-check' }, extra: { email } });
     return { canPlay: true, subscription: null };
   }
-  if (!cached || cached.status === 'free') {
+  if (!cached || !isActive(cached)) {
     try {
       const trialSub = await createTrialSubscription(email);
       if (isActive(trialSub)) return { canPlay: true, subscription: trialSub };
@@ -603,7 +603,7 @@ app.get('/api/subscription/status', subscriptionStatusLimiter, async (req, res) 
     if (!isValidEmail(cleanEmail)) return res.status(400).json({ error: 'Email inválido' });
 
     let subscription = await getSubscriptionByEmail(cleanEmail);
-    if (!subscription || subscription.status === 'free') {
+    if (!subscription || !ACTIVE_STATUSES.includes(subscription.status) || (subscription.expires_at && new Date(subscription.expires_at) < new Date())) {
       subscription = await createTrialSubscription(cleanEmail);
     }
     if (!subscription) return res.json({ hasAccess: false, subscription: null, checkoutUrl: HUBLA_CHECKOUT_URL });

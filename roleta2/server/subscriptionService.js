@@ -202,31 +202,38 @@ async function hasEverHadTrial(email, userId) {
 // como está: trial consumido fica em trialing/expired com expires_at no passado,
 // então ninguém ganha um segundo período grátis.
 export async function createTrialSubscription(email) {
-  if (!email) throw new Error('Email obrigatório para criar trial');
+  if (!email) throw new Error('Email obrigatorio para criar trial');
   const cleanEmail = String(email).trim().toLowerCase();
 
   const existing = await getSubscriptionByEmail(cleanEmail);
-  const isFreshFreeRow = existing && existing.status === 'free' && !existing.expires_at;
-  if (existing && !isFreshFreeRow) return existing;
 
+  // Assinatura/trial ativa e nao expirada: mantem como esta.
+  const hasUnexpiredActive = existing &&
+    ACTIVE_STATUSES.includes(existing.status) &&
+    (!existing.expires_at || new Date(existing.expires_at) >= new Date());
+
+  if (hasUnexpiredActive) return existing;
+
+  // Um trial por pessoa, para sempre (prova no subscription_audit).
   if (await hasEverHadTrial(cleanEmail, existing?.user_id)) {
-    console.log(`⛔ [TRIAL] ${cleanEmail} já usou os 7 dias — nenhum novo trial concedido`);
+    console.log(`[TRIAL] ${cleanEmail} ja usou os 7 dias - nenhum novo trial concedido`);
     return existing;
   }
 
+  // Concede 7 dias para quem nunca usou: novos, free, cancelados, pending e expirados.
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
 
   const newSub = await upsertSubscription({
     userId: existing ? existing.user_id : cleanEmail,
-    email: existing ? existing.email : cleanEmail,
+    email: existing ? (existing.email || cleanEmail) : cleanEmail,
     status: 'trialing',
-    planName: '7 Dias Grátis',
+    planName: '7 Dias Gratis',
     expiresAt,
     source: 'trial',
   });
 
-  console.log(`🎁 [TRIAL] 7 dias grátis concedidos para: ${cleanEmail} (expira em ${expiresAt.toLocaleDateString()})`);
+  console.log(`[TRIAL] 7 dias gratis concedidos para: ${cleanEmail} (expira em ${expiresAt.toLocaleDateString()})`);
   return newSub;
 }
 
