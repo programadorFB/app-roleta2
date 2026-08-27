@@ -795,13 +795,29 @@ app.get('/api/subscription/status', subscriptionStatusLimiter, async (req, res) 
 
     // Trial NAO nasce de chamada de API anonima: bastava um email inventado
     // para ganhar 7 dias e destrancar os dados. Conta nasce no login.
+    // Esta rota e a porta de entrada: e aqui que a conta de um usuario NOVO
+    // nasce, porque o app a chama logo apos o login. Mas so pode criar conta
+    // para quem realmente autenticou — o Bearer e a prova, ele so existe apos
+    // login bem-sucedido no emissor.
     if (!subscription) {
-      accountStats.trialBlocked++;
-      const who = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.ip || '?';
-      console.log(`🔒 [account:${ACCOUNT_CHECK_MODE}] trial negado a conta inexistente — user="${cleanEmail}" ip=${who}`);
-      if (ACCOUNT_CHECK_MODE === 'enforce') {
-        return res.status(403).json({ error: 'Conta não encontrada', requiresSubscription: true, checkoutUrl: HUBLA_CHECKOUT_URL });
+      const token = extractBearer(req);
+      const verified = token ? await verifyToken(token) : { valid: false, reason: 'missing' };
+
+      const provado = verified.valid && verified.email === cleanEmail;
+      const indisponivel = verified.transient === true;   // fail-open
+
+      if (!provado && !indisponivel) {
+        accountStats.trialBlocked++;
+        const who = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.ip || '?';
+        console.log(`🔒 [account:${ACCOUNT_CHECK_MODE}] conta nova negada (sem token valido) — user="${cleanEmail}" ip=${who} motivo=${verified.reason || 'mismatch'}`);
+        if (ACCOUNT_CHECK_MODE === 'enforce') {
+          return res.status(401).json({ error: 'Autenticação obrigatória', code: 'NO_TOKEN' });
+        }
+      } else {
+        accountStats.registeredOnLogin++;
+        console.log(`✅ [account] conta criada para usuario autenticado: ${cleanEmail}`);
       }
+
       subscription = await createTrialSubscription(cleanEmail);
     } else if (!ACTIVE_STATUSES.includes(subscription.status) || (subscription.expires_at && new Date(subscription.expires_at) < new Date())) {
       // Conta conhecida: politica de trial normal, intacta.
