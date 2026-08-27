@@ -44,6 +44,10 @@ services:
       - HMAC_WINDOW_SECONDS=${HMAC_WINDOW_SECONDS:-300}
       # Exige conta existente nas rotas de dados.
       - ACCOUNT_CHECK_MODE=${ACCOUNT_CHECK_MODE:-observe}
+      # Autenticacao real: valida o Bearer no emissor e confirma que o token
+      # pertence ao userEmail da query. 'observe' registra sem bloquear.
+      - TOKEN_AUTH_MODE=${TOKEN_AUTH_MODE:-observe}
+      - TOKEN_AUTH_TIMEOUT_MS=${TOKEN_AUTH_TIMEOUT_MS:-4000}
       # Politica anti-scraping.
       - BAN_MODE=${BAN_MODE:-observe}
       - BAN_DAYS=${BAN_DAYS:-15}

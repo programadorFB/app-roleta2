@@ -27,6 +27,7 @@ import {
   ACTIVE_STATUSES,
 } from './subscriptionService.js';
 import { detectAbuse, getActiveBan, banUser, revokeBan, listBans, BAN_DAYS, BAN_MODE } from './abuseService.js';
+import { verifyToken, extractBearer, peekEmailFromToken, tokenStats, TOKEN_AUTH_MODE } from './authService.js';
 import { processSource, initMotorEngine, getLatestMotorAnalysis, computeMotorAnalysisOnDemand, computeFilteredMotorScore, backfillMotorScores } from './motorScoreEngine.js';
 // O motor de gatilhos não emite mais nada ao usuário (Portarias 1.964/2026 e 73/2026);
 // só persiste o placar interno, então não precisa mais do Socket.IO.
@@ -376,6 +377,61 @@ const requireActiveSubscription = async (req, res, next) => {
 
 // Modo free unificado: rotas de DADOS exigem só email válido (sem assinatura).
 // Rotas premium (triggers, fetch manual) seguem com requireActiveSubscription.
+/**
+ * Autenticacao de verdade: o email deixa de ser AFIRMADO na query e passa a ser
+ * PROVADO pelo token. Ate aqui bastava saber o email de um assinante para usar
+ * a API como ele.
+ *
+ * O token e HS256 e o segredo e do provedor, entao a validacao acontece no
+ * emissor (GET /profile), com cache no Redis.
+ *
+ * Retorna 'blocked' se ja respondeu; qualquer outra coisa = segue o fluxo.
+ */
+async function requireProvenIdentity(req, res, cleanEmail) {
+  const token = extractBearer(req);
+
+  const deny = (reason, status, body) => {
+    tokenStats[reason] = (tokenStats[reason] || 0) + 1;
+    if (TOKEN_AUTH_MODE !== 'enforce') {
+      if ((tokenStats[reason] || 0) % 25 === 1) {
+        const ip = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.ip || '?';
+        console.log(`🔑 [token:observe] ${reason} — ${req.method} ${req.path} user="${cleanEmail}" ip=${ip}`);
+      }
+      return 'pass';
+    }
+    res.status(status).json(body);
+    return 'blocked';
+  };
+
+  if (!token) return deny('missing', 401, { error: 'Autenticação obrigatória', code: 'NO_TOKEN' });
+
+  // Atalho barato: se o proprio payload ja diz outro dono, nem consulta o
+  // upstream. Nao e prova (payload nao e verificado), so economia.
+  const claimed = peekEmailFromToken(token);
+  if (claimed && claimed !== cleanEmail) {
+    return deny('mismatch', 403, { error: 'Token não pertence a este usuário', code: 'TOKEN_MISMATCH' });
+  }
+
+  const result = await verifyToken(token);
+
+  // Instabilidade do upstream (5xx, timeout, Redis fora) NAO derruba usuario.
+  if (result.transient) {
+    tokenStats.upstreamError++;
+    console.warn(`⚠️ [token] validacao indisponivel, liberando: ${result.reason} ${result.error || ''}`);
+    return 'pass';
+  }
+
+  if (!result.valid) {
+    return deny('invalid', 401, { error: 'Sessão expirada ou token inválido', code: 'INVALID_TOKEN' });
+  }
+  if (result.email !== cleanEmail) {
+    return deny('mismatch', 403, { error: 'Token não pertence a este usuário', code: 'TOKEN_MISMATCH' });
+  }
+
+  tokenStats.ok++;
+  return 'pass';
+}
+
 // Texto unico da advertencia — usado na resposta da API e exibido pelo app.
 const BAN_WARNING = `ADVERTÊNCIA! Detectamos acesso automatizado (scraping) na sua conta, o que viola os Termos de Uso. Seu acesso está suspenso por ${BAN_DAYS} dias. Se você acredita que houve engano, fale com o suporte.`;
 
@@ -429,6 +485,8 @@ const requireValidUser = async (req, res, next) => {
     const sub = await getSubscriptionByEmail(cleanEmail);
     if (sub) {
       accountStats.known++;
+      const authed = await requireProvenIdentity(req, res, cleanEmail);
+      if (authed === 'blocked') return;   // ja respondeu 401/403
       return enforceAbusePolicy(req, res, next, cleanEmail);
     }
 
@@ -1022,6 +1080,7 @@ app.get('/health', async (req, res) => {
       signing: { mode: API_SIGNING_SECRET ? API_SIGNING_MODE : 'off', windowSec: HMAC_WINDOW_SECONDS, ...signingStats },
       account: { mode: ACCOUNT_CHECK_MODE, ...accountStats },
       abuse: { mode: BAN_MODE, banDays: BAN_DAYS, ...abuseStats },
+      token: { mode: TOKEN_AUTH_MODE, ...tokenStats },
       hubla: HUBLA_WEBHOOK_TOKEN ? '✅' : '⚠️',
       pid: process.pid,
     });

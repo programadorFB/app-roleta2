@@ -46,24 +46,34 @@ export async function signedFetch(url, options = {}) {
   // Só assina rotas de API
   const shouldSign = pathname.startsWith('/api/') || pathname.startsWith('/login') || pathname.startsWith('/start-game');
 
-  if (shouldSign && _KEY && crypto?.subtle) {
+  if (!shouldSign) return fetch(url, options);
+
+  const headers = new Headers(options.headers || {});
+
+  // Bearer do usuario logado. O backend valida no emissor e confirma que o
+  // token pertence mesmo ao userEmail da query.
+  if (!headers.has('Authorization')) {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (token) headers.set('Authorization', `Bearer ${token}`);
+    } catch { /* localStorage indisponivel: segue sem o header */ }
+  }
+
+  if (_KEY && crypto?.subtle) {
     try {
       const ts = Math.floor(Date.now() / 1000);
       const msg = `${ts}:${pathname}`;
       const key = await getCryptoKey();
       const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(msg));
 
-      const headers = new Headers(options.headers || {});
       headers.set('X-Sig', toHex(sig));
       headers.set('X-Ts', String(ts));
-
-      return fetch(url, { ...options, headers });
     } catch {
-      // Fallback: envia sem assinatura (nao bloqueia o user)
+      // Sem assinatura, mas o Bearer segue: a autenticacao nao depende do HMAC.
     }
   }
 
-  return fetch(url, options);
+  return fetch(url, { ...options, headers });
 }
 
 export default signedFetch;

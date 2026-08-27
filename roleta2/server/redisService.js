@@ -7,6 +7,10 @@ export const TTL = {
   DELTA:        1,
   ADMIN_STATS:  60,
   ACTIVE_SUBS:  60,
+  // Validacao de token no auth externo. 300s equilibra: sem cache seria uma
+  // chamada externa a cada request do polling (5s); acima disso, um token
+  // revogado continuaria valendo tempo demais.
+  TOKEN_AUTH:   300,
 };
 
 const PREFIX = process.env.REDIS_PREFIX;
@@ -18,6 +22,8 @@ export const KEY = {
   latest:     (source, limit) => `${PREFIX}:latest:${source}:${limit}`,
   adminStats: ()              => `${PREFIX}:admin:stats`,
   activeSubs: ()              => `${PREFIX}:admin:active`,
+  // Chave por HASH do token — o token nunca vai para o Redis em claro.
+  tokenAuth:  (tokenHash)     => `${PREFIX}:auth:${tokenHash}`,
 };
 
 let client      = null;
