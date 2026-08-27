@@ -2,14 +2,11 @@
 // Toda request API recebe headers X-Sig e X-Ts que o backend valida.
 
 /* eslint-disable no-undef */
-const _p1 = 'sM4r';
-const _p2 = 'tAn4';
-const _p3 = 'l1s3';
-const _p4 = 'X9kQ';
-const _FALLBACK = [_p1, _p2, _p3, _p4].join('');
+// Sem fallback embutido: chave literal no bundle nao protege nada e ainda
+// faz o backend aceitar assinatura que qualquer um forja.
 
 // __SIGNING_KEY__ é injetado pelo Vite define em build time
-const _KEY = (typeof __SIGNING_KEY__ !== 'undefined') ? __SIGNING_KEY__ : _FALLBACK;
+const _KEY = (typeof __SIGNING_KEY__ !== 'undefined') ? __SIGNING_KEY__ : '';
 
 let _cachedCryptoKey = null;
 
@@ -49,7 +46,7 @@ export async function signedFetch(url, options = {}) {
   // Só assina rotas de API
   const shouldSign = pathname.startsWith('/api/') || pathname.startsWith('/login') || pathname.startsWith('/start-game');
 
-  if (shouldSign && crypto?.subtle) {
+  if (shouldSign && _KEY && crypto?.subtle) {
     try {
       const ts = Math.floor(Date.now() / 1000);
       const msg = `${ts}:${pathname}`;

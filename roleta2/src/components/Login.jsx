@@ -3,6 +3,7 @@
 import React, { useState, useCallback } from 'react';
 import { Lock, Mail, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { API_URL } from '../constants/roulette';
+import { signedFetch } from '../lib/signedFetch.js';
 import { 
   processErrorResponse, 
   translateNetworkError, 
@@ -34,7 +35,7 @@ const Login = ({ onLoginSuccess, setIsPaywallOpen, setCheckoutUrl }) => {
     setError('');
 
     try {
-      const response = await fetch(`${API_URL}/login`, {
+      const response = await signedFetch(`${API_URL}/login`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json', 

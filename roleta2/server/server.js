@@ -26,6 +26,7 @@ import {
   sendExpirationReminders, createTrialSubscription,
   ACTIVE_STATUSES,
 } from './subscriptionService.js';
+import { detectAbuse, getActiveBan, banUser, revokeBan, listBans, BAN_DAYS, BAN_MODE } from './abuseService.js';
 import { processSource, initMotorEngine, getLatestMotorAnalysis, computeMotorAnalysisOnDemand, computeFilteredMotorScore, backfillMotorScores } from './motorScoreEngine.js';
 // O motor de gatilhos não emite mais nada ao usuário (Portarias 1.964/2026 e 73/2026);
 // só persiste o placar interno, então não precisa mais do Socket.IO.
@@ -186,7 +187,17 @@ app.use(globalLimiter);
 // ── Anti-bot / Anti-clone ───────────────────────────
 const BLOCKED_UA = /wget|curl|scrapy|python-requests|httpclient|crawler|spider|headless|phantomjs|selenium/i;
 const API_SIGNING_SECRET = process.env.API_SIGNING_SECRET || '';
-const HMAC_WINDOW_SECONDS = 60;
+// Chave anterior, aceita durante a rotacao: a chave vai embutida no bundle,
+// entao quem esta com o bundle antigo em cache assina com a velha.
+const API_SIGNING_SECRET_PREVIOUS = process.env.API_SIGNING_SECRET_PREVIOUS || '';
+// 300s (nao 60): relogio de usuario final erra e reprovava gente legitima.
+const HMAC_WINDOW_SECONDS = Number(process.env.HMAC_WINDOW_SECONDS) || 300;
+// 'observe' valida e registra sem bloquear; 'enforce' bloqueia.
+const API_SIGNING_MODE = (process.env.API_SIGNING_MODE || 'observe').toLowerCase();
+const ACCOUNT_CHECK_MODE = (process.env.ACCOUNT_CHECK_MODE || 'observe').toLowerCase();
+const signingStats = { ok: 0, missing: 0, expired: 0, bad: 0, previousKey: 0 };
+const accountStats = { known: 0, unknown: 0, errors: 0, trialBlocked: 0, registeredOnLogin: 0, loginNoEmail: 0, loginRegisterErrors: 0 };
+const abuseStats = { checked: 0, flagged: 0, banned: 0, blocked: 0, errors: 0 };
 
 app.use((req, res, next) => {
   const ua = req.headers['user-agent'] || '';
@@ -210,6 +221,10 @@ app.use((req, res, next) => {
 // Verifica X-Sig e X-Ts em rotas /api/ (produção).
 // Pula rotas que já possuem autenticação própria (crawler, webhooks).
 app.use((req, res, next) => {
+  // Preflight CORS nunca carrega X-Sig/X-Ts — o browser so manda na requisicao
+  // real. Este middleware roda ANTES do cors(), entao barrar o OPTIONS aqui faz
+  // o navegador abortar tudo e o app reportar "sem conexao".
+  if (req.method === 'OPTIONS') return next();
   if (!IS_PROD || !API_SIGNING_SECRET) return next();
 
   const isApiRoute = req.url.startsWith('/api/') || req.url.startsWith('/login') || req.url.startsWith('/start-game');
@@ -217,37 +232,55 @@ app.use((req, res, next) => {
 
   // Rotas com autenticação própria — não precisam de HMAC
   if (req.headers['x-crawler-secret'] || req.headers['x-hubla-token'] || req.headers['x-kirvano-token']) return next();
+  // Gerenciamento: app separado, em outro dominio, que nao assina. Tem auth
+  // propria (gerenciamentoAuthMiddleware + GATEWAY_SECRET).
+  if (req.url.startsWith('/api/gerenciamento')) return next();
   // Health check
   if (req.url === '/api/health' || req.url === '/health') return next();
 
   const sig = req.headers['x-sig'];
   const ts = parseInt(req.headers['x-ts'], 10);
 
-  if (!sig || !ts) return res.status(403).json({ error: 'Acesso negado' });
+  const reject = (reason) => {
+    signingStats[reason] = (signingStats[reason] || 0) + 1;
+    const ip = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.ip || '?';
+    if (API_SIGNING_MODE === 'enforce') {
+      if (signingStats[reason] % 25 === 1) {
+        console.warn(`⛔ [signing:enforce] BLOQUEADO ${reason} — ${req.method} ${req.path} user="${req.query.userEmail || '-'}" ip=${ip} ua="${String(req.headers['user-agent'] || '').slice(0, 45)}"`);
+      }
+      return res.status(403).json({ error: 'Acesso negado' });
+    }
+    console.log(`🔍 [signing:observe] ${reason} — ${req.method} ${req.path} user="${req.query.userEmail || '-'}" ip=${ip} ua="${String(req.headers['user-agent'] || '').slice(0, 45)}"`);
+    return next();
+  };
+
+  if (!sig || !ts) return reject('missing');
 
   // Timestamp dentro da janela permitida
   const now = Math.floor(Date.now() / 1000);
-  if (Math.abs(now - ts) > HMAC_WINDOW_SECONDS) {
-    return res.status(403).json({ error: 'Acesso negado' });
-  }
+  if (Math.abs(now - ts) > HMAC_WINDOW_SECONDS) return reject('expired');
 
-  // Verifica HMAC — timing-safe
+  // Verifica HMAC — timing-safe, contra a chave atual e a anterior (rotacao).
   const urlPath = req.path; // pathname sem query string
   const msg = `${ts}:${urlPath}`;
-  const expected = crypto.createHmac('sha256', API_SIGNING_SECRET).update(msg).digest('hex');
-
   const sigBuf = Buffer.from(String(sig));
-  const expBuf = Buffer.from(expected);
-  if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
-    return res.status(403).json({ error: 'Acesso negado' });
-  }
 
-  next();
+  const matches = (secret) => {
+    if (!secret) return false;
+    const expBuf = Buffer.from(crypto.createHmac('sha256', secret).update(msg).digest('hex'));
+    return sigBuf.length === expBuf.length && crypto.timingSafeEqual(sigBuf, expBuf);
+  };
+
+  if (matches(API_SIGNING_SECRET)) { signingStats.ok++; return next(); }
+  if (matches(API_SIGNING_SECRET_PREVIOUS)) { signingStats.previousKey++; return next(); }
+
+  return reject('bad');
 });
 
 // ── Origin Enforcement (além do CORS) ───────────────
 // Rejeita requests com Origin/Referer de domínios não autorizados.
 app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') return next();   // preflight: quem responde e o cors()
   if (!IS_PROD) return next();
 
   const isApiRoute = req.url.startsWith('/api/') || req.url.startsWith('/login') || req.url.startsWith('/start-game');
@@ -343,11 +376,78 @@ const requireActiveSubscription = async (req, res, next) => {
 
 // Modo free unificado: rotas de DADOS exigem só email válido (sem assinatura).
 // Rotas premium (triggers, fetch manual) seguem com requireActiveSubscription.
-const requireValidUser = (req, res, next) => {
+// Texto unico da advertencia — usado na resposta da API e exibido pelo app.
+const BAN_WARNING = `ADVERTÊNCIA! Detectamos acesso automatizado (scraping) na sua conta, o que viola os Termos de Uso. Seu acesso está suspenso por ${BAN_DAYS} dias. Se você acredita que houve engano, fale com o suporte.`;
+
+/**
+ * Politica anti-scraping. Roda depois de confirmada a conta: so faz sentido
+ * banir quem tem identidade. Nunca lanca — erro aqui libera a request, porque
+ * falha de infraestrutura nao pode tirar o acesso de assinante.
+ */
+async function enforceAbusePolicy(req, res, next, email) {
+  try {
+    abuseStats.checked++;
+
+    const ban = await getActiveBan(email);
+    if (ban) {
+      abuseStats.blocked++;
+      return res.status(403).json({ error: BAN_WARNING, code: 'ACCESS_BANNED', reason: ban.reason, bannedUntil: ban.banned_until });
+    }
+
+    const ip = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.ip || '?';
+    const verdict = detectAbuse({ email, userAgent: req.headers['user-agent'], ip, path: req.path });
+    if (!verdict.abusive) return next();
+
+    abuseStats.flagged++;
+    console.warn(`🚨 [abuse:${BAN_MODE}] ${verdict.reason} — user="${email}" ${verdict.evidence}`);
+    Sentry.captureMessage(`Abuso detectado: ${verdict.reason} — ${email}`, 'warning');
+
+    if (BAN_MODE !== 'enforce') return next();
+
+    const applied = await banUser(email, verdict.reason, verdict.evidence);
+    abuseStats.banned++;
+    console.warn(`⛔ [abuse] BANIDO ate ${applied.banned_until} — user="${email}"`);
+    return res.status(403).json({ error: BAN_WARNING, code: 'ACCESS_BANNED', reason: applied.reason, bannedUntil: applied.banned_until });
+  } catch (err) {
+    abuseStats.errors++;
+    console.error(`⚠️ [abuse] policy falhou, liberando: ${err.message}`);
+    Sentry.captureException(err, { tags: { context: 'abuse-policy' } });
+    return next();
+  }
+}
+
+// Antes isto validava só o FORMATO do email: qualquer string com '@' liberava
+// o historico de giros. Agora a conta precisa EXISTIR — ela nasce no login.
+const requireValidUser = async (req, res, next) => {
   const userEmail = req.query.userEmail;
   if (!userEmail) return res.status(401).json({ error: 'userEmail obrigatório' });
-  if (!isValidEmail(userEmail.trim().toLowerCase())) return res.status(400).json({ error: 'Email inválido' });
-  next();
+
+  const cleanEmail = userEmail.trim().toLowerCase();
+  if (!isValidEmail(cleanEmail)) return res.status(400).json({ error: 'Email inválido' });
+
+  try {
+    const sub = await getSubscriptionByEmail(cleanEmail);
+    if (sub) {
+      accountStats.known++;
+      return enforceAbusePolicy(req, res, next, cleanEmail);
+    }
+
+    accountStats.unknown++;
+    const who = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.ip || '?';
+    console.log(`🔒 [account:${ACCOUNT_CHECK_MODE}] conta inexistente — ${req.method} ${req.path} user="${cleanEmail}" ip=${who} ua="${String(req.headers['user-agent'] || '').slice(0, 45)}"`);
+
+    if (ACCOUNT_CHECK_MODE === 'enforce') {
+      return res.status(403).json({ error: 'Conta não encontrada', requiresSubscription: true });
+    }
+    return next();
+  } catch (err) {
+    // Fail-open deliberado: instabilidade de DB/Redis nao pode derrubar
+    // usuario legitimo.
+    accountStats.errors++;
+    console.error(`⚠️ [account] lookup falhou, liberando: ${err.message}`);
+    Sentry.captureException(err, { tags: { context: 'requireValidUser' } });
+    return next();
+  }
 };
 
 const requireAdminAuth = (req, res, next) => {
@@ -441,6 +541,37 @@ app.use('/login', createProxyMiddleware({
           }
         } catch { /* corpo nao-JSON: repassa intacto */ }
       }
+
+      // Login OK: e AQUI que a conta passa a existir. So ganha trial quem
+      // consegue autenticar no proxy.
+      if (status >= 200 && status < 300) {
+        try {
+          const body = JSON.parse(responseBuffer.toString('utf8'));
+          const token = body.jwt || body.token || body.access_token || body.data?.token || body.data?.jwt;
+          let email = body.email || body.data?.email || null;
+
+          if (!email && token) {
+            const payload = JSON.parse(Buffer.from(String(token).split('.')[1], 'base64').toString('utf-8'));
+            email = payload.email || payload.sub || null;
+          }
+
+          if (email && isValidEmail(String(email).trim().toLowerCase())) {
+            const cleanEmail = String(email).trim().toLowerCase();
+            await createTrialSubscription(cleanEmail);
+            accountStats.registeredOnLogin++;
+            console.log(`✅ [login] conta registrada: ${cleanEmail}`);
+          } else {
+            accountStats.loginNoEmail++;
+            console.warn('⚠️ [login] sucesso sem email identificavel — conta nao registrada');
+          }
+        } catch (err) {
+          // Nunca derrubar o login por causa disto: o usuario autenticou.
+          accountStats.loginRegisterErrors++;
+          console.error(`⚠️ [login] falha ao registrar conta: ${err.message}`);
+          Sentry.captureException(err, { tags: { context: 'login-register-account' } });
+        }
+      }
+
       return responseBuffer;
     }),
     error: (err, req, res) => {
@@ -603,9 +734,22 @@ app.get('/api/subscription/status', subscriptionStatusLimiter, async (req, res) 
     if (!isValidEmail(cleanEmail)) return res.status(400).json({ error: 'Email inválido' });
 
     let subscription = await getSubscriptionByEmail(cleanEmail);
-    if (!subscription || !ACTIVE_STATUSES.includes(subscription.status) || (subscription.expires_at && new Date(subscription.expires_at) < new Date())) {
+
+    // Trial NAO nasce de chamada de API anonima: bastava um email inventado
+    // para ganhar 7 dias e destrancar os dados. Conta nasce no login.
+    if (!subscription) {
+      accountStats.trialBlocked++;
+      const who = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.ip || '?';
+      console.log(`🔒 [account:${ACCOUNT_CHECK_MODE}] trial negado a conta inexistente — user="${cleanEmail}" ip=${who}`);
+      if (ACCOUNT_CHECK_MODE === 'enforce') {
+        return res.status(403).json({ error: 'Conta não encontrada', requiresSubscription: true, checkoutUrl: HUBLA_CHECKOUT_URL });
+      }
+      subscription = await createTrialSubscription(cleanEmail);
+    } else if (!ACTIVE_STATUSES.includes(subscription.status) || (subscription.expires_at && new Date(subscription.expires_at) < new Date())) {
+      // Conta conhecida: politica de trial normal, intacta.
       subscription = await createTrialSubscription(cleanEmail);
     }
+
     if (!subscription) return res.json({ hasAccess: false, subscription: null, checkoutUrl: HUBLA_CHECKOUT_URL });
 
     const hasAccess = ACTIVE_STATUSES.includes(subscription.status) &&
@@ -710,6 +854,35 @@ app.post('/api/admin/expiration-reminders/run', adminLimiter, requireAdminAuth, 
     const result = await sendExpirationReminders({ dryRun });
     res.json({ ok: true, dryRun, ...result });
   } catch (e) { Sentry.captureException(e); res.status(500).json({ error: e.message }); }
+});
+
+// ── Banimentos por abuso (admin) ──────────────────────────────
+
+app.get('/api/admin/bans', adminLimiter, requireAdminAuth, async (req, res) => {
+  try {
+    res.json({ bans: await listBans(200), mode: BAN_MODE, banDays: BAN_DAYS });
+  } catch (err) { Sentry.captureException(err); res.status(500).json({ error: err.message }); }
+});
+
+// Revoga o ban de um email — o caminho de saida para falso positivo.
+app.post('/api/admin/bans/revoke', adminLimiter, requireAdminAuth, express.json({ limit: '2kb' }), async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    if (!isValidEmail(email)) return res.status(400).json({ error: 'Email inválido' });
+    const revoked = await revokeBan(email, 'admin');
+    console.log(`♻️ [abuse] ban revogado para ${email} (${revoked} registro(s))`);
+    res.json({ success: true, revoked });
+  } catch (err) { Sentry.captureException(err); res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/admin/bans', adminLimiter, requireAdminAuth, express.json({ limit: '4kb' }), async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    if (!isValidEmail(email)) return res.status(400).json({ error: 'Email inválido' });
+    const ban = await banUser(email, String(req.body?.reason || 'scraping').slice(0, 64), String(req.body?.evidence || 'ban manual via admin').slice(0, 2000));
+    console.warn(`⛔ [abuse] ban manual ate ${ban.banned_until} — user="${email}"`);
+    res.status(201).json({ success: true, ban });
+  } catch (err) { Sentry.captureException(err); res.status(500).json({ error: err.message }); }
 });
 
 app.get('/api/admin/audit', adminLimiter, requireAdminAuth, async (req, res) => {
@@ -846,6 +1019,9 @@ app.get('/health', async (req, res) => {
       database: '✅',
       redis: redis.status === 'ok' ? `✅ (${redis.latency})` : '⚠️ degraded',
       pool:  poolStats(),
+      signing: { mode: API_SIGNING_SECRET ? API_SIGNING_MODE : 'off', windowSec: HMAC_WINDOW_SECONDS, ...signingStats },
+      account: { mode: ACCOUNT_CHECK_MODE, ...accountStats },
+      abuse: { mode: BAN_MODE, banDays: BAN_DAYS, ...abuseStats },
       hubla: HUBLA_WEBHOOK_TOKEN ? '✅' : '⚠️',
       pid: process.pid,
     });

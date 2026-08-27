@@ -2,6 +2,7 @@
 // Componente React para exibir modal de assinatura - Design Profissional e Clean
 
 import React, { useState, useEffect } from 'react';
+import { signedFetch } from '../lib/signedFetch.js';
 import { X, Check, CreditCard, Shield, Zap, Info } from 'lucide-react'; // Ícone 'Info' adicionado
 import { API_URL } from '../constants/roulette';
 import './PaywallModal.css';
@@ -37,7 +38,7 @@ const PaywallModal = ({ isOpen, onClose, userId, checkoutUrl }) => {
   const checkSubscriptionStatus = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/subscription/status?userEmail=${encodeURIComponent(userId)}`);
+      const response = await signedFetch(`${API_URL}/api/subscription/status?userEmail=${encodeURIComponent(userId)}`);
       const data = await response.json();
       setSubscriptionStatus(data);
     } catch (error) {

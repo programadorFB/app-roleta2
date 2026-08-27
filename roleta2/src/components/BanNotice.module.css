@@ -1,0 +1,138 @@
+/* BanNotice — advertência de acesso suspenso.
+   Segue a identidade escura + dourado do app, mas em registro de alerta
+   (âmbar/vermelho), porque não é um aviso comum: é uma sanção. */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(8, 6, 4, 0.94);
+  backdrop-filter: blur(6px);
+  animation: fadeIn 200ms ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.card {
+  width: 100%;
+  max-width: 520px;
+  padding: 36px 32px 30px;
+  text-align: center;
+  border: 1px solid rgba(220, 68, 55, 0.45);
+  border-radius: 16px;
+  background: linear-gradient(160deg, #1a1310 0%, #120d0b 100%);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(220, 68, 55, 0.12);
+}
+
+.iconWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 76px;
+  height: 76px;
+  margin-bottom: 18px;
+  border-radius: 50%;
+  color: #ff6b5e;
+  background: rgba(220, 68, 55, 0.12);
+  border: 1px solid rgba(220, 68, 55, 0.35);
+}
+
+.title {
+  margin: 0 0 14px;
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #ff6b5e;
+}
+
+.message {
+  margin: 0 0 20px;
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: #e6ddd4;
+}
+
+.untilBox {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  border-radius: 10px;
+  background: rgba(201, 160, 82, 0.08);
+  border: 1px solid rgba(201, 160, 82, 0.28);
+}
+
+.untilLabel {
+  font-size: 0.74rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #b8a894;
+}
+
+.untilValue {
+  font-size: 1.06rem;
+  color: #c9a052;
+}
+
+.footnote {
+  margin: 0 0 22px;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: #9c9084;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.supportBtn,
+.logoutBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 12px 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: filter 160ms ease, transform 160ms ease;
+  text-decoration: none;
+}
+
+.supportBtn {
+  color: #1a1310;
+  background: linear-gradient(135deg, #d9b368 0%, #c9a052 100%);
+  border: none;
+}
+
+.logoutBtn {
+  color: #b8a894;
+  background: transparent;
+  border: 1px solid rgba(184, 168, 148, 0.3);
+}
+
+.supportBtn:hover,
+.logoutBtn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 480px) {
+  .card { padding: 28px 20px 24px; }
+  .title { font-size: 1.35rem; }
+  .actions { flex-direction: column; }
+  .supportBtn, .logoutBtn { width: 100%; }
+}

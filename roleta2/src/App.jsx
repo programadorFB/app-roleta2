@@ -9,6 +9,9 @@ import {
 import Login        from './components/Login.jsx';
 import InstallAppButton from './components/InstallAppButton.jsx';
 import PaywallModal from './components/PaywallModal.jsx';
+import { signedFetch } from './lib/signedFetch.js';
+import BanNotice from './components/BanNotice.jsx';
+import { registerBanCallback, clearBanCallback } from './lib/errorHandler';
 import WelcomeTrialModal from './components/WelcomeTrialModal.jsx';
 import './components/PaywallModal.css';
 import './components/NotificationsCenter.css';
@@ -112,7 +115,14 @@ const PremiumLockedCard = ({ title, description, features, onSubscribe }) => (
 const App = () => {
   const { isAuthenticated, userInfo, checkingAuth, jwtToken, handleLoginSuccess, handleLogout } = useAuth();
 
+  // Qualquer resposta ACCESS_BANNED levanta a advertencia e bloqueia o uso.
+  useEffect(() => {
+    registerBanCallback(setBanInfo);
+    return () => clearBanCallback();
+  }, []);
+
   const [isPaywallOpen,   setIsPaywallOpen]   = useState(false);
+  const [banInfo,         setBanInfo]         = useState(null);
   const [checkoutUrl,     setCheckoutUrl]     = useState('');
   // null = ainda resolvendo (trata como premium para não piscar cadeados),
   // 'premium' | 'free' depois que /api/subscription/status responde.
@@ -164,7 +174,7 @@ const App = () => {
     (async () => {
       try {
         // API_URL absoluto: o nginx do frontend não proxia /api em produção.
-        const res = await fetch(`${API_URL}/api/subscription/status?userEmail=${encodeURIComponent(email)}`);
+        const res = await signedFetch(`${API_URL}/api/subscription/status?userEmail=${encodeURIComponent(email)}`);
         if (!res.ok) return; // mantém comportamento atual (premium) em erro
         const data = await res.json();
         if (cancelled) return;
@@ -569,6 +579,14 @@ const App = () => {
             onLogout={handleLogout}
           />
         </Suspense>
+      )}
+
+      {banInfo && (
+        <BanNotice
+          message={banInfo.message}
+          bannedUntil={banInfo.bannedUntil}
+          onLogout={handleLogout}
+        />
       )}
 
       <PaywallModal

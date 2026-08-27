@@ -8,12 +8,21 @@
  * - Detecção de paywall: requiresSubscription || code === 'FORBIDDEN_SUBSCRIPTION' || (403 + checkoutUrl)
  * - Erros específicos por contexto: login, game, history, network
  */
+import { signedFetch } from './signedFetch.js';
 
 // ══════════════════════════════════════════════════════════════
 // CALLBACK GLOBAL DE LOGOUT
 // ══════════════════════════════════════════════════════════════
 
 let logoutCallback = null;
+let banCallback = null;
+
+/** Canal global do aviso de banimento — precisa aparecer venha de onde vier. */
+export function registerBanCallback(callback) {
+  if (typeof callback !== 'function') return;
+  banCallback = callback;
+}
+export function clearBanCallback() { banCallback = null; }
 
 /**
  * Registra a função de logout a ser chamada em erros 401
@@ -192,6 +201,10 @@ export function handleAutoLogout(statusCode) {
  * @returns {{ requiresPaywall: boolean, checkoutUrl: string|null }}
  */
 function detectPaywall(statusCode, errorData = {}) {
+  // Banimento nao e paywall: abrir o modal de assinatura faria a pessoa pagar
+  // sem recuperar o acesso.
+  if (errorData.code === 'ACCESS_BANNED') return { requiresPaywall: false, checkoutUrl: null };
+
   const requiresPaywall =
     errorData.requiresSubscription === true ||
     errorData.code === 'FORBIDDEN_SUBSCRIPTION' ||
@@ -333,10 +346,24 @@ export async function processErrorResponse(response, context = 'generic') {
   // 🔧 FIX: Detecção de paywall unificada para QUALQUER contexto
   const paywallInfo = detectPaywall(response.status, errorData);
 
+  const isBanned = errorData.code === 'ACCESS_BANNED';
+  if (isBanned && banCallback) {
+    try {
+      banCallback({
+        message: errorData.error || errorData.message || '',
+        bannedUntil: errorData.bannedUntil || null,
+        reason: errorData.reason || null,
+      });
+    } catch (e) { console.warn('[errorHandler] banCallback falhou:', e); }
+  }
+
   return {
     ...translatedError,
     requiresPaywall: paywallInfo.requiresPaywall,
     checkoutUrl: paywallInfo.checkoutUrl,
+    isBanned,
+    banMessage: isBanned ? (errorData.error || errorData.message || '') : null,
+    bannedUntil: isBanned ? (errorData.bannedUntil || null) : null,
     statusCode: response.status,
     originalError: errorData
   };
@@ -386,7 +413,7 @@ export function displayError(error, setErrorState, options = {}) {
  */
 export async function safeFetch(url, options = {}, context = 'generic') {
   try {
-    const response = await fetch(url, options);
+    const response = await signedFetch(url, options);
 
     if (!response.ok) {
       const error = await processErrorResponse(response, context);

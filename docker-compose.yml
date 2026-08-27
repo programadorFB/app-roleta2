@@ -36,6 +36,18 @@ services:
       # ── Segurança / Auth ────────────────────────
       - CRAWLER_SECRET=cr4wl3r-s3cr3t-local-dev
       - ADMIN_SECRET=JrI9EK_ja8ZrJae7diAV3fawPzSYtWuy-lbbuYZ2H0_orgO1ko0_aLe_8t04pkaGAJjtPeVZCCCLGQCbv0pwOg
+      # Assinatura HMAC das rotas /api/. Precisa ser IDENTICA ao build arg do
+      # frontend. 'observe' registra sem bloquear; 'enforce' bloqueia.
+      - API_SIGNING_SECRET=${API_SIGNING_SECRET}
+      - API_SIGNING_SECRET_PREVIOUS=${API_SIGNING_SECRET_PREVIOUS:-}
+      - API_SIGNING_MODE=${API_SIGNING_MODE:-observe}
+      - HMAC_WINDOW_SECONDS=${HMAC_WINDOW_SECONDS:-300}
+      # Exige conta existente nas rotas de dados.
+      - ACCOUNT_CHECK_MODE=${ACCOUNT_CHECK_MODE:-observe}
+      # Politica anti-scraping.
+      - BAN_MODE=${BAN_MODE:-observe}
+      - BAN_DAYS=${BAN_DAYS:-15}
+      - ABUSE_RATE_PER_MIN=${ABUSE_RATE_PER_MIN:-240}
       - HUBLA_WEBHOOK_TOKEN=x11H8dJDrNRQBZTxicwFObMkk3LG6gSMBwAi5CxGYlRp1JuwRZZsxWm81NSZEgEJ
       - HUBLA_CHECKOUT_URL=https://pay.hub.la/N7JdmojxORlRpaafFEyl
       - AUTH_PROXY_TARGET=https://api.appbackend.tech
@@ -91,6 +103,7 @@ services:
       args:
         VITE_API_URL: https://tool-api.smartanalise.com.br
         VITE_AFFILIATE_URL: https://go.aff.betou.bet.br/tgml0e19?utm_medium=appcmd
+        API_SIGNING_SECRET: ${API_SIGNING_SECRET}
     ports:
       - "81:81"
     environment:
