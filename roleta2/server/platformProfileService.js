@@ -155,6 +155,17 @@ function data(valor) {
 //     provavelmente é de outra coisa;
 //   - sem campo conhecido, o saldo fica null. Não saber é um estado honesto.
 
+// O /wallet devolve DOIS numeros de dinheiro, e eles nao batem. Numa conta real
+// veio credit=69187 e balance=181301 (centavos, ou seja R$ 691,87 contra
+// R$ 1.813,01); noutra, credit=0 e balance=4000.
+//
+// O saldo e o `credit`, confirmado pelo dono do produto em 01/09/2026. O
+// `balance` NAO e o dinheiro da pessoa e nao deve ser exibido como tal.
+//
+// Isto esta escrito aqui porque a diferenca chama atencao: quem abrir o
+// carteira_bruto e vir um numero maior sendo ignorado vai supor que e bug e
+// "consertar". Nao e. Se precisar do balance para conferencia, ele esta na
+// resposta crua, visivel na aba Campos da Casa do painel.
 const CHAVES_SALDO      = ['credit', 'available_value'];
 const CHAVES_DISPONIVEL = ['available_value'];
 const CHAVES_BONUS      = ['bonus', 'bonus_balance', 'bonusBalance'];
