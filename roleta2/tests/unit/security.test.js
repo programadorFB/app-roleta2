@@ -290,12 +290,17 @@ describe('Security headers — server.js', () => {
   });
 
   it('admin auth usa timingSafeEqual', () => {
-    // Verifica que requireAdminAuth usa timing-safe
-    const adminBlock = code.substring(
-      code.indexOf('const requireAdminAuth'),
-      code.indexOf('const requireAdminAuth') + 500
-    );
+    // requireAdminSession substituiu requireAdminAuth: aceita a sessão nominal
+    // do painel OU o mesmo x-admin-secret de antes. A comparação do secret
+    // continua tendo que ser timing-safe — é o ponto deste teste, e ele não
+    // pode depender do nome do middleware da vez.
+    const inicio = code.indexOf('const requireAdminSession');
+    expect(inicio, 'requireAdminSession não encontrado em server.js').toBeGreaterThan(-1);
+
+    const adminBlock = code.substring(inicio, inicio + 1500);
     expect(adminBlock).toContain('timingSafeEqual');
+    // E nunca por comparação direta, que vaza o segredo pelo tempo de resposta.
+    expect(adminBlock).not.toMatch(/===\s*ADMIN_SECRET/);
   });
 
   it('crawler auth usa timingSafeEqual', () => {
@@ -356,7 +361,9 @@ describe('Endpoints protegidos — sem acesso público', () => {
   });
 
   it('motor-score RESET requer admin auth', () => {
-    expect(code).toMatch(/app\.post\('\/api\/motor-score\/reset',[^)]*requireAdminAuth/);
+    // requireAdminSession aceita a sessao do painel OU o x-admin-secret antigo;
+    // o que o teste garante e que a rota nao ficou sem nenhuma das duas.
+    expect(code).toMatch(/app\.post\('\/api\/motor-score\/reset',[^)]*requireAdmin(Session|Auth)/);
   });
 
   // Gatilhos descontinuados (Portarias SPA/MF 1.964/2026 e Interministerial

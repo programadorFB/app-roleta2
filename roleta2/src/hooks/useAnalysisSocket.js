@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { API_URL } from '../constants/roulette';
 import { signedFetch } from '../lib/signedFetch';
+import { setTelemetrySession } from '../lib/telemetry';
 
 const POLL_INTERVAL = 8000; // 8s — backup quando socket cai (era 15s — gap muito longo)
 
@@ -74,6 +75,11 @@ export const useAnalysisSocket = ({
     });
     socketRef.current = socket;
 
+    // O backend abre a sessao de uso no connect do socket e devolve o id
+    // aqui. E ele que o /api/telemetry usa para marcar presenca — sem isso, a
+    // duracao da visita ficaria presa ao tempo de socket.
+    socket.on('session:started', ({ sessionId }) => setTelemetrySession(sessionId));
+
     socket.on('motor-analysis', (data) => {
       if (data.source === selectedRoulette) {
         lastSocketEventRef.current = Date.now();
@@ -82,6 +88,7 @@ export const useAnalysisSocket = ({
     });
 
     return () => {
+      socket.off('session:started');
       socket.off('motor-analysis');
       socket.disconnect();
       socketRef.current = null;

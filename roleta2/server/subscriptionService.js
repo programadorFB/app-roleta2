@@ -91,7 +91,7 @@ export async function logSubscriptionAudit(userId, email, fromStatus, toStatus, 
 }
 
 export async function upsertSubscription(subscriptionData) {
-  const { userId, email, hublaCustomerId, subscriptionId, status, planName, expiresAt } = subscriptionData;
+  const { userId, email, hublaCustomerId, subscriptionId, status, planName, expiresAt, source, mainAppEmail } = subscriptionData;
 
   if (!email) throw new Error('Email obrigatório para criar/atualizar assinatura');
 
@@ -116,6 +116,25 @@ export async function upsertSubscription(subscriptionData) {
     throw new Error(`Transição inválida: ${existing.status} → ${status}`);
   }
 
+  // `source` (de onde veio a assinatura: kirvano, hubla, trial, admin) e sempre
+  // dito por quem chama. Sem fallback: o roleta2 vende por Kirvano desde a
+  // migracao, e assumir 'hubla' no silencio carimbaria venda nova com o gateway
+  // errado — justamente o que o painel usa para separar legado de atual.
+
+  // Vincula o email de login como main_app_email quando ele difere do titular da
+  // assinatura. So preenche o slot vazio (nao sobrescreve vinculo ja existente) e
+  // so quando nenhuma outra assinatura usa esse email — duas linhas apontando para
+  // o mesmo login fariam a busca do painel devolver a pessoa errada.
+  let mainAppEmailToSet;
+  if (mainAppEmail && mainAppEmail.toLowerCase() !== email.toLowerCase() && !existing?.main_app_email) {
+    const { rows: clash } = await query(
+      'SELECT 1 FROM subscriptions WHERE (LOWER(email) = $1 OR LOWER(main_app_email) = $1) AND user_id <> $2 LIMIT 1',
+      [mainAppEmail.toLowerCase(), userId],
+    );
+    if (clash.length === 0) mainAppEmailToSet = mainAppEmail;
+    else console.warn(`⚠️ [UPSERT] main_app_email ${mainAppEmail} já em uso — vínculo ignorado`);
+  }
+
   let result;
 
   if (existing) {
@@ -129,6 +148,8 @@ export async function upsertSubscription(subscriptionData) {
     if (status          !== undefined) { updates.push(`status = $${i++}`);             values.push(status); }
     if (planName        !== undefined) { updates.push(`plan_name = $${i++}`);          values.push(planName); }
     if (expiresAt       !== undefined) { updates.push(`expires_at = $${i++}`);         values.push(expiresAt); }
+    if (source          !== undefined) { updates.push(`source = $${i++}`);             values.push(source); }
+    if (mainAppEmailToSet !== undefined) { updates.push(`main_app_email = $${i++}`);    values.push(mainAppEmailToSet); }
 
     if (updates.length === 0) return existing;
 
@@ -141,10 +162,10 @@ export async function upsertSubscription(subscriptionData) {
   } else {
     result = await query(
       `INSERT INTO subscriptions
-         (user_id, email, hubla_customer_id, subscription_id, status, plan_name, expires_at, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+         (user_id, email, main_app_email, hubla_customer_id, subscription_id, status, plan_name, expires_at, source, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
        RETURNING *`,
-      [userId, email, hublaCustomerId || null, subscriptionId || null, status || 'pending', planName || 'default', expiresAt || null],
+      [userId, email, mainAppEmailToSet || null, hublaCustomerId || null, subscriptionId || null, status || 'pending', planName || 'default', expiresAt || null, source || null],
     );
     console.log(`✅ [UPSERT] Criado: ${email} | ${status || 'pending'}`);
   }
@@ -285,6 +306,7 @@ async function handleAccessGranted(payload) {
   const result = await upsertSubscription({
     userId: userId.toString(), email, hublaCustomerId: hublaId,
     subscriptionId: subscription?.id, status: 'active', planName,
+    source: 'hubla',
   });
   console.log(`✅ [HUBLA] Acesso liberado: ${email}`);
 
@@ -325,7 +347,7 @@ async function handlePaymentSucceeded(payload) {
   const result = await upsertSubscription({
     userId: userId.toString(), email, hublaCustomerId: hublaId,
     subscriptionId: invoice?.subscriptionId, status: 'active',
-    planName, expiresAt,
+    planName, expiresAt, source: 'hubla',
   });
 
   console.log(`💰 [HUBLA] Pagamento: R$ ${totalCents ? (totalCents / 100).toFixed(2) : '?'} | Prazo: ${expiresAt instanceof Date ? expiresAt.toLocaleDateString() : expiresAt} | ${email}`);
@@ -371,6 +393,7 @@ async function handleSubscriptionCreated(payload) {
     userId: userId.toString(), email, hublaCustomerId: hublaId,
     subscriptionId: subscription?.id, status: dbStatus,
     planName: subscription?.planName || 'default', expiresAt: subscription?.nextBillingDate || null,
+    source: 'hubla',
   });
   console.log(`🆕 [HUBLA] Assinatura criada: ${email} (${dbStatus})`);
   return result;
@@ -485,6 +508,7 @@ async function handleKirvanoSaleApproved(payload) {
   const result = await upsertSubscription({
     userId: userId.toString(), email, hublaCustomerId: saleId,
     subscriptionId: payload.checkout_id, status: 'active', planName, expiresAt,
+    source: 'kirvano',
   });
 
   console.log(`✅ [KIRVANO] Venda aprovada: ${email} | ${planName}`);
@@ -509,7 +533,7 @@ async function handleKirvanoSubscriptionRenewed(payload) {
 
   const result = await upsertSubscription({
     userId: userId.toString(), email, hublaCustomerId: saleId,
-    status: 'active', planName, expiresAt,
+    status: 'active', planName, expiresAt, source: 'kirvano',
   });
 
   console.log(`🔄 [KIRVANO] Renovada: ${email} | até ${expiresAt?.toLocaleDateString()}`);

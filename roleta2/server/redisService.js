@@ -11,6 +11,9 @@ export const TTL = {
   // chamada externa a cada request do polling (5s); acima disso, um token
   // revogado continuaria valendo tempo demais.
   TOKEN_AUTH:   300,
+  // Sessao do painel admin. 8h cobre um dia de trabalho sem novo login; o TTL
+  // e renovado a cada request, entao quem fica ativo nao e deslogado no meio.
+  ADMIN_SESSION: 8 * 60 * 60,
 };
 
 const PREFIX = process.env.REDIS_PREFIX;
@@ -24,6 +27,9 @@ export const KEY = {
   activeSubs: ()              => `${PREFIX}:admin:active`,
   // Chave por HASH do token — o token nunca vai para o Redis em claro.
   tokenAuth:  (tokenHash)     => `${PREFIX}:auth:${tokenHash}`,
+  // Sessao do painel admin, indexada pelo HASH do token — mesmo motivo do
+  // tokenAuth: vazamento do Redis nao pode entregar sessao valida.
+  adminSession: (tokenHash)   => `${PREFIX}:adminsess:${tokenHash}`,
 };
 
 let client      = null;

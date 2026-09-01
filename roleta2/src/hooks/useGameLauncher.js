@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { ROULETTE_GAME_IDS } from '../constants/roulette';
 import { launchGame } from '../lib/apiClient.js';
+import { track } from '../lib/telemetry';
 import { isRetryableError } from '../lib/errorHandler.js';
 
 export const LAUNCH_FAILURE = {
@@ -105,6 +106,11 @@ export const useGameLauncher = ({ selectedRoulette, jwtToken, isAuthenticated, u
       }
       return;
     }
+
+    // Aqui, e nao no clique: o painel mede mesa ABERTA. Contar a tentativa
+    // faria paywall e erro de upstream entrarem na conta como se a pessoa
+    // tivesse jogado.
+    track('game_open', null, { mesa: selectedRoulette });
 
     setGameUrl(result.gameUrl);
     setLaunchError('');

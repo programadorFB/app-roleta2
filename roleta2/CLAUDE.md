@@ -38,6 +38,39 @@ Vite proxies `/api`, `/login`, `/start-game` to `localhost:3002`.
 - **API client**: `apiClient.js` centralizes requests with paywall/auth error detection
 - **Styling**: CSS Modules, dark theme (MOGNO & OURO: `#0a0806` bg, gold accents `#c9a052`)
 
+### Área administrativa (`/admin`)
+
+Painel interno portado do roleta3. É um **app à parte** dentro do mesmo bundle:
+`main.jsx` olha o pathname e monta `src/admin/AdminApp.jsx` (lazy) em vez do
+`App` quando a URL é `/admin`. O `try_files` do nginx já entrega o mesmo
+`index.html` nesse caminho — não há rota nova de servidor para a página.
+
+- **Autenticação própria** (`server/adminAuthService.js`): contas em
+  `admin_users` com hash scrypt, sessão opaca no Redis (TTL 8h, janela
+  deslizante). Não é JWT porque JWT não é revogável, e logout/desativação
+  precisam valer na hora. A conta é reconferida no banco a cada request.
+- **Sem auto-registro.** Contas nascem pelo CLI:
+  `node server/scripts/createAdmin.js <email> ["Nome"]` (senha pedida oculta).
+- **`requireAdminSession`** substituiu o antigo `requireAdminAuth`: aceita a
+  sessão nominal OU o mesmo `x-admin-secret` de antes, então scripts e curl
+  existentes seguem funcionando. Ações que recaem sobre uma pessoa (assinatura,
+  ban, disconnect, revelar CPF) exigem `requireAdminIdentity` — o secret
+  compartilhado responde "é um admin?", nunca "qual admin?".
+- **Cerca de rede** (`server/adminGate.js`): `ADMIN_ALLOWED_IPS` (IPs/CIDRs) ou
+  `ADMIN_REQUIRE_CF_ACCESS`. Responde 404, não 403 — para quem não deveria estar
+  ali, o painel não existe. Desligada por padrão, e o boot avisa quando está.
+- **Telemetria** (`server/telemetryService.js`, `src/lib/telemetry.js`): a sessão
+  de uso abre no connect do Socket.IO e fecha no disconnect; os eventos vêm em
+  lote por `POST /api/telemetry` (whitelist fechada de nomes). `duration_seconds`
+  usa `last_seen_at`, não `ended_at` — mede tempo de aba à frente, não tempo de
+  socket. Reconexões são costuradas em visitas na LEITURA (`stitchSessions`).
+  Job horário no worker principal: fecha órfãs, roda o rollup diário e purga.
+- **Espelho da casa** (`server/platformProfileService.js`): lê `/profile` e
+  `/wallet` com o JWT do próprio usuário, no login, e grava em
+  `platform_profiles`. É o backend que lê, não o app — se o app reportasse,
+  bastaria forjar um POST para se declarar outra pessoa. Sem `await` no login.
+- Abas: Visão geral, Usuários, Retenção, Engajamento, Moderação, Auditoria.
+
 ### Data Flow
 1. Crawler/fetch → `POST /api/report-spin` or auto-fetch → PostgreSQL `signals` table
 2. Frontend polls `/api/history-delta?source=X&since=signalId` every 5s
@@ -53,6 +86,12 @@ Vite proxies `/api`, `/login`, `/start-game` to `localhost:3002`.
 - `subscription_audit` (audit log for status changes)
 - `motor_scores` (source, neighbor_mode UNIQUE, wins, losses)
 - `motor_pending_signals` (source, suggested_numbers INT[], spins_after, resolved_modes JSONB)
+- `admin_users` (email UNIQUE, password_hash scrypt, role, disabled_at) — painel
+- `admin_audit` (admin_email, action, target_email, payload JSONB, ip_hash)
+- `app_sessions` (user_email, socket_id, started_at, ended_at, last_seen_at, duration_seconds, ip_hash)
+- `app_events` (user_email, event, view, meta JSONB) — retenção 90 dias
+- `metrics_daily` (day PK, dau, premium_dau, new_users, sessions, total_seconds) — rollup, não expira
+- `platform_profiles` (email PK, nome, documento, telefone, saldo, ftd_valor, perfil_bruto/carteira_bruto JSONB)
 
 ## Conventions
 
@@ -66,6 +105,12 @@ Vite proxies `/api`, `/login`, `/start-game` to `localhost:3002`.
 ## Environment
 
 Required env vars: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `REDIS_URL`, `AUTH_PROXY_TARGET`, `CRAWLER_SECRET`, `ADMIN_SECRET`, `HUBLA_WEBHOOK_TOKEN`, `HUBLA_CHECKOUT_URL`, `SENTRY_DSN`. See `.env.example`.
+
+Área administrativa: `ADMIN_ALLOWED_IPS`, `ADMIN_REQUIRE_CF_ACCESS`,
+`ADMIN_MASK_PII`, `TELEMETRY_IP_SALT` (sem ele o IP não é gravado em lugar
+nenhum, nem na auditoria), `TELEMETRY_EVENT_RETENTION_DAYS`,
+`TELEMETRY_SESSION_RETENTION_DAYS`, `PLATFORM_API_URL` (cai no
+`AUTH_PROXY_TARGET` quando ausente), `PLATFORM_SYNC_TIMEOUT_MS`, `BRAND`.
 
 ## Important Patterns
 

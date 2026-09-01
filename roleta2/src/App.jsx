@@ -12,6 +12,7 @@ import PaywallModal from './components/PaywallModal.jsx';
 import { signedFetch } from './lib/signedFetch.js';
 import BanNotice from './components/BanNotice.jsx';
 import { registerBanCallback, clearBanCallback } from './lib/errorHandler';
+import { setTelemetryUser, startTelemetry, stopTelemetry, track } from './lib/telemetry';
 import WelcomeTrialModal from './components/WelcomeTrialModal.jsx';
 import './components/PaywallModal.css';
 import './components/NotificationsCenter.css';
@@ -290,6 +291,29 @@ const App = () => {
   const handleFilterChange = useCallback((e) => {
     setHistoryFilter(e.target.value === 'all' ? 'all' : Number(e.target.value));
   }, []);
+
+  // ── Telemetria de uso ──────────────────────────────────
+  // Liga a coleta ao ciclo de autenticacao: sem usuario identificado nao ha o
+  // que medir, e o stop no cleanup despacha o lote pendente do logout.
+  useEffect(() => {
+    const email = userInfo?.email;
+    if (!isAuthenticated || !email) return;
+
+    setTelemetryUser(email);
+    startTelemetry();
+    track('login');
+
+    return () => {
+      stopTelemetry();
+      setTelemetryUser(null);
+    };
+  }, [isAuthenticated, userInfo?.email]);
+
+  // Um efeito no lugar de instrumentar cada setter de aba: qualquer caminho
+  // novo que mude a view passa a ser medido sem precisar lembrar disso.
+  useEffect(() => {
+    track('view_change', activeView);
+  }, [activeView]);
 
   const setDashboard = useCallback(() => setActiveView('dashboard'), []);
   const setTutorial  = useCallback(() => setActiveView('tutorial'),  []);

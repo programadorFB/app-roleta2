@@ -52,6 +52,27 @@ services:
       - BAN_MODE=${BAN_MODE:-observe}
       - BAN_DAYS=${BAN_DAYS:-15}
       - ABUSE_RATE_PER_MIN=${ABUSE_RATE_PER_MIN:-240}
+
+      # ── Area administrativa (/admin) ────────────
+      # Cerca de rede na frente do painel. VAZIAS = painel exposto a qualquer
+      # IP, com so a senha protegendo — o backend grita isso no boot.
+      - ADMIN_ALLOWED_IPS=${ADMIN_ALLOWED_IPS:-}
+      - ADMIN_REQUIRE_CF_ACCESS=${ADMIN_REQUIRE_CF_ACCESS:-false}
+      # true mascara CPF/telefone na lista e na ficha; o valor inteiro passa a
+      # sair so pela rota /pii, que exige admin nominal e deixa rastro.
+      - ADMIN_MASK_PII=${ADMIN_MASK_PII:-false}
+      # Telemetria que alimenta o painel. SEM o salt o IP nao e gravado em
+      # lugar nenhum — nem na sessao de uso, nem na auditoria do admin.
+      - TELEMETRY_IP_SALT=${TELEMETRY_IP_SALT:-}
+      - TELEMETRY_EVENT_RETENTION_DAYS=${TELEMETRY_EVENT_RETENTION_DAYS:-90}
+      - TELEMETRY_SESSION_RETENTION_DAYS=${TELEMETRY_SESSION_RETENTION_DAYS:-180}
+      # Espelho do cadastro na casa, lido no login. Cai no AUTH_PROXY_TARGET
+      # quando nao definida — so aponte para outro host se /profile e /wallet
+      # morarem em lugar diferente do emissor do token.
+      - PLATFORM_API_URL=${PLATFORM_API_URL:-}
+      - PLATFORM_SYNC_TIMEOUT_MS=${PLATFORM_SYNC_TIMEOUT_MS:-6000}
+      - BRAND=${BRAND:-betou}
+
       - HUBLA_WEBHOOK_TOKEN=x11H8dJDrNRQBZTxicwFObMkk3LG6gSMBwAi5CxGYlRp1JuwRZZsxWm81NSZEgEJ
       - HUBLA_CHECKOUT_URL=https://pay.hub.la/N7JdmojxORlRpaafFEyl
       - AUTH_PROXY_TARGET=https://api.appbackend.tech

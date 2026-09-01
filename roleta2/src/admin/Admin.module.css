@@ -1,0 +1,717 @@
+/* Admin.module.css — Estilo único do painel.
+
+   Identidade do app (dourado sobre preto quente) levada a acabamento premium,
+   sem perder a densidade de ferramenta interna: quem usa isto passa o dia aqui.
+
+   Três decisões sustentam o visual:
+
+   1. O ouro é ACENTO, não preenchimento. Ele marca o que está ativo, o que é
+      número-chave e o foco do teclado — nada mais. Ouro em tudo vira dourado
+      de plástico; ouro escasso vira ouro.
+   2. Profundidade vem de camada, não de sombra pesada: gradiente sutil no
+      painel + uma linha de luz de 1px no topo (inset). É como material real
+      pega luz — a borda de cima acende, a de baixo some.
+   3. Número é dado, não texto: tudo que é cifra usa `tabular-nums`, para as
+      colunas alinharem na vertical e o olho comparar sem reler.
+*/
+
+.shell,
+.loginWrap {
+  --ouro: #c9a052;
+  --ouro-claro: #e3c489;
+  --ouro-fraco: rgba(201, 160, 82, 0.13);
+  --ouro-linha: rgba(201, 160, 82, 0.32);
+  --ouro-brilho: rgba(201, 160, 82, 0.18);
+
+  --fundo: #0a0806;
+  --painel: #14110d;
+  --painel-topo: #191510;
+  --painel-alto: #1b1712;
+
+  --borda: rgba(255, 255, 255, 0.07);
+  --borda-forte: rgba(255, 255, 255, 0.12);
+  --luz-topo: rgba(255, 255, 255, 0.055);
+
+  --texto: #f2f1ee;
+  --texto-fraco: rgba(255, 255, 255, 0.52);
+  --texto-tenue: rgba(255, 255, 255, 0.34);
+
+  --verde: #4ade80;
+  --vermelho: #f87171;
+  --ambar: #fbbf24;
+
+  --sombra-card: 0 1px 2px rgba(0, 0, 0, 0.45), 0 14px 34px -18px rgba(0, 0, 0, 0.85);
+  /* Mesma escala do app: superficie quase reta, canto so o suficiente para o
+     card nao brigar com a borda. Ver src/App.modules.css e os modulos dos
+     componentes, onde o valor dominante e 0 e o teto pratico e 8px. */
+  --raio: 4px;
+
+  display: flex;
+  /* Casca de aplicativo: a altura é a da janela e quem rola é o conteúdo, não a
+     página. Assim a navegação nunca sai de vista numa ficha longa. (Tentar isso
+     com `position: sticky` não funciona aqui: o body tem overflow próprio, então
+     o scrollport do sticky é uma caixa que não rola — o item nunca gruda.) */
+  height: 100vh;
+  overflow: hidden;
+  background: var(--fundo);
+  color: var(--texto);
+  font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'ss01' 1;
+}
+
+/* Brilho de canto: dá volume ao fundo chapado sem custar contraste no texto.
+   Fica atrás de tudo (o shell é o contexto de empilhamento). */
+.shell::before,
+.loginWrap::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 40rem at 15% -10%, rgba(201, 160, 82, 0.07), transparent 60%),
+    radial-gradient(50rem 36rem at 100% 0%, rgba(201, 160, 82, 0.04), transparent 55%);
+  z-index: 0;
+}
+
+.shell > *,
+.loginWrap > * { position: relative; z-index: 1; }
+
+/* ── Login ───────────────────────────────────────────── */
+
+.loginWrap {
+  background: var(--fundo);
+  color: var(--texto);
+  font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100%;
+  padding: 2rem;
+}
+
+.loginCard {
+  width: 100%;
+  max-width: 392px;
+  background: linear-gradient(180deg, var(--painel-topo) 0%, var(--painel) 100%);
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  padding: 2.25rem 2rem 2rem;
+  box-shadow:
+    inset 0 1px 0 var(--luz-topo),
+    0 2px 4px rgba(0, 0, 0, 0.5),
+    0 32px 70px -30px rgba(0, 0, 0, 0.95);
+}
+
+/* Fio de ouro acima do título: assina o cartão em vez de moldurá-lo. */
+.loginTitle {
+  font-size: 1.32rem;
+  font-weight: 600;
+  color: var(--texto);
+  margin: 0 0 0.4rem;
+  letter-spacing: -0.01em;
+}
+
+.loginTitle::before {
+  content: '';
+  display: block;
+  width: 34px;
+  height: 2px;
+  margin-bottom: 1.15rem;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--ouro-claro), rgba(201, 160, 82, 0));
+}
+
+.loginSub {
+  color: var(--texto-fraco);
+  font-size: 0.85rem;
+  margin: 0 0 1.75rem;
+}
+
+.field { margin-bottom: 1.05rem; }
+
+.label {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--texto-fraco);
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: 500;
+}
+
+.input {
+  width: 100%;
+  padding: 0.72rem 0.9rem;
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid var(--borda);
+  border-radius: 3px;
+  color: var(--texto);
+  font-size: 0.92rem;
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.input::placeholder { color: var(--texto-tenue); }
+
+.input:hover { border-color: var(--borda-forte); }
+
+/* Anel de foco em ouro: é o único lugar onde a cor da marca aparece sozinha,
+   e é de propósito — foco de teclado precisa ser inconfundível. */
+.input:focus {
+  outline: none;
+  border-color: var(--ouro-linha);
+  background: rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 0 3px var(--ouro-brilho);
+}
+
+.button {
+  width: 100%;
+  padding: 0.78rem;
+  background: linear-gradient(180deg, var(--ouro-claro) 0%, var(--ouro) 100%);
+  color: #16120a;
+  border: none;
+  border-radius: 3px;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  font-family: inherit;
+  letter-spacing: 0.01em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 6px 18px -10px rgba(201, 160, 82, 0.9);
+  transition: filter 0.15s ease, transform 0.08s ease, box-shadow 0.15s ease;
+}
+
+.button:hover:not(:disabled) { filter: brightness(1.07); }
+.button:active:not(:disabled) { transform: translateY(1px); }
+.button:focus-visible { outline: 2px solid var(--ouro-claro); outline-offset: 2px; }
+.button:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+
+.buttonGhost {
+  composes: button;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--texto);
+  border: 1px solid var(--borda-forte);
+  box-shadow: inset 0 1px 0 var(--luz-topo);
+}
+
+.buttonGhost:hover:not(:disabled) {
+  filter: none;
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.buttonDanger {
+  composes: button;
+  background: rgba(248, 113, 113, 0.12);
+  color: var(--vermelho);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.buttonDanger:hover:not(:disabled) { filter: none; background: rgba(248, 113, 113, 0.2); }
+
+.erro {
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.28);
+  color: #fca5a5;
+  padding: 0.65rem 0.85rem;
+  border-radius: 3px;
+  font-size: 0.84rem;
+  margin-bottom: 1rem;
+  line-height: 1.45;
+}
+
+/* ── Layout ──────────────────────────────────────────── */
+
+.sidebar {
+  width: 224px;
+  flex-shrink: 0;
+  background: linear-gradient(180deg, var(--painel-topo) 0%, var(--painel) 42%, #100d09 100%);
+  border-right: 1px solid var(--borda);
+  padding: 1.5rem 0.9rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* Recolhida: só os ícones. 62px é o mínimo em que um alvo de clique de 40px
+   ainda respira dentro do padding da barra. A largura é a ÚNICA coisa que muda
+   — cor, borda e gradiente continuam iguais, senão a barra pareceria outro
+   componente a cada clique. */
+.sidebarRecolhida {
+  composes: sidebar;
+  width: 62px;
+  padding-left: 0.55rem;
+  padding-right: 0.55rem;
+  align-items: center;
+}
+
+.topoSidebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-bottom: 1.5rem;
+}
+
+.brand {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ouro);
+  padding: 0 0 0 0.65rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.recolher {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: var(--texto-tenue);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.recolher:hover {
+  color: var(--ouro-claro);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--borda);
+}
+
+.recolher:focus-visible { outline: 2px solid var(--ouro-claro); outline-offset: 2px; }
+
+.nav { display: flex; flex-direction: column; gap: 0.15rem; flex: 1; }
+
+/* A barra de ouro da aba ativa vive no ::before de todo item, com scaleY(0).
+   Assim ela cresce a partir do centro na troca de aba, em vez de aparecer
+   inteira de repente — e o item nunca muda de largura. */
+.navItem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.62rem 0.75rem;
+  border-radius: 3px;
+  color: var(--texto-fraco);
+  text-decoration: none;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+/* Recolhida, o item vira um quadrado com o ícone no centro. */
+.sidebarRecolhida .navItem { justify-content: center; padding: 0.62rem 0; }
+
+.navIcone { flex-shrink: 0; }
+
+.navItem::before {
+  content: '';
+  position: absolute;
+  left: -0.9rem;
+  top: 50%;
+  width: 3px;
+  height: 18px;
+  margin-top: -9px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(180deg, var(--ouro-claro), var(--ouro));
+  transform: scaleY(0);
+  transition: transform 0.18s ease;
+}
+
+/* A barra é posicionada contra o padding da barra lateral, que muda quando ela
+   recolhe — sem isto ela flutuaria solta no meio do ícone. */
+.sidebarRecolhida .navItem::before { left: -0.55rem; }
+
+.navItem:hover { background: rgba(255, 255, 255, 0.04); color: var(--texto); }
+
+.navItemAtivo {
+  composes: navItem;
+  background: var(--ouro-fraco);
+  color: var(--ouro-claro);
+  font-weight: 500;
+}
+
+.navItemAtivo::before { transform: scaleY(1); }
+
+.rodapeSidebar {
+  border-top: 1px solid var(--borda);
+  padding-top: 0.95rem;
+  font-size: 0.78rem;
+  color: var(--texto-fraco);
+  line-height: 1.5;
+  word-break: break-word;
+  width: 100%;
+}
+
+.sidebarRecolhida .rodapeSidebar { display: flex; justify-content: center; }
+
+.sair {
+  background: none;
+  border: none;
+  color: var(--texto-tenue);
+  cursor: pointer;
+  padding: 0.35rem 0 0;
+  font-size: 0.79rem;
+  font-family: inherit;
+  transition: color 0.15s ease;
+}
+
+.sair:hover { color: var(--ouro); }
+
+.main {
+  flex: 1;
+  padding: 2rem 2.25rem 3rem;
+  overflow: auto;
+  min-width: 0;
+}
+
+.pageTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 0.3rem;
+  letter-spacing: -0.015em;
+}
+
+.pageSub {
+  color: var(--texto-fraco);
+  font-size: 0.86rem;
+  margin: 0 0 1.75rem;
+  line-height: 1.55;
+}
+
+/* ── KPIs ────────────────────────────────────────────── */
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: 0.9rem;
+  margin-bottom: 1.85rem;
+}
+
+.kpi {
+  position: relative;
+  background: linear-gradient(180deg, var(--painel-topo) 0%, var(--painel) 100%);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 1.05rem 1.15rem;
+  box-shadow: inset 0 1px 0 var(--luz-topo), var(--sombra-card);
+  overflow: hidden;
+}
+
+/* Fio de luz no topo do cartão: o destaque de material, não uma borda. */
+.kpi::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201, 160, 82, 0.35), transparent);
+}
+
+.kpiLabel {
+  font-size: 0.71rem;
+  color: var(--texto-fraco);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.kpiValor {
+  font-size: 1.72rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpiNota {
+  font-size: 0.74rem;
+  color: var(--texto-tenue);
+  margin-top: 0.45rem;
+  line-height: 1.45;
+}
+
+.kpiDestaque { color: var(--ouro-claro); }
+
+/* ── Cards e tabelas ─────────────────────────────────── */
+
+.card {
+  background: linear-gradient(180deg, var(--painel-topo) 0%, var(--painel) 100%);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 1.25rem 1.35rem;
+  margin-bottom: 1.35rem;
+  box-shadow: inset 0 1px 0 var(--luz-topo), var(--sombra-card);
+}
+
+.cardTitulo {
+  font-size: 0.76rem;
+  font-weight: 600;
+  margin: 0 0 1.1rem;
+  color: var(--texto-fraco);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+
+.tabelaWrap {
+  overflow-x: auto;
+  margin: 0 -0.35rem;
+  padding: 0 0.35rem;
+}
+
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  /* 0.9rem em vez de 0.855: com 8 colunas em vez de onze, sobra largura, e a
+     densidade de ferramenta interna não precisa custar a leitura. */
+  font-size: 0.9rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Fundo próprio (e não transparente) para o cabeçalho ficar destacado do corpo
+   quando a tabela rola na horizontal. */
+.tabela th {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  color: var(--texto-fraco);
+  font-weight: 500;
+  font-size: 0.71rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  background: var(--painel-topo);
+  border-bottom: 1px solid var(--borda-forte);
+}
+
+.tabela td {
+  padding: 0.72rem 0.85rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.035);
+  /* Quase branco: o cinza de antes economizava contraste onde não devia — esta
+     é a informação, não o rótulo dela. */
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.tabela tbody tr:last-child td { border-bottom: none; }
+
+/* Complemento de segunda linha (cidade ao lado do nome, idade ao lado do saldo).
+   Menor e apagado de propósito: informa sem competir com o dado principal. */
+.nota {
+  color: var(--texto-tenue);
+  font-size: 0.9em;
+}
+
+/* Célula que pode estourar (e-mail, nome, caminho de campo, id longo).
+   O teto é largo o bastante para caber um e-mail inteiro (a esmagadora maioria
+   cabe em 34 caracteres); só o que passar disso corta, e aí o valor completo
+   está no `title`. Cortar em 22ch, como estava, escondia e-mail comum — que é
+   justamente a coluna que o operador lê primeiro. */
+.celulaLonga {
+  max-width: 34ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.linhaClicavel { cursor: pointer; transition: background 0.12s ease; }
+.linhaClicavel:hover { background: rgba(201, 160, 82, 0.06); }
+.linhaClicavel:hover td { color: var(--texto); }
+
+.tag {
+  display: inline-block;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.71rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+}
+
+.tagAtivo     { composes: tag; background: rgba(74, 222, 128, 0.12);  color: var(--verde);       border-color: rgba(74, 222, 128, 0.26); }
+.tagTrial     { composes: tag; background: rgba(251, 191, 36, 0.12);  color: var(--ambar);       border-color: rgba(251, 191, 36, 0.26); }
+.tagCancelado { composes: tag; background: rgba(255, 255, 255, 0.05); color: var(--texto-fraco); border-color: rgba(255, 255, 255, 0.1); }
+.tagBanido    { composes: tag; background: rgba(248, 113, 113, 0.12); color: var(--vermelho);    border-color: rgba(248, 113, 113, 0.28); }
+
+.busca {
+  composes: input;
+  max-width: 340px;
+  margin-bottom: 1rem;
+}
+
+.vazio {
+  padding: 2.75rem 1rem;
+  text-align: center;
+  color: var(--texto-tenue);
+  font-size: 0.87rem;
+  line-height: 1.6;
+}
+
+.aviso {
+  background: linear-gradient(180deg, rgba(201, 160, 82, 0.1), rgba(201, 160, 82, 0.05));
+  border: 1px solid rgba(201, 160, 82, 0.24);
+  border-radius: 4px;
+  padding: 0.8rem 1rem;
+  font-size: 0.83rem;
+  color: rgba(255, 255, 255, 0.78);
+  margin-bottom: 1.3rem;
+  line-height: 1.55;
+}
+
+/* ── Matriz de coorte ────────────────────────────────── */
+
+.coorte {
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.coorte th, .coorte td { padding: 0.45rem 0.6rem; text-align: center; }
+
+.coorte th {
+  color: var(--texto-fraco);
+  font-weight: 500;
+  font-size: 0.71rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.coorteLabel {
+  text-align: left !important;
+  color: var(--texto) !important;
+  white-space: nowrap;
+}
+
+.celula { border-radius: 3px; font-weight: 600; }
+
+/* ── Detalhe do usuário ──────────────────────────────── */
+
+.detalheGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.35rem;
+}
+
+.acoes { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: flex-end; }
+.acaoCampo { flex: 1; min-width: 120px; }
+.acaoBotao { composes: button; width: auto; padding: 0.68rem 1.2rem; }
+
+.voltar {
+  background: none;
+  border: none;
+  color: var(--texto-fraco);
+  cursor: pointer;
+  font-size: 0.84rem;
+  padding: 0 0 1.1rem;
+  font-family: inherit;
+  transition: color 0.15s ease;
+}
+
+.voltar:hover { color: var(--ouro-claro); }
+
+/* Rótulo à esquerda em cinza, valor à direita em branco: o olho desce pela
+   coluna da direita lendo só os valores, que é como uma ficha se lê. */
+.linhaInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 0.855rem;
+}
+
+.linhaInfo:last-child { border-bottom: none; }
+
+.linhaInfo span:first-child {
+  color: var(--texto-fraco);
+  flex-shrink: 0;
+}
+
+.linhaInfo span:last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  word-break: break-word;
+}
+
+/* ── Filtros e ordenação da lista ────────────────────── */
+
+.filtrosGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+  gap: 0.8rem;
+}
+
+.thOrdenavel {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+
+.thOrdenavel:hover { color: var(--texto); }
+
+/* A seta some quando a coluna não é a ordenada, mas ocupa o espaço: sem isso
+   o cabeçalho pula de largura a cada troca de ordenação. */
+.seta { opacity: 0.28; margin-left: 0.35rem; font-size: 0.7em; }
+.setaAtiva { composes: seta; opacity: 1; color: var(--ouro-claro); }
+
+/* ── Barra de rolagem ────────────────────────────────── */
+
+.main::-webkit-scrollbar,
+.tabelaWrap::-webkit-scrollbar { height: 9px; width: 9px; }
+
+.main::-webkit-scrollbar-thumb,
+.tabelaWrap::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+}
+
+.main::-webkit-scrollbar-thumb:hover,
+.tabelaWrap::-webkit-scrollbar-thumb:hover { background: rgba(201, 160, 82, 0.4); }
+
+.main::-webkit-scrollbar-track,
+.tabelaWrap::-webkit-scrollbar-track { background: transparent; }
+
+/* ── Responsivo ──────────────────────────────────────── */
+
+@media (max-width: 720px) {
+  /* Em coluna a casca fixa não cabe: volta a rolar a página inteira. */
+  .shell { flex-direction: column; height: auto; min-height: 100vh; overflow: visible; }
+
+  .sidebar {
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding: 0.75rem;
+    border-right: none;
+    border-bottom: 1px solid var(--borda);
+  }
+
+  .brand { padding: 0 0.5rem 0 0; }
+  .main { overflow: visible; }
+  .nav { flex-direction: row; }
+  /* Sem espaço para a barra lateral: no modo horizontal ela viraria um risco solto. */
+  .navItem::before { display: none; }
+  .rodapeSidebar { border: none; padding: 0; }
+  .main { padding: 1.35rem 1rem 2rem; }
+  .pageTitle { font-size: 1.3rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navItem::before,
+  .button,
+  .input,
+  .linhaClicavel { transition: none; }
+}

@@ -24,6 +24,7 @@ import {
   getSubscriptionStats, getActiveSubscriptions, getWebhookLogs,
   getSubscriptionByEmail, getSubscriptionAuditLog, getAllAuditLogs,
   sendExpirationReminders, createTrialSubscription,
+  upsertSubscription, logSubscriptionAudit,
   ACTIVE_STATUSES,
 } from './subscriptionService.js';
 import { detectAbuse, getActiveBan, banUser, revokeBan, listBans, BAN_DAYS, BAN_MODE } from './abuseService.js';
@@ -33,6 +34,11 @@ import { processSource, initMotorEngine, getLatestMotorAnalysis, computeMotorAna
 // só persiste o placar interno, então não precisa mais do Socket.IO.
 import { processTriggerSource } from './triggerScoreEngine.js';
 import { gerenciamentoAuthMiddleware, gerenciamentoProxy } from './gerenciamentoGateway.js';
+import { login as adminLogin, logout as adminLogout, resolveSession as resolveAdminSession, logAdminAction, listAdminAudit } from './adminAuthService.js';
+import { getOverview, getRetention, getEngagement, getFunnel, listUsers, getUserDetail } from './adminService.js';
+import { adminNetworkGate, gateAtivo } from './adminGate.js';
+import { recordEvents, hashIp, startSession, touchSession, endSession, closeOrphanSessions, runDailyRollup, purgeOldTelemetry } from './telemetryService.js';
+import { capturePlatformData, platformSyncStats, getPlatformRaw, getPlatformPii } from './platformProfileService.js';
 
 dotenv.config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.env') });
 
@@ -130,6 +136,13 @@ function generateETag(data) {
   return `"${hash.digest('hex').substring(0, 16)}"`;
 }
 
+// Grita no boot quando o painel esta so atras da senha. Sem isso ninguem
+// percebe que /api/admin esta aberto para a internet ate alguem achar a URL.
+if (!gateAtivo) {
+  console.warn('⚠️  [admin] CERCA DE REDE DESLIGADA — /api/admin aceita qualquer IP; só a senha protege.');
+  console.warn('⚠️  [admin] Ligue ADMIN_ALLOWED_IPS (IPs/CIDRs da equipe) ou ADMIN_REQUIRE_CF_ACCESS=true no .env.');
+}
+
 // ── Rate limiters ─────────────────────────────────────────────
 
 const crawlerLimiter = rateLimit({
@@ -144,10 +157,49 @@ const webhookLimiter = rateLimit({
   message: { error: 'Limite de webhooks excedido.' },
 });
 
+// Leitura do painel. O adminLimiter (30/min) foi dimensionado para chamadas de
+// script; uma UI faz dezenas por minuto so navegando entre abas — e o
+// StrictMode do React em dev ainda dobra cada uma. 240/min cobre uso humano
+// intenso sem abrir espaco para varredura automatizada.
+const adminReadLimiter = rateLimit({
+  windowMs: 60_000, max: 240,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Limite de leitura do painel excedido.' },
+});
+
 const adminLimiter = rateLimit({
   windowMs: 60_000, max: 30,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Limite admin excedido.' },
+});
+
+// Revelacao de dado pessoal (CPF, telefone, respostas cruas da casa).
+//
+// Deliberadamente APERTADO. O uso legitimo e "abri a ficha de quem me ligou":
+// alguns por hora. Uma sessao de admin roubada tentando raspar a base bate
+// nesta parede em 40 pessoas e deixa 40 linhas na auditoria — em vez de levar
+// a base inteira numa requisicao.
+const adminPiiLimiter = rateLimit({
+  windowMs: 15 * 60_000, max: 40,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Limite de revelacao de dado pessoal excedido. Aguarde alguns minutos.' },
+});
+
+// Limiter proprio e apertado para o login do painel: e o alvo natural de forca
+// bruta, e o adminLimiter geral e generoso demais para esta rota.
+const adminLoginLimiter = rateLimit({
+  windowMs: 15 * 60_000, max: 10,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Muitas tentativas. Aguarde alguns minutos.' },
+});
+
+// Telemetria: o cliente manda lotes a cada 15s, mais o flush ao trocar de aba.
+// 30/min por IP cobre uso normal com folga e ainda contem quem tentar usar a
+// rota como canal de escrita barato no banco.
+const telemetryLimiter = rateLimit({
+  windowMs: 60_000, max: 30,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Limite de telemetria excedido.' },
 });
 
 const subscriptionStatusLimiter = rateLimit({
@@ -508,18 +560,87 @@ const requireValidUser = async (req, res, next) => {
   }
 };
 
-const requireAdminAuth = (req, res, next) => {
-  if (!ADMIN_SECRET) return res.status(500).json({ error: 'ADMIN_SECRET não configurado' });
-  try {
-    const a = Buffer.from(String(req.headers['x-admin-secret'] || ''));
-    const b = Buffer.from(ADMIN_SECRET);
-    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
-      Sentry.captureMessage(`Admin access denied — IP: ${req.ip}`, 'warning');
-      return res.status(403).json({ error: 'Acesso negado' });
+// requireAdminAuth foi removido: requireAdminSession o substitui e aceita tanto
+// a sessao nominal do painel quanto o mesmo x-admin-secret de antes, entao os
+// scripts existentes seguem funcionando sem duas portas de entrada.
+
+/**
+ * Sessão do painel administrativo.
+ *
+ * Aceita também o x-admin-secret: os scripts e o curl que já usam as rotas
+ * /api/admin continuam funcionando sem mudança. A diferença é o rastro — a
+ * sessão sabe QUAL admin agiu, o secret compartilhado não, e por isso as ações
+ * feitas por secret ficam registradas como 'secret' na auditoria.
+ */
+const requireAdminSession = async (req, res, next) => {
+  const token = extractBearer(req);
+
+  if (token) {
+    try {
+      const session = await resolveAdminSession(token);
+      if (session) {
+        req.admin = session;
+        return next();
+      }
+    } catch (err) {
+      // Redis fora não pode virar porta aberta: cai para o secret e, sem ele, 403.
+      console.error('⚠️ [admin] resolveSession falhou:', err.message);
     }
-  } catch {
-    return res.status(403).json({ error: 'Acesso negado' });
   }
+
+  if (ADMIN_SECRET && req.headers['x-admin-secret']) {
+    try {
+      const a = Buffer.from(String(req.headers['x-admin-secret']));
+      const b = Buffer.from(ADMIN_SECRET);
+      if (a.length === b.length && crypto.timingSafeEqual(a, b)) {
+        req.admin = { email: 'secret', name: 'Acesso por secret', role: 'admin' };
+        return next();
+      }
+    } catch { /* cai no 403 */ }
+  }
+
+  Sentry.captureMessage(`Admin session negada — IP: ${req.ip}`, 'warning');
+  return res.status(403).json({ error: 'Acesso negado' });
+};
+
+/** Hash do IP de quem executou a ação, para a auditoria. */
+const adminIpHash = (req) =>
+  hashIp(req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.ip);
+
+/**
+ * Exige sessão NOMINAL — não aceita o x-admin-secret.
+ *
+ * Vai nas ações que recaem sobre uma pessoa (mexer em assinatura, banir,
+ * derrubar sessão, abrir a ficha completa). O secret compartilhado responde
+ * "é um admin?", nunca "qual admin?", e para esse tipo de ação a auditoria
+ * precisa de nome próprio. Scripts que usam o secret seguem funcionando nas
+ * rotas operacionais e de leitura agregada.
+ */
+const requireAdminIdentity = (req, res, next) => {
+  if (!req.admin || req.admin.email === 'secret') {
+    return res.status(403).json({
+      error: 'Esta ação exige login nominal no painel — o acesso por secret não identifica quem agiu.',
+    });
+  }
+  next();
+};
+
+/**
+ * Registra CONSULTA a dado pessoal.
+ *
+ * A auditoria só cobre alteração por natureza. Como a ficha mostra banca,
+ * transações e objetivos, quem abriu a ficha de quem também é informação que
+ * precisa existir — para investigar uso indevido e para responder por ela sob
+ * a LGPD. Não bloqueia nada: apenas deixa rastro.
+ */
+const auditarLeitura = (acao) => (req, res, next) => {
+  logAdminAction({
+    adminEmail:  req.admin?.email || 'desconhecido',
+    action:      acao,
+    targetEmail: req.params?.email ? String(req.params.email).trim().toLowerCase() : null,
+    payload:     req.query?.search ? { busca: String(req.query.search).slice(0, 80) } : null,
+    ipHash:      adminIpHash(req),
+  });
   next();
 };
 
@@ -621,6 +742,35 @@ app.use('/login', createProxyMiddleware({
           } else {
             accountStats.loginNoEmail++;
             console.warn('⚠️ [login] sucesso sem email identificavel — conta nao registrada');
+          }
+
+          // Espelha /profile e /wallet da casa no nosso banco. Este e o UNICO
+          // momento em que temos o token da pessoa — a casa nao deixa o
+          // servidor consultar terceiros.
+          //
+          // FORA do `if` do e-mail de proposito: a captura descobre sozinha de
+          // quem e o token (o /profile devolve o e-mail) e o que passamos aqui
+          // e so um palpite de partida. Quando nem esse palpite existe, o
+          // espelho ainda funciona — e continua sendo a unica pista de quem
+          // entrou.
+          //
+          // Sem await: a resposta do login nao espera duas idas a casa de
+          // apostas. A funcao nunca lanca, mas o .catch fica como rede contra
+          // unhandled rejection.
+          if (token) {
+            const jaRegistrada = !!email;
+            capturePlatformData(email, token)
+              .then(async (r) => {
+                // Rede de seguranca: se o corpo do login nao deu o e-mail mas a
+                // captura conseguiu, a conta nasce aqui — mantendo a regra de
+                // que quem autentica passa a existir.
+                if (!jaRegistrada && r?.ok && r.email) {
+                  await createTrialSubscription(r.email);
+                  accountStats.registeredOnLogin++;
+                  console.log(`✅ [login] conta registrada pelo espelho: ${r.email}`);
+                }
+              })
+              .catch((e) => console.error(`⚠️ [plataforma] captura falhou: ${e.message}`));
           }
         } catch (err) {
           // Nunca derrubar o login por causa disto: o usuario autenticou.
@@ -905,24 +1055,285 @@ app.get('/api/fetch/:source', requireActiveSubscription, async (req, res) => {
 
 // ── Admin endpoints ───────────────────────────────────────────
 
-app.get('/api/admin/subscriptions/stats',  adminLimiter, requireAdminAuth, async (req, res) => {
+// Cerca de rede na frente do painel inteiro, login incluso: se ADMIN_ALLOWED_IPS
+// ou ADMIN_REQUIRE_CF_ACCESS estiverem configurados, quem vem de fora nem chega
+// a ver a tela de senha. Sem eles configurados, nao muda nada. Fica ANTES de
+// qualquer rota /api/admin de proposito — inclusive das que ja existiam.
+app.use('/api/admin', adminNetworkGate);
+
+// ── Sessão do painel ────────────────────────────────────
+
+app.post('/api/admin/auth/login', adminLoginLimiter, express.json({ limit: '1kb' }), async (req, res) => {
+  const { email, password } = req.body || {};
+
+  try {
+    const result = await adminLogin(email, password);
+    // Mensagem única para email inexistente e senha errada: distinguir os dois
+    // entrega a lista de quem é admin.
+    if (!result) return res.status(401).json({ error: 'Credenciais inválidas' });
+
+    await logAdminAction({
+      adminEmail: result.admin.email,
+      action: 'login',
+      ipHash: adminIpHash(req),
+    });
+
+    res.json({ token: result.token, admin: result.admin });
+  } catch (err) {
+    Sentry.captureException(err, { tags: { context: 'admin-login' } });
+    res.status(500).json({ error: 'Falha no login' });
+  }
+});
+
+app.post('/api/admin/auth/logout', requireAdminSession, async (req, res) => {
+  await adminLogout(extractBearer(req));
+  res.json({ ok: true });
+});
+
+app.get('/api/admin/auth/me', requireAdminSession, (req, res) => {
+  res.json({ admin: req.admin });
+});
+
+// ── Métricas ────────────────────────────────────────────
+
+app.get('/api/admin/metrics/overview', adminReadLimiter, requireAdminSession, async (req, res) => {
+  try {
+    res.json(await getOverview());
+  } catch (e) {
+    Sentry.captureException(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/admin/metrics/retention', adminReadLimiter, requireAdminSession, async (req, res) => {
+  try {
+    res.json(await getRetention(Math.min(parseInt(req.query.weeks) || 8, 26)));
+  } catch (e) {
+    Sentry.captureException(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/admin/metrics/engagement', adminReadLimiter, requireAdminSession, async (req, res) => {
+  try {
+    res.json(await getEngagement(Math.min(parseInt(req.query.days) || 14, 90)));
+  } catch (e) {
+    Sentry.captureException(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/admin/metrics/funnel', adminReadLimiter, requireAdminSession, async (req, res) => {
+  try {
+    res.json(await getFunnel());
+  } catch (e) {
+    Sentry.captureException(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Usuários ────────────────────────────────────────────
+
+app.get('/api/admin/users', adminReadLimiter, requireAdminSession, auditarLeitura('lista_usuarios'), async (req, res) => {
+  try {
+    res.json(await listUsers({
+      search:     req.query.search || '',
+      limit:      Math.min(parseInt(req.query.limit) || 50, 200),
+      offset:     parseInt(req.query.offset) || 0,
+      // Filtros por coluna. Os valores sao validados dentro de listUsers:
+      // status por whitelist, numericos por Number.isFinite, e a coluna de
+      // ordenacao por um mapa fixo — nada do cliente entra na query como SQL.
+      status:     req.query.status || '',
+      banido:     req.query.banido || '',
+      comBanca:   req.query.comBanca || '',
+      sessoesMin: req.query.sessoesMin ?? null,
+      saldoMin:   req.query.saldoMin ?? null,
+      acesso:     req.query.acesso || '',
+      ordenarPor: req.query.ordenarPor || 'ultimo_acesso',
+      direcao:    req.query.direcao || 'desc',
+    }));
+  } catch (e) {
+    Sentry.captureException(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/admin/users/:email', adminReadLimiter, requireAdminSession, auditarLeitura('ficha_usuario'), async (req, res) => {
+  try {
+    res.json(await getUserDetail(req.params.email));
+  } catch (e) {
+    Sentry.captureException(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * CPF e telefone INTEIROS de uma pessoa.
+ *
+ * A lista e a ficha entregam esses campos mascarados quando ADMIN_MASK_PII esta
+ * ligado (ver mascararLinha em platformProfileService.js). O número completo sai
+ * só por aqui, e por aqui só passa admin NOMINAL — o x-admin-secret responde "é
+ * um admin?", nunca "qual admin?", e revelar CPF alheio é exatamente o tipo de
+ * ato que precisa de nome próprio na auditoria. Uma pessoa por requisição, com
+ * limite de 40 a cada 15 minutos: raspar a base por aqui é lento e ruidoso.
+ */
+app.get('/api/admin/users/:email/pii', adminPiiLimiter, requireAdminSession, requireAdminIdentity, auditarLeitura('revelou_dado_pessoal'), async (req, res) => {
+  try {
+    const dados = await getPlatformPii(req.params.email);
+    if (!dados) return res.status(404).json({ error: 'Sem espelho para este e-mail' });
+    res.json(dados);
+  } catch (e) {
+    Sentry.captureException(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * As respostas cruas da casa (/profile e /wallet) que o espelho guardou.
+ *
+ * Fica numa rota à parte porque são centenas de campos: carregá-los junto com a
+ * ficha pesaria toda abertura para servir a minoria das consultas.
+ *
+ * Entra no MESMO regime da rota de PII (nominal, limite estreito, auditada):
+ * o JSON cru traz CPF, telefone e endereço sem máscara nenhuma, então deixá-lo
+ * mais barato de obter do que o campo mascarado ao lado anularia a máscara.
+ */
+app.get('/api/admin/users/:email/plataforma', adminPiiLimiter, requireAdminSession, requireAdminIdentity, auditarLeitura('campos_da_casa'), async (req, res) => {
+  try {
+    const dados = await getPlatformRaw(req.params.email);
+    if (!dados) return res.status(404).json({ error: 'Sem espelho para este e-mail' });
+    res.json(dados);
+  } catch (e) {
+    Sentry.captureException(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * Ajuste manual de assinatura. Reusa upsertSubscription/logSubscriptionAudit
+ * para que a alteração feita à mão apareça no mesmo histórico das mudanças
+ * vindas de webhook — senão o histórico do usuário mentiria.
+ */
+app.post('/api/admin/users/:email/subscription', adminLimiter, requireAdminSession, requireAdminIdentity, express.json({ limit: '2kb' }), async (req, res) => {
+  const email = String(req.params.email).trim().toLowerCase();
+  const { status, planName, days, mainAppEmail } = req.body || {};
+
+  // Vale tambem para CRIAR: o upsert insere quem ainda nao existe, entao dar
+  // acesso a alguem de fora e so cadastrar aqui. Sem isso, o painel so sabia
+  // editar quem ja estava.
+  if (!isValidEmail(email)) return res.status(400).json({ error: 'Email invalido' });
+  if (mainAppEmail && !isValidEmail(String(mainAppEmail).trim().toLowerCase())) {
+    return res.status(400).json({ error: 'Email de login invalido' });
+  }
+
+  const PERMITIDOS = ['active', 'trialing', 'paid', 'canceled'];
+  if (!PERMITIDOS.includes(status)) {
+    return res.status(400).json({ error: `status deve ser um de: ${PERMITIDOS.join(', ')}` });
+  }
+
+  try {
+    const atual = await getSubscriptionByEmail(email);
+    const expiresAt = days
+      ? new Date(Date.now() + Number(days) * 86_400_000)
+      : atual?.expires_at || null;
+
+    await upsertSubscription({
+      userId:         atual?.user_id || `admin-${email}`,
+      email,
+      status,
+      planName:       planName || atual?.plan_name || 'Ajuste manual',
+      expiresAt,
+      subscriptionId: atual?.subscription_id || null,
+      source:         'admin',
+      mainAppEmail:   mainAppEmail ? String(mainAppEmail).trim().toLowerCase() : undefined,
+    });
+
+    await logSubscriptionAudit(atual?.user_id || null, email, atual?.status || null, status, `admin:${req.admin.email}`);
+    await logAdminAction({
+      adminEmail:  req.admin.email,
+      action:      atual ? 'subscription_update' : 'user_create',
+      targetEmail: email,
+      payload:     { de: atual?.status || null, para: status, dias: days || null, novo: !atual },
+      ipHash:      adminIpHash(req),
+    });
+
+    res.json({ ok: true, email, status, criado: !atual });
+  } catch (e) {
+    Sentry.captureException(e, { tags: { context: 'admin-subscription' } });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * Derruba as sessões do usuário: desconecta os sockets e limpa o cache de
+ * validação de token, para que o próximo request tenha que revalidar no
+ * emissor em vez de aproveitar os até 300s de TTL.
+ */
+app.post('/api/admin/users/:email/disconnect', adminLimiter, requireAdminSession, requireAdminIdentity, async (req, res) => {
+  const email = String(req.params.email).trim().toLowerCase();
+
+  try {
+    let derrubados = 0;
+    // fetchSockets() cobre o cluster inteiro via adapter do Redis — em PM2 os
+    // sockets do usuário podem estar em outro worker que não este.
+    const sockets = await io.fetchSockets();
+    for (const s of sockets) {
+      if (s.data?.userEmail === email || s.userEmail === email) {
+        s.disconnect(true);
+        derrubados++;
+      }
+    }
+
+    await cacheDel(KEY.sub(email));
+
+    await logAdminAction({
+      adminEmail:  req.admin.email,
+      action:      'force_disconnect',
+      targetEmail: email,
+      payload:     { sockets: derrubados },
+      ipHash:      adminIpHash(req),
+    });
+
+    res.json({ ok: true, derrubados });
+  } catch (e) {
+    Sentry.captureException(e, { tags: { context: 'admin-disconnect' } });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Auditoria do painel ─────────────────────────────────
+
+app.get('/api/admin/audit-log', adminReadLimiter, requireAdminSession, async (req, res) => {
+  try {
+    res.json(await listAdminAudit(Math.min(parseInt(req.query.limit) || 100, 500)));
+  } catch (e) {
+    Sentry.captureException(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Rotas admin anteriores ao painel ────────────────────
+// Continuam aceitando o x-admin-secret (scripts e curl existentes) atraves do
+// requireAdminSession, que trata as duas formas de entrada.
+
+app.get('/api/admin/subscriptions/stats',  adminReadLimiter, requireAdminSession, async (req, res) => {
   try { res.json(await getSubscriptionStats()); }
   catch (e) { Sentry.captureException(e); res.status(500).json({ error: e.message }); }
 });
 
-app.get('/api/admin/subscriptions/active', adminLimiter, requireAdminAuth, async (req, res) => {
+app.get('/api/admin/subscriptions/active', adminReadLimiter, requireAdminSession, async (req, res) => {
   try { res.json(await getActiveSubscriptions()); }
   catch (e) { Sentry.captureException(e); res.status(500).json({ error: e.message }); }
 });
 
-app.get('/api/admin/webhooks/logs', adminLimiter, requireAdminAuth, async (req, res) => {
+app.get('/api/admin/webhooks/logs', adminReadLimiter, requireAdminSession, async (req, res) => {
   try { res.json(await getWebhookLogs(parseInt(req.query.limit) || 100)); }
   catch (e) { Sentry.captureException(e); res.status(500).json({ error: e.message }); }
 });
 
 // Disparo manual do aviso de vencimento.
 // Use `?dryRun=1` para listar quem seria avisado sem enviar nada.
-app.post('/api/admin/expiration-reminders/run', adminLimiter, requireAdminAuth, async (req, res) => {
+app.post('/api/admin/expiration-reminders/run', adminLimiter, requireAdminSession, async (req, res) => {
   try {
     const dryRun = req.query.dryRun === '1' || req.query.dryRun === 'true';
     const result = await sendExpirationReminders({ dryRun });
@@ -932,34 +1343,53 @@ app.post('/api/admin/expiration-reminders/run', adminLimiter, requireAdminAuth, 
 
 // ── Banimentos por abuso (admin) ──────────────────────────────
 
-app.get('/api/admin/bans', adminLimiter, requireAdminAuth, async (req, res) => {
+app.get('/api/admin/bans', adminReadLimiter, requireAdminSession, async (req, res) => {
   try {
     res.json({ bans: await listBans(200), mode: BAN_MODE, banDays: BAN_DAYS });
   } catch (err) { Sentry.captureException(err); res.status(500).json({ error: err.message }); }
 });
 
 // Revoga o ban de um email — o caminho de saida para falso positivo.
-app.post('/api/admin/bans/revoke', adminLimiter, requireAdminAuth, express.json({ limit: '2kb' }), async (req, res) => {
+app.post('/api/admin/bans/revoke', adminLimiter, requireAdminSession, requireAdminIdentity, express.json({ limit: '2kb' }), async (req, res) => {
   try {
     const email = String(req.body?.email || '').trim().toLowerCase();
     if (!isValidEmail(email)) return res.status(400).json({ error: 'Email inválido' });
-    const revoked = await revokeBan(email, 'admin');
+    const revoked = await revokeBan(email, req.admin?.email || 'admin');
     console.log(`♻️ [abuse] ban revogado para ${email} (${revoked} registro(s))`);
+
+    await logAdminAction({
+      adminEmail:  req.admin.email,
+      action:      'ban_revoke',
+      targetEmail: email,
+      payload:     { registros: revoked },
+      ipHash:      adminIpHash(req),
+    });
+
     res.json({ success: true, revoked });
   } catch (err) { Sentry.captureException(err); res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/admin/bans', adminLimiter, requireAdminAuth, express.json({ limit: '4kb' }), async (req, res) => {
+app.post('/api/admin/bans', adminLimiter, requireAdminSession, requireAdminIdentity, express.json({ limit: '4kb' }), async (req, res) => {
   try {
     const email = String(req.body?.email || '').trim().toLowerCase();
     if (!isValidEmail(email)) return res.status(400).json({ error: 'Email inválido' });
-    const ban = await banUser(email, String(req.body?.reason || 'scraping').slice(0, 64), String(req.body?.evidence || 'ban manual via admin').slice(0, 2000));
+    const reason = String(req.body?.reason || 'scraping').slice(0, 64);
+    const ban = await banUser(email, reason, String(req.body?.evidence || 'ban manual via admin').slice(0, 2000));
     console.warn(`⛔ [abuse] ban manual ate ${ban.banned_until} — user="${email}"`);
+
+    await logAdminAction({
+      adminEmail:  req.admin.email,
+      action:      'ban_manual',
+      targetEmail: email,
+      payload:     { motivo: reason, ate: ban.banned_until },
+      ipHash:      adminIpHash(req),
+    });
+
     res.status(201).json({ success: true, ban });
   } catch (err) { Sentry.captureException(err); res.status(500).json({ error: err.message }); }
 });
 
-app.get('/api/admin/audit', adminLimiter, requireAdminAuth, async (req, res) => {
+app.get('/api/admin/audit', adminReadLimiter, requireAdminSession, async (req, res) => {
   try {
     const { email, limit } = req.query;
     const logs = email
@@ -1011,7 +1441,7 @@ app.get('/api/motor-score', requireValidUser, async (req, res) => {
 // POST /signal e /check removidos — backend processa passivamente via motorScoreEngine
 
 // Reset do placar de uma roleta
-app.post('/api/motor-score/reset', adminLimiter, requireAdminAuth, express.json({ limit: '1kb' }), async (req, res) => {
+app.post('/api/motor-score/reset', adminLimiter, requireAdminSession, express.json({ limit: '1kb' }), async (req, res) => {
   const { source } = req.body;
   if (!source) return res.status(400).json({ error: 'source required' });
   try {
@@ -1047,7 +1477,7 @@ const gatilhosGone = (_req, res) => res.status(410).json(GATILHOS_DESCONTINUADOS
 app.get('/api/trigger-score', gatilhosGone);
 app.post('/api/trigger-score/reset', gatilhosGone);
 
-app.post('/api/admin/backfill-motor', adminLimiter, requireAdminAuth, express.json({ limit: '1kb' }), async (req, res) => {
+app.post('/api/admin/backfill-motor', adminLimiter, requireAdminSession, express.json({ limit: '1kb' }), async (req, res) => {
   const { source } = req.body;
   try {
     if (source) {
@@ -1082,6 +1512,39 @@ app.get('/api/trigger-analysis', gatilhosGone);
 
 // ── Health & debug ────────────────────────────────────────────
 
+// ── Telemetria de uso ─────────────────────────────────
+// Alimenta a área administrativa. Passa pelo mesmo requireValidUser das rotas
+// de dados (e portanto pelo HMAC, token e política de abuso) — telemetria é
+// escrita no banco vinda do cliente, seria a rota mais atraente para abuso se
+// ficasse aberta.
+app.post('/api/telemetry', telemetryLimiter, requireValidUser, express.json({ limit: '8kb' }), async (req, res) => {
+  const email  = req.query.userEmail.trim().toLowerCase();
+  const events = req.body?.events;
+
+  if (!Array.isArray(events)) return res.status(400).json({ error: 'events[] obrigatório' });
+  // Cap por lote: o cliente faz flush a cada 20. Um lote muito maior que isso
+  // é cliente adulterado, não uso normal.
+  if (events.length > 50) return res.status(400).json({ error: 'Lote grande demais' });
+
+  try {
+    const saved = await recordEvents(email, events);
+
+    // 'alive' é o batimento de presença: só é emitido com a aba visível, e é o
+    // que faz duration_seconds medir tempo de uso em vez de tempo de socket.
+    if (req.body.sessionId && events.some(e => e?.event === 'alive')) {
+      await touchSession(req.body.sessionId);
+    }
+
+    res.json({ saved });
+  } catch (err) {
+    // Nunca propaga erro de telemetria para o app do usuário.
+    Sentry.captureException(err, { tags: { context: 'telemetry' } });
+    res.json({ saved: 0 });
+  }
+});
+
+// ── Health & debug ───────────────────────────────────
+
 app.get('/health', async (req, res) => {
   try {
     await testConnection();
@@ -1097,6 +1560,7 @@ app.get('/health', async (req, res) => {
       account: { mode: ACCOUNT_CHECK_MODE, ...accountStats },
       abuse: { mode: BAN_MODE, banDays: BAN_DAYS, ...abuseStats },
       token: { mode: TOKEN_AUTH_MODE, ...tokenStats },
+      plataforma: platformSyncStats,
       hubla: HUBLA_WEBHOOK_TOKEN ? '✅' : '⚠️',
       pid: process.pid,
     });
@@ -1115,7 +1579,11 @@ if (!IS_PROD) {
 // SPA fallback
 app.get(/.*/, (req, res) => {
   if (req.url.startsWith('/api/')) return res.status(404).json({ error: 'Endpoint não encontrado' });
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  // '..' porque o dist e irmao de server/, nao filho — o express.static la
+  // em cima ja aponta para o mesmo lugar. Sem isto, QUALQUER rota de SPA
+  // servida pelo proprio Express (inclusive /admin) devolve erro de arquivo
+  // ausente; em producao passava batido porque quem entrega o SPA e o nginx.
+  res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'));
 });
 
 Sentry.setupExpressErrorHandler(app);
@@ -1196,8 +1664,32 @@ io.use(async (socket, next) => {
   }
 });
 
-io.on('connection', (socket) => {
+io.on('connection', async (socket) => {
   if (!IS_PROD) console.log('🔌 Socket conectado:', socket.id, socket.userEmail || '(anon)');
+
+  // Telemetria de sessão. A conexão do socket já é autenticada por email no
+  // io.use acima, então medir a visita aqui não custa nenhuma chamada extra do
+  // cliente. Socket sem email (fail-open do middleware) não vira sessão: sem
+  // identidade a linha não serve para nada e ainda distorce o DAU.
+  if (!socket.userEmail) return;
+
+  const hs = socket.handshake;
+  const ip = hs.headers['cf-connecting-ip'] || hs.headers['x-forwarded-for'] || hs.address;
+
+  socket.sessionId = await startSession({
+    email:     socket.userEmail,
+    socketId:  socket.id,
+    isPremium: socket.isPremium,
+    userAgent: hs.headers['user-agent'],
+    ip,
+  });
+
+  // O cliente devolve este id no /api/telemetry para marcar presença.
+  if (socket.sessionId) socket.emit('session:started', { sessionId: socket.sessionId });
+
+  socket.on('disconnect', () => {
+    endSession(socket.sessionId);
+  });
 });
 
 // ── Startup ───────────────────────────────────────────────────
@@ -1254,6 +1746,34 @@ const startServer = async () => {
         setTimeout(runExpirationCheck, 30_000);
         setInterval(runExpirationCheck, EXPIRATION_CHECK_INTERVAL_MS);
         console.log(`📧 Aviso de vencimento: agendado a cada ${EXPIRATION_CHECK_INTERVAL_MS / 3600000}h`);
+
+        // Manutencao da telemetria. De hora em hora porque o rollup do dia
+        // corrente alimenta o painel "hoje"; o do dia anterior e reprocessado
+        // junto (idempotente) para incorporar sessoes que fecharam depois da
+        // virada.
+        const TELEMETRY_JOB_INTERVAL_MS = 60 * 60 * 1000;
+        const runTelemetryMaintenance = async () => {
+          try {
+            const orphans = await closeOrphanSessions();
+            if (orphans) console.log(`🧹 [telemetry] ${orphans} sessão(ões) órfã(s) fechada(s)`);
+
+            const ontem = await runDailyRollup();
+            const { rows } = await query("SELECT CURRENT_DATE::text AS d");
+            const hoje = await runDailyRollup(rows[0].d);
+            console.log(`📊 [telemetry] rollup — ontem: ${ontem.dau} DAU / hoje: ${hoje.dau} DAU`);
+
+            const purged = await purgeOldTelemetry();
+            if (purged.events || purged.sessions) {
+              console.log(`🗑️  [telemetry] purge — ${purged.events} eventos, ${purged.sessions} sessões`);
+            }
+          } catch (err) {
+            console.error('❌ [telemetry] job falhou:', err.message);
+            Sentry.captureException(err, { tags: { context: 'telemetry-job' } });
+          }
+        };
+        setTimeout(runTelemetryMaintenance, 60_000);
+        setInterval(runTelemetryMaintenance, TELEMETRY_JOB_INTERVAL_MS);
+        console.log(`📊 Telemetria: rollup + purge a cada ${TELEMETRY_JOB_INTERVAL_MS / 3600000}h`);
       }
     });
   } catch (err) {
