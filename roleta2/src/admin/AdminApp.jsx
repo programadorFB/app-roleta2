@@ -14,7 +14,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { MemoryRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users as UsersIcon, Repeat, Activity, ShieldAlert, ScrollText,
-  PanelLeftClose, PanelLeftOpen, LogOut,
+  Wallet, PanelLeftClose, PanelLeftOpen, LogOut,
 } from 'lucide-react';
 
 import { adminApi, setAdminToken, getAdminToken, AdminApiError } from './api.js';
@@ -22,6 +22,7 @@ import css from './Admin.module.css';
 
 import Overview from './pages/Overview.jsx';
 import Users from './pages/Users.jsx';
+import Credits from './pages/Credits.jsx';
 import Retention from './pages/Retention.jsx';
 import Engagement from './pages/Engagement.jsx';
 import Moderation from './pages/Moderation.jsx';
@@ -99,6 +100,7 @@ function LoginScreen({ onEntrar }) {
 const ABAS = [
   { to: '/',            rotulo: 'Visão geral', Icone: LayoutDashboard, fim: true },
   { to: '/usuarios',    rotulo: 'Usuários',    Icone: UsersIcon },
+  { to: '/creditos',    rotulo: 'Créditos',    Icone: Wallet },
   { to: '/retencao',    rotulo: 'Retenção',    Icone: Repeat },
   { to: '/engajamento', rotulo: 'Engajamento', Icone: Activity },
   { to: '/moderacao',   rotulo: 'Moderação',   Icone: ShieldAlert },
@@ -188,6 +190,7 @@ function Layout({ admin, onSair }) {
         <Routes>
           <Route path="/"            element={<Overview />} />
           <Route path="/usuarios"    element={<Users />} />
+          <Route path="/creditos"    element={<Credits />} />
           <Route path="/retencao"    element={<Retention />} />
           <Route path="/engajamento" element={<Engagement />} />
           <Route path="/moderacao"   element={<Moderation />} />

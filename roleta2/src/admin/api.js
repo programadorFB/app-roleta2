@@ -71,6 +71,8 @@ export const adminApi = {
   retention:  (weeks) => request(`/metrics/retention?weeks=${weeks || 8}`),
   engagement: (days)  => request(`/metrics/engagement?days=${days || 14}`),
   funnel:     ()      => request('/metrics/funnel'),
+  // Flutuação do saldo das pessoas na casa. `days` é a janela da série.
+  credit:     (days)  => request(`/metrics/credit?days=${days || 30}`),
 
   users:      (params = {}) => {
     // Só manda o que tem valor: parâmetro vazio na query string vira filtro
@@ -159,4 +161,85 @@ export function formatAge(iso) {
   const h = Math.floor(min / 60);
   if (h < 24) return `${h} h`;
   return `${Math.floor(h / 24)} d`;
+}
+
+/**
+ * Variação de dinheiro com sinal: +R$ 120,00 / −R$ 80,00.
+ *
+ * O sinal vem antes do símbolo e usa o menos de verdade (−, U+2212) em vez do
+ * hífen: numa coluna de números o hífen some, e "R$ 80,00" onde deveria estar
+ * "−R$ 80,00" é a diferença entre ganhar e perder.
+ */
+export function formatDelta(value) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return '—';
+  const n = Number(value);
+  if (n === 0) return 'R$ 0,00';
+  const abs = Math.abs(n).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  return `${n > 0 ? '+' : '\u2212'}${abs}`;
+}
+
+/** Cor de resultado: verde sobe, vermelho desce, neutro parado. */
+export function corDelta(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n === 0) return undefined;
+  return n > 0 ? '#4ade80' : '#f87171';
+}
+
+/**
+ * Quanto ainda resta de premium, em palavras.
+ *
+ * Uma data de vencimento sozinha não responde "essa pessoa tem acesso?": uma
+ * linha `canceled` com vencimento no futuro NÃO dá acesso, e uma `active` sem
+ * vencimento dá acesso para sempre. Quem cruza as duas coisas é o servidor
+ * (`premium_ativo`); aqui só se escolhe a palavra e o tom.
+ *
+ * O tom vira a cor do selo: ativo (verde), alerta (âmbar, últimos 7 dias — a
+ * janela em que ligar para a pessoa ainda renova a assinatura) e expirado.
+ */
+export function descreverPremium(sub) {
+  if (!sub) return { texto: 'sem assinatura', tom: 'neutro', detalhe: null };
+
+  const dias = sub.dias_restantes;
+  const ativo = !!sub.premium_ativo;
+
+  if (ativo && (dias === null || dias === undefined)) {
+    return { texto: 'sem prazo', tom: 'ativo', detalhe: 'acesso sem data de vencimento' };
+  }
+
+  if (ativo) {
+    return {
+      texto: dias === 1 ? '1 dia' : `${dias} dias`,
+      tom: dias <= 7 ? 'alerta' : 'ativo',
+      detalhe: dias <= 7 ? 'entra na janela de renovação' : null,
+    };
+  }
+
+  // Sem acesso. Se há data no passado, dizer HÁ QUANTO TEMPO caiu é o que separa
+  // "acabou de vencer, dá para recuperar" de "sumiu faz três meses".
+  if (dias !== null && dias !== undefined && dias <= 0) {
+    return {
+      texto: dias === 0 ? 'expirou hoje' : `expirou há ${Math.abs(dias)} d`,
+      tom: 'expirado',
+      detalhe: null,
+    };
+  }
+
+  // Sem prazo vencido, mas o status não dá acesso (cancelado, pending, failed).
+  return { texto: 'sem acesso', tom: 'expirado', detalhe: `situação: ${sub.status || '—'}` };
+}
+
+/**
+ * Nome do plano e se ele é de catálogo ou feito à mão.
+ *
+ * `source = 'admin'` é o carimbo de quem foi liberado pelo painel: plano
+ * personalizado, sem cobrança recorrente atrás. Marcar isso na tela evita a
+ * pergunta que sempre volta — "por que esse não aparece no Kirvano?".
+ */
+export function descreverPlano(sub) {
+  if (!sub) return { nome: '—', personalizado: false, origem: null };
+  return {
+    nome: sub.plan_name || '—',
+    personalizado: sub.source === 'admin' || sub.plan_name === 'Ajuste manual',
+    origem: sub.source || null,
+  };
 }

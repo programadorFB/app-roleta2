@@ -663,6 +663,133 @@
 .seta { opacity: 0.28; margin-left: 0.35rem; font-size: 0.7em; }
 .setaAtiva { composes: seta; opacity: 1; color: var(--ouro-claro); }
 
+/* ── Premium: selo e contador ────────────────────────
+
+   O selo aparece em toda linha da lista; o contador, uma vez por ficha. Os dois
+   respondem a mesma pergunta ("quanto ainda falta?") em duas densidades — na
+   tabela, o que cabe é uma palavra; na ficha, cabe o número grande, que é o que
+   o atendimento lê primeiro antes de falar com a pessoa. */
+
+.tagExpirado {
+  composes: tag;
+  background: rgba(248, 113, 113, 0.1);
+  color: var(--vermelho);
+  border-color: rgba(248, 113, 113, 0.22);
+}
+
+.contador {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding-bottom: 0.9rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* O número é o dado; a unidade e o resto são legenda. Daí a diferença de
+   tamanho ser tão grande: de longe, só o número se lê. */
+.contadorNum {
+  font-size: 2.15rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ouro-claro);
+}
+
+.contadorNumAlerta   { composes: contadorNum; color: var(--ambar); }
+.contadorNumExpirado { composes: contadorNum; color: var(--vermelho); }
+
+.contadorRotulo {
+  font-size: 0.82rem;
+  color: var(--texto-fraco);
+  line-height: 1.4;
+}
+
+/* ── Paginação ───────────────────────────────────────
+
+   Três blocos numa linha: onde estou (esquerda), para onde vou (centro) e
+   quanto vejo por vez (direita). Em tela estreita eles empilham nessa ordem,
+   que é a ordem em que se pensa a navegação de uma lista. */
+
+.paginacao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.85rem 1.1rem;
+  margin-top: 1.1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.paginacaoInfo {
+  font-size: 0.8rem;
+  color: var(--texto-fraco);
+  font-variant-numeric: tabular-nums;
+}
+
+.paginacaoInfo strong { color: var(--texto); font-weight: 600; }
+
+.paginas { display: flex; align-items: center; gap: 0.25rem; flex-wrap: wrap; }
+
+.paginaBotao {
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.45rem;
+  background: transparent;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  color: var(--texto-fraco);
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.paginaBotao:hover:not(:disabled) {
+  color: var(--texto);
+  border-color: var(--borda-forte);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.paginaBotao:focus-visible { outline: 2px solid var(--ouro-linha); outline-offset: 1px; }
+
+/* Desabilitado fica visível, não invisível: sumir com o "anterior" na primeira
+   página faz os outros botões pularem de lugar a cada clique. */
+.paginaBotao:disabled { opacity: 0.32; cursor: default; }
+
+.paginaAtual {
+  composes: paginaBotao;
+  color: var(--fundo);
+  background: var(--ouro);
+  border-color: var(--ouro);
+  font-weight: 600;
+}
+
+.paginaAtual:hover:not(:disabled) { color: var(--fundo); background: var(--ouro-claro); border-color: var(--ouro-claro); }
+
+.paginaGap { color: var(--texto-tenue); padding: 0 0.15rem; user-select: none; }
+
+.paginacaoControles { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+
+.irPara, .porPagina { display: flex; align-items: center; gap: 0.45rem; }
+
+/* O label vive ao lado do campo aqui, não acima: numa barra de 32px de altura,
+   empilhar rótulo e campo dobraria a altura da linha inteira. */
+.irPara .label, .porPagina .label { margin: 0; white-space: nowrap; }
+
+.inputPagina {
+  composes: input;
+  width: auto;
+  min-width: 4.2rem;
+  padding: 0.4rem 0.55rem;
+  font-size: 0.82rem;
+  text-align: center;
+  margin: 0;
+}
+
 /* ── Barra de rolagem ────────────────────────────────── */
 
 .main::-webkit-scrollbar,

@@ -7,9 +7,14 @@
  */
 
 import React, { useState } from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-import { adminApi, formatDuration, formatDate, formatMoney, formatCpf, formatPhone, formatAge } from '../api.js';
+import {
+  adminApi, formatDuration, formatDate, formatMoney, formatCpf, formatPhone, formatAge,
+  formatDelta, corDelta, descreverPremium, descreverPlano,
+} from '../api.js';
 import { useCarregar } from '../useCarregar.js';
+import Paginacao from '../Paginacao.jsx';
 import UserFinance from './UserFinance.jsx';
 import CamposDaCasa from './CamposDaCasa.jsx';
 import css from '../Admin.module.css';
@@ -23,6 +28,80 @@ const CLASSE_STATUS = {
 
 function TagStatus({ status }) {
   return <span className={CLASSE_STATUS[status] || css.tagCancelado}>{status || '—'}</span>;
+}
+
+// ── Premium: quanto falta e de que plano ──────────────
+
+const CLASSE_TOM = {
+  ativo:    css.tagAtivo,
+  alerta:   css.tagTrial,
+  expirado: css.tagExpirado,
+  neutro:   css.tagCancelado,
+};
+
+/**
+ * "12 dias", "3 dias", "expirou há 5 d" — o dado que a lista não tinha.
+ *
+ * Antes desta coluna, saber se alguém ainda tinha acesso exigia abrir a ficha e
+ * comparar a data de vencimento com a de hoje, linha por linha. A conta sai do
+ * servidor (ver `dias_restantes` em adminService), então o fuso do navegador não
+ * muda a resposta de "vence hoje ou amanhã?".
+ */
+function SeloPremium({ sub, comData = true }) {
+  const { texto, tom, detalhe } = descreverPremium(sub);
+  const titulo = [
+    sub?.expires_at ? `Vence em ${formatDate(sub.expires_at)}` : 'Sem data de vencimento',
+    detalhe,
+  ].filter(Boolean).join(' · ');
+
+  return (
+    <span className={CLASSE_TOM[tom]} title={comData ? titulo : undefined}>{texto}</span>
+  );
+}
+
+/** Nome do plano, com o carimbo de quem foi liberado na mão. */
+function Plano({ sub }) {
+  const { nome, personalizado, origem } = descreverPlano(sub);
+  return (
+    <>
+      <span className={css.nota}>{nome}</span>
+      {personalizado && (
+        <span
+          className={css.tagTrial}
+          title={`Plano personalizado — liberado pelo painel${origem ? ` (origem: ${origem})` : ''}`}
+        >
+          {' '}personalizado
+        </span>
+      )}
+    </>
+  );
+}
+
+/**
+ * O contador grande da ficha. É a primeira coisa que quem atende precisa saber
+ * antes de responder qualquer pergunta: essa pessoa tem acesso, e por quanto
+ * tempo ainda.
+ */
+function ContadorPremium({ sub }) {
+  const { texto, tom, detalhe } = descreverPremium(sub);
+  const dias = sub?.dias_restantes;
+  const temNumero = sub?.premium_ativo && dias !== null && dias !== undefined;
+
+  const classe = tom === 'alerta' ? css.contadorNumAlerta
+    : tom === 'expirado' ? css.contadorNumExpirado
+      : css.contadorNum;
+
+  return (
+    <div className={css.contador}>
+      <span className={classe}>{temNumero ? dias : texto}</span>
+      <span className={css.contadorRotulo}>
+        {temNumero
+          ? `dia${dias === 1 ? '' : 's'} de premium restante${dias === 1 ? '' : 's'}`
+          : (detalhe || 'de premium')}
+        {sub?.expires_at && <><br />vence em {formatDate(sub.expires_at)}</>}
+      </span>
+    </div>
+  );
 }
 
 // ── Casa de apostas ───────────────────────────────────
@@ -170,6 +249,115 @@ function CasaDeApostas({ email, plataforma }) {
   );
 }
 
+// ── Credit: a curva do dinheiro na casa ───────────────
+
+const EIXO = { stroke: 'rgba(255,255,255,0.35)', fontSize: 11 };
+const TOOLTIP = {
+  contentStyle: {
+    background: '#14110d',
+    border: '1px solid rgba(255,255,255,0.12)',
+    borderRadius: 8,
+    fontSize: 12,
+  },
+};
+
+/**
+ * A série do saldo desta pessoa na casa.
+ *
+ * Cada ponto é uma LEITURA — no login, ou pelo coletor de 5 em 5 minutos
+ * enquanto o app está aberto (server/creditCollector.js). Por isso a linha é
+ * `stepAfter` e não uma curva: entre duas leituras não se sabe o que aconteceu,
+ * e interpolar desenharia uma subida suave onde houve uma aposta seca.
+ *
+ * Buraco na linha é aba fechada, não saldo parado: a casa só responde o saldo
+ * com o token da própria pessoa, então não há como ler quem não está logado.
+ */
+function CreditoDaCasa({ credito }) {
+  if (!credito || credito.leituras === 0) {
+    return (
+      <div className={css.card}>
+        <h2 className={css.cardTitulo}>Flutuação do credit</h2>
+        <div className={css.vazio}>
+          Sem histórico de saldo ainda. A série começa na próxima vez que esta
+          pessoa entrar no app — o saldo só pode ser lido com o token dela.
+        </div>
+      </div>
+    );
+  }
+
+  // A consulta devolve do mais novo para o mais antigo; o gráfico anda para a
+  // frente no tempo.
+  const serie = [...credito.pontos].reverse().map(p => ({
+    ...p,
+    saldo: Number(p.saldo),
+    quando: new Date(p.lido_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
+  }));
+
+  const ultimos = credito.pontos.slice(0, 12);
+
+  return (
+    <div className={css.card}>
+      <h2 className={css.cardTitulo}>Flutuação do credit</h2>
+
+      <div className={css.kpiGrid} style={{ marginBottom: '1.2rem' }}>
+        <div className={css.kpi}>
+          <div className={css.kpiLabel}>Variação no período</div>
+          <div className={css.kpiValor} style={{ color: corDelta(credito.variacao) }}>
+            {formatDelta(credito.variacao)}
+          </div>
+          <div className={css.kpiNota}>{credito.leituras} leitura(s)</div>
+        </div>
+        <div className={css.kpi}>
+          <div className={css.kpiLabel}>Pico</div>
+          <div className={css.kpiValor}>{formatMoney(credito.pico)}</div>
+        </div>
+        <div className={css.kpi}>
+          <div className={css.kpiLabel}>Fundo</div>
+          <div className={css.kpiValor}>{formatMoney(credito.fundo)}</div>
+        </div>
+        <div className={css.kpi}>
+          <div className={css.kpiLabel}>Primeira leitura</div>
+          <div className={css.kpiValor} style={{ fontSize: '1rem' }}>{formatDate(credito.primeiraEm)}</div>
+          <div className={css.kpiNota}>última há {formatAge(credito.ultimaEm)}</div>
+        </div>
+      </div>
+
+      <ResponsiveContainer width="100%" height={230}>
+        <LineChart data={serie}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+          <XAxis dataKey="quando" {...EIXO} minTickGap={40} />
+          <YAxis
+            {...EIXO}
+            width={62}
+            tickFormatter={(v) => Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
+          />
+          <Tooltip {...TOOLTIP} formatter={(v) => [formatMoney(v), 'Saldo']} />
+          <Line type="stepAfter" dataKey="saldo" name="Saldo" stroke="#c9a052" strokeWidth={2} dot={false} />
+        </LineChart>
+      </ResponsiveContainer>
+
+      <div className={css.tabelaWrap} style={{ marginTop: '1.1rem' }}>
+        <table className={css.tabela}>
+          <thead>
+            <tr><th>Leitura</th><th>Saldo</th><th>Variação</th><th>Bônus</th><th>Origem</th></tr>
+          </thead>
+          <tbody>
+            {ultimos.map((p, i) => (
+              <tr key={i}>
+                <td>{formatDate(p.lido_em)}</td>
+                <td>{formatMoney(p.saldo)}</td>
+                <td style={{ color: corDelta(p.delta) }}>{formatDelta(p.delta)}</td>
+                <td>{formatMoney(p.saldo_bonus)}</td>
+                <td><span className={css.nota}>{p.origem}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 // ── Ficha ─────────────────────────────────────────────
 
 function Ficha({ email, onVoltar }) {
@@ -256,8 +444,13 @@ function Ficha({ email, onVoltar }) {
           <h2 className={css.cardTitulo}>Assinatura</h2>
           {dados.subscription ? (
             <>
+              <ContadorPremium sub={dados.subscription} />
               <div className={css.linhaInfo}><span>Situação</span><TagStatus status={dados.subscription.status} /></div>
-              <div className={css.linhaInfo}><span>Plano</span><span>{dados.subscription.plan_name || '—'}</span></div>
+              <div className={css.linhaInfo}>
+                <span>Plano</span>
+                <span><Plano sub={dados.subscription} /></span>
+              </div>
+              <div className={css.linhaInfo}><span>Origem</span><span>{dados.subscription.source || '—'}</span></div>
               <div className={css.linhaInfo}><span>Expira em</span><span>{formatDate(dados.subscription.expires_at)}</span></div>
               <div className={css.linhaInfo}><span>Criada em</span><span>{formatDate(dados.subscription.created_at)}</span></div>
               <div className={css.linhaInfo}><span>E-mail no app</span><span>{dados.subscription.main_app_email || '—'}</span></div>
@@ -345,6 +538,8 @@ function Ficha({ email, onVoltar }) {
 
       <CasaDeApostas email={dados.email} plataforma={dados.plataforma} />
 
+      <CreditoDaCasa credito={dados.credito} />
+
       <CamposDaCasa email={dados.email} />
 
       <UserFinance financeiro={dados.financeiro} />
@@ -379,7 +574,7 @@ function Ficha({ email, onVoltar }) {
 // ── Filtros ───────────────────────────────────────────
 
 const FILTROS_VAZIOS = {
-  status: '', banido: '', comBanca: '', sessoesMin: '', saldoMin: '', acesso: '',
+  status: '', banido: '', comBanca: '', sessoesMin: '', saldoMin: '', acesso: '', premium: '',
 };
 
 /**
@@ -420,6 +615,20 @@ function Filtros({ valores, onAplicar, onLimpar, ativos }) {
             <option value="paid">paid</option>
             <option value="canceled">canceled</option>
             <option value="pending">pending</option>
+          </select>
+        </div>
+
+        {/* Situação do premium, que não é a mesma coisa que a situação da
+            assinatura: uma linha `active` com vencimento no passado aparece
+            como active na coluna ao lado e não dá acesso nenhum. */}
+        <div>
+          <label className={css.label} htmlFor="f-premium">Premium</label>
+          <select id="f-premium" {...campo('premium')}>
+            <option value="">qualquer</option>
+            <option value="ativo">com acesso</option>
+            <option value="expirando">vence em 7 dias</option>
+            <option value="expirado">sem acesso</option>
+            <option value="vitalicio">sem prazo</option>
           </select>
         </div>
 
@@ -610,12 +819,16 @@ function NovoUsuario({ onCancelar, onCriado }) {
 
 // ── Lista ─────────────────────────────────────────────
 
-const POR_PAGINA = 50;
+const POR_PAGINA_PADRAO = 50;
 
 export default function Users() {
   const [busca, setBusca] = useState('');
   const [termo, setTermo] = useState('');
   const [pagina, setPagina] = useState(0);
+  // Quantas linhas por vez. Fica no estado (e não numa constante) porque
+  // "conferir 200 de uma vez" e "folhear de 25 em 25" são dois modos de uso
+  // diferentes da mesma tela.
+  const [porPagina, setPorPagina] = useState(POR_PAGINA_PADRAO);
   const [selecionado, setSelecionado] = useState(null);
   const [criando, setCriando] = useState(false);
   const [filtros, setFiltros] = useState(FILTROS_VAZIOS);
@@ -627,14 +840,18 @@ export default function Users() {
   const { dados, erro, carregando } = useCarregar(
     () => adminApi.users({
       search: termo,
-      limit: POR_PAGINA,
-      offset: pagina * POR_PAGINA,
+      limit: porPagina,
+      offset: pagina * porPagina,
       ordenarPor,
       direcao,
       ...filtros,
     }),
-    [termo, pagina, ordenarPor, direcao, chaveDosFiltros],
+    [termo, pagina, porPagina, ordenarPor, direcao, chaveDosFiltros],
   );
+
+  // Trocar o tamanho volta para a primeira página: manter a página 7 ao passar
+  // de 25 para 200 por página jogaria o operador para o fim da lista sem aviso.
+  const trocarTamanho = (n) => { setPagina(0); setPorPagina(n); };
 
   // Busca no submit, não a cada tecla: cada consulta faz três LATERAL joins
   // sobre app_sessions, access_bans e gerenciamento_transactions, e disparar
@@ -677,17 +894,13 @@ export default function Users() {
   }
 
   const total = dados?.total ?? 0;
-  const ultimaPagina = Math.max(0, Math.ceil(total / POR_PAGINA) - 1);
-  const primeiroDaPagina = total === 0 ? 0 : pagina * POR_PAGINA + 1;
-  const ultimoDaPagina = Math.min((pagina + 1) * POR_PAGINA, total);
 
   return (
     <>
       <h1 className={css.pageTitle}>Usuários</h1>
       <p className={css.pageSub}>
-        {dados
-          ? `${primeiroDaPagina}–${ultimoDaPagina} de ${total}`
-          : 'Carregando…'} · clique numa linha para abrir a ficha
+        {dados ? `${total.toLocaleString('pt-BR')} pessoa(s) na base` : 'Carregando…'}
+        {' · clique numa linha para abrir a ficha'}
       </p>
 
       <div className={css.acoes} style={{ marginBottom: '1rem' }}>
@@ -725,12 +938,13 @@ export default function Users() {
                 <th>Telefone</th>
                 <ColunaOrdenavel chave="ftd" atual={ordenarPor} direcao={direcao} onOrdenar={ordenar}>Depositou</ColunaOrdenavel>
                 <ColunaOrdenavel chave="casa" atual={ordenarPor} direcao={direcao} onOrdenar={ordenar}>Saldo</ColunaOrdenavel>
+                <ColunaOrdenavel chave="premium" atual={ordenarPor} direcao={direcao} onOrdenar={ordenar}>Premium</ColunaOrdenavel>
                 <ColunaOrdenavel chave="status" atual={ordenarPor} direcao={direcao} onOrdenar={ordenar}>Plano</ColunaOrdenavel>
                 <ColunaOrdenavel chave="ultimo_acesso" atual={ordenarPor} direcao={direcao} onOrdenar={ordenar}>Último acesso</ColunaOrdenavel>
               </tr>
             </thead>
             <tbody>
-              {carregando && <tr><td colSpan={8} className={css.vazio}>Carregando…</td></tr>}
+              {carregando && <tr><td colSpan={9} className={css.vazio}>Carregando…</td></tr>}
 
               {dados?.users.map(u => (
                 <tr key={u.email} className={css.linhaClicavel} onClick={() => setSelecionado(u.email)}>
@@ -772,9 +986,13 @@ export default function Users() {
                     )}
                   </td>
 
+                  {/* Dias de premium restantes. É a coluna que responde, sem
+                      abrir ficha nenhuma, quem está prestes a cair. */}
+                  <td><SeloPremium sub={u} /></td>
+
                   <td>
                     <TagStatus status={u.status} />{' '}
-                    <span className={css.nota}>{u.plan_name || '—'}</span>
+                    <Plano sub={u} />
                     {/* Trial da CASA, não nosso: quem está em teste grátis lá não é
                         pagante em lugar nenhum. */}
                     {u.is_trial && (
@@ -792,39 +1010,23 @@ export default function Users() {
               ))}
 
               {dados?.users.length === 0 && (
-                <tr><td colSpan={8} className={css.vazio}>Nenhum usuário encontrado.</td></tr>
+                <tr><td colSpan={9} className={css.vazio}>Nenhum usuário encontrado.</td></tr>
               )}
             </tbody>
           </table>
         </div>
 
-        {/* Paginação: a base tem mais de mil assinaturas, e a primeira versão
-            desta tela pedia 100 sem oferecer como ver o resto. */}
-        {total > POR_PAGINA && (
-          <div className={css.acoes} style={{ marginTop: '1rem', justifyContent: 'space-between' }}>
-            <button
-              className={css.buttonGhost}
-              onClick={() => setPagina(p => Math.max(0, p - 1))}
-              disabled={pagina === 0 || carregando}
-              type="button"
-            >
-              ← Anterior
-            </button>
-
-            <span className={css.kpiNota}>
-              página {pagina + 1} de {ultimaPagina + 1}
-            </span>
-
-            <button
-              className={css.buttonGhost}
-              onClick={() => setPagina(p => Math.min(ultimaPagina, p + 1))}
-              disabled={pagina >= ultimaPagina || carregando}
-              type="button"
-            >
-              Próxima →
-            </button>
-          </div>
-        )}
+        {/* A base tem mais de mil assinaturas: com "anterior/próxima" apenas,
+            chegar na última página custava trinta cliques. */}
+        <Paginacao
+          pagina={pagina}
+          porPagina={porPagina}
+          total={total}
+          carregando={carregando}
+          onPagina={setPagina}
+          onPorPagina={trocarTamanho}
+          rotuloItens="pessoas"
+        />
       </div>
     </>
   );

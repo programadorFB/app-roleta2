@@ -536,6 +536,11 @@ export async function capturePlatformData(emailFallback, token, brand = BRAND) {
       erros,                                            // $22
     ]);
 
+    // Ponto na serie historica. Depois do UPSERT: o retrato de agora ja esta
+    // salvo, e `registrarSaldo` nunca lanca — perder um ponto do grafico jamais
+    // pode custar um login.
+    await registrarSaldo(email, dinheiroLido, 'login');
+
     platformSyncStats.ok++;
     console.log(`🏦 [plataforma] espelho atualizado: ${email}${erros ? ` (parcial — ${erros})` : ''}`);
     return { ok: true, email, partial: !!erros, perfil: dados, dinheiro: dinheiroLido };
@@ -544,6 +549,184 @@ export async function capturePlatformData(emailFallback, token, brand = BRAND) {
     console.error(`⚠️ [plataforma] falha ao gravar espelho de ${email}: ${err.message}`);
     return { ok: false, reason: err.message };
   }
+}
+
+// ─── Histórico do credit ────────────────────────
+//
+// `platform_profiles.saldo` é um retrato — cada leitura apaga a anterior. Para
+// responder "o que aconteceu com o dinheiro dessa pessoa esta semana" é preciso
+// guardar cada leitura, e isso não dá para reconstruir depois.
+//
+// Tabela: migrations/add_credit_history.sql
+
+// Ponto de vida. Sem ele, quem passa dias com o mesmo saldo teria UM ponto no
+// gráfico, e o operador não saberia se o saldo está parado ou se paramos de ler.
+const HEARTBEAT_HORAS = Number(process.env.CREDIT_HEARTBEAT_HOURS) || 6;
+
+// Quanto tempo a série do dinheiro sobrevive. Bem mais longa que a da telemetria
+// (180 dias): uma linha por MUDANÇA é barata, e este é justamente o dado que só
+// fica interessante com meses de acumulado.
+export const CREDIT_RETENTION_DAYS = Number(process.env.CREDIT_RETENTION_DAYS) || 730;
+
+export const creditHistoryStats = { gravados: 0, ignorados: 0, erros: 0 };
+
+/**
+ * Grava um ponto na série do saldo. Nunca lança.
+ *
+ * A regra de QUANDO gravar mora dentro do próprio INSERT, e não em duas idas ao
+ * banco (ler a última, decidir, gravar): o coletor roda para dezenas de pessoas
+ * ao mesmo tempo e dois workers do PM2 podem estar lendo a MESMA pessoa — com a
+ * decisão fora da transação, os dois passariam pelo mesmo `if` e gravariam duas
+ * linhas idênticas.
+ *
+ * Grava quando: o valor mudou desde a última leitura, a última leitura já tem
+ * mais de `HEARTBEAT_HORAS`, ou não existe leitura nenhuma.
+ */
+export async function registrarSaldo(email, dinheiroLido, origem = 'login') {
+  const clean = String(email || '').trim().toLowerCase();
+  const saldo = dinheiroLido?.saldo;
+
+  // Sem saldo não há ponto. Leitura falha já fica registrada em `ultimo_erro`;
+  // gravar zero aqui seria inventar um saque que não houve.
+  if (!clean || saldo === null || saldo === undefined) return { gravado: false, motivo: 'sem saldo' };
+
+  try {
+    const { rows } = await query(
+      `WITH ultima AS (
+         SELECT saldo, lido_em
+           FROM platform_balance_history
+          WHERE email = $1
+          ORDER BY lido_em DESC
+          LIMIT 1
+       )
+       INSERT INTO platform_balance_history
+         (email, saldo, saldo_disponivel, saldo_bonus, delta, origem)
+       SELECT $1::varchar, $2::numeric, $3::numeric, $4::numeric,
+              -- Delta contra a leitura anterior. NULL na primeira: "não sei a
+              -- variação" não é "variação zero", e o painel SOMA deltas para
+              -- dizer quanto entrou e quanto saiu no período.
+              (SELECT $2::numeric - u.saldo FROM ultima u),
+              $5::varchar
+        WHERE NOT EXISTS (
+          SELECT 1 FROM ultima u
+           WHERE u.saldo = $2::numeric
+             AND u.lido_em > NOW() - ($6 || ' hours')::interval
+        )
+       RETURNING id, delta`,
+      [clean, saldo, dinheiroLido.saldo_disponivel ?? null, dinheiroLido.saldo_bonus ?? null,
+        String(origem).slice(0, 16), String(HEARTBEAT_HORAS)],
+    );
+
+    if (rows.length === 0) {
+      creditHistoryStats.ignorados++;
+      return { gravado: false, motivo: 'sem mudança' };
+    }
+
+    creditHistoryStats.gravados++;
+    return { gravado: true, delta: rows[0].delta === null ? null : Number(rows[0].delta) };
+  } catch (err) {
+    creditHistoryStats.erros++;
+    console.error(`⚠️ [credit] falha ao gravar histórico de ${clean}: ${err.message}`);
+    return { gravado: false, motivo: err.message };
+  }
+}
+
+// Lê SÓ a carteira e atualiza só o dinheiro. Sem o /profile: nome e CPF não mudam
+// de cinco em cinco minutos, e cada requisição evitada é metade da carga que o
+// coletor impõe à casa.
+//
+// COALESCE em `saldo`: leitura vazia não apaga a última boa — não ler não é ler
+// zero. `saldo_em` só avança quando houve número: é o carimbo da LEITURA, e
+// movê-lo sem valor novo faria o painel exibir saldo velho com cara de fresco.
+const SQL_UPDATE_CARTEIRA = `
+  UPDATE platform_profiles SET
+    saldo            = COALESCE($2::numeric, saldo),
+    saldo_disponivel = CASE WHEN $2::numeric IS NULL THEN saldo_disponivel ELSE $3::numeric END,
+    saldo_bonus      = CASE WHEN $2::numeric IS NULL THEN saldo_bonus      ELSE $4::numeric END,
+    saldo_em         = CASE WHEN $2::numeric IS NULL THEN saldo_em         ELSE NOW() END,
+    carteira_em      = NOW(),
+    carteira_bruto   = COALESCE($5::jsonb, carteira_bruto),
+    ultimo_erro      = $6,
+    updated_at       = NOW()
+  WHERE email = $1
+  RETURNING email`;
+
+/**
+ * Re-leitura do saldo de quem JÁ tem espelho. Nunca lança.
+ *
+ * É o que o coletor chama de 5 em 5 minutos. Pressupõe o perfil capturado no
+ * login: se a pessoa ainda não tem linha, não inventa uma a partir da carteira —
+ * o /wallet não diz QUEM ela é, e uma linha sem nome nem documento faria a lista
+ * do painel ganhar um fantasma.
+ */
+export async function sincronizarCarteira(email, token, origem = 'coletor') {
+  const clean = String(email || '').trim().toLowerCase();
+  if (!clean || !token) {
+    platformSyncStats.skipped++;
+    return { ok: false, reason: 'sem e-mail ou token' };
+  }
+
+  const carteiraRes = await buscarV2('/wallet', token);
+  if (!carteiraRes.ok) {
+    platformSyncStats.walletErrors++;
+    // 401 aqui é rotina: token expirou com a aba aberta. Não suja o espelho.
+    return { ok: false, reason: `wallet ${carteiraRes.status}${carteiraRes.error ? ` (${carteiraRes.error})` : ''}` };
+  }
+
+  const dinheiroLido = extrairDinheiro(carteiraRes.body);
+  if (dinheiroLido.saldo === null) platformSyncStats.semSaldo++;
+
+  const erro = dinheiroLido.saldo === null ? 'wallet sem campo de saldo conhecido' : null;
+
+  try {
+    const { rowCount } = await query(SQL_UPDATE_CARTEIRA, [
+      clean,
+      dinheiroLido.saldo,
+      dinheiroLido.saldo_disponivel,
+      dinheiroLido.saldo_bonus,
+      JSON.stringify(redigir(carteiraRes.body)),
+      erro,
+    ]);
+
+    // Sem espelho ainda: o próximo login cria a linha, com perfil e tudo.
+    if (rowCount === 0) return { ok: false, reason: 'sem espelho — aguardando o próximo login' };
+
+    const ponto = await registrarSaldo(clean, dinheiroLido, origem);
+    return { ok: true, email: clean, dinheiro: dinheiroLido, ...ponto };
+  } catch (err) {
+    platformSyncStats.saveErrors++;
+    console.error(`⚠️ [plataforma] falha ao atualizar carteira de ${clean}: ${err.message}`);
+    return { ok: false, reason: err.message };
+  }
+}
+
+/**
+ * A série do saldo de uma pessoa, mais nova primeiro.
+ *
+ * O teto de pontos é do gráfico, não do banco: acima disso nenhum pixel novo
+ * aparece na ficha e a resposta cresce à toa.
+ */
+export async function getCreditHistory(email, { days = 90, limit = 500 } = {}) {
+  const clean = String(email || '').trim().toLowerCase();
+  const { rows } = await query(
+    `SELECT saldo, saldo_disponivel, saldo_bonus, delta, origem, lido_em
+       FROM platform_balance_history
+      WHERE email = $1
+        AND lido_em > NOW() - ($2 || ' days')::interval
+      ORDER BY lido_em DESC
+      LIMIT $3`,
+    [clean, String(days), Math.min(limit, 2000)],
+  );
+  return rows;
+}
+
+/** Purge por retenção. Roda no mesmo job da telemetria. */
+export async function purgeOldCreditHistory() {
+  const { rowCount } = await query(
+    `DELETE FROM platform_balance_history WHERE lido_em < NOW() - ($1 || ' days')::interval`,
+    [String(CREDIT_RETENTION_DAYS)],
+  );
+  return rowCount;
 }
 
 /** Espelho de uma pessoa (ficha do painel). Não devolve os JSONs crus. */

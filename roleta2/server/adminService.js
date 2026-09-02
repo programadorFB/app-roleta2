@@ -7,7 +7,7 @@
  */
 
 import { query } from './db.js';
-import { getPlatformProfile, mascararLinha } from './platformProfileService.js';
+import { getPlatformProfile, mascararLinha, getCreditHistory } from './platformProfileService.js';
 
 /**
  * O painel e ferramenta interna: por decisao do dono do produto, ele mostra CPF
@@ -197,6 +197,9 @@ const ORDENACOES = {
   ftd:           'pp.ftd_valor',
   expira:        's.expires_at',
   criado:        's.created_at',
+  // Ordenar por "quanto falta" é ordenar por vencimento: quem vence antes tem
+  // menos dias. Uma coluna só serve às duas leituras.
+  premium:       's.expires_at',
 };
 
 export async function listUsers({
@@ -209,6 +212,7 @@ export async function listUsers({
   sessoesMin = null,
   saldoMin = null,
   acesso = '',
+  premium = '',
   ordenarPor = 'ultimo_acesso',
   direcao = 'desc',
 } = {}) {
@@ -255,6 +259,16 @@ export async function listUsers({
     add('COALESCE(fin.balance_after, 0) >= ?', Number(saldoMin));
   }
 
+  // Situação do premium. É a pergunta comercial da tela: quem está prestes a
+  // cair (janela de renovação), quem já caiu (reativação) e quem tem acesso sem
+  // prazo — que quase sempre é cortesia esquecida ligada há meses.
+  const ATIVO = `s.status IN ('active','trialing','paid')
+                 AND (s.expires_at IS NULL OR s.expires_at > NOW())`;
+  if (premium === 'ativo')      filtros.push(`(${ATIVO})`);
+  if (premium === 'vitalicio')  filtros.push(`(${ATIVO}) AND s.expires_at IS NULL`);
+  if (premium === 'expirando')  filtros.push(`(${ATIVO}) AND s.expires_at BETWEEN NOW() AND NOW() + INTERVAL '7 days'`);
+  if (premium === 'expirado')   filtros.push(`NOT (${ATIVO})`);
+
   // Janela de último acesso. 'nunca' é o filtro mais útil da tela: assinante
   // pagante que nunca entrou é problema de ativação, não de produto.
   if (acesso === 'nunca')  filtros.push('ls.last_seen IS NULL');
@@ -297,6 +311,19 @@ export async function listUsers({
 
   const { rows } = await query(
     `SELECT s.email, s.main_app_email, s.status, s.plan_name, s.expires_at, s.created_at,
+            -- Origem do plano. É ela que separa "assinou o plano X no Kirvano"
+            -- de "alguém liberou na mão" — sem isso, um plano personalizado se
+            -- parece com um plano de catálogo escrito errado.
+            s.source,
+            -- Quantos dias de premium ainda restam. Sai do banco e não do
+            -- navegador de propósito: o fuso do operador não pode mudar a
+            -- resposta de "vence hoje ou amanhã?".
+            -- CEIL: faltando 6 horas, ainda é "1 dia" — arredondar para baixo
+            -- diria "0" para quem ainda tem acesso.
+            CASE WHEN s.expires_at IS NULL THEN NULL
+                 ELSE CEIL(EXTRACT(EPOCH FROM (s.expires_at - NOW())) / 86400)::int END AS dias_restantes,
+            (s.status IN ('active','trialing','paid')
+             AND (s.expires_at IS NULL OR s.expires_at > NOW())) AS premium_ativo,
             ls.last_seen, ls.sessions,
             fin.balance_after AS saldo, fin.date AS ultima_transacao,
             -- Espelho da casa: é o que transforma uma lista de e-mails numa
@@ -326,7 +353,7 @@ export async function listUsers({
 export async function getUserDetail(email) {
   const clean = String(email).trim().toLowerCase();
 
-  const [sub, audit, sessions, events, bans, financeiro, plataforma] = await Promise.all([
+  const [sub, audit, sessions, events, bans, financeiro, plataforma, credito] = await Promise.all([
     query('SELECT * FROM subscriptions WHERE email = $1 OR main_app_email = $1 LIMIT 1', [clean]),
     query(
       `SELECT from_status, to_status, triggered_by, created_at
@@ -350,6 +377,9 @@ export async function getUserDetail(email) {
     ),
     getUserFinance(clean),
     getPlatformProfile(clean).then(talvezMascarar),
+    // Série do saldo na casa. Cada ponto é uma leitura — no login ou pelo
+    // coletor de 5 em 5 minutos (server/creditCollector.js).
+    getCreditHistory(clean, { days: 90, limit: 500 }),
   ]);
 
   // As sessões cruas são costuradas antes de virar número na tela — é o que
@@ -360,7 +390,7 @@ export async function getUserDetail(email) {
 
   return {
     email: clean,
-    subscription: sub.rows[0] || null,
+    subscription: comPremium(sub.rows[0] || null),
     statusHistory: audit.rows,
     visits: visits.slice(-30).reverse(),
     totalVisits: visits.length,
@@ -370,6 +400,184 @@ export async function getUserDetail(email) {
     bans: bans.rows,
     financeiro,
     plataforma,
+    credito: resumirCredito(credito),
+  };
+}
+
+/**
+ * Acrescenta à assinatura o que a ficha precisa mostrar e o banco não guarda:
+ * quantos dias de premium restam e se o acesso está de pé agora.
+ *
+ * Feito aqui, e não na tela, porque `expires_at` sozinho engana: uma linha
+ * `canceled` com vencimento no futuro NÃO dá acesso, e uma `active` sem
+ * vencimento dá acesso para sempre. Quem responde "essa pessoa tem premium?" é
+ * a mesma regra do `hasActiveAccess` do subscriptionService.
+ */
+export function comPremium(sub) {
+  if (!sub) return null;
+
+  const ativoPorStatus = ['active', 'trialing', 'paid'].includes(sub.status);
+  const vencido = sub.expires_at ? new Date(sub.expires_at) < new Date() : false;
+
+  return {
+    ...sub,
+    premium_ativo: ativoPorStatus && !vencido,
+    dias_restantes: sub.expires_at
+      ? Math.ceil((new Date(sub.expires_at).getTime() - Date.now()) / 86_400_000)
+      : null,
+  };
+}
+
+/**
+ * A série do saldo mais o que se lê dela de cabeça: variação no período, pico,
+ * fundo e quando foi a última leitura.
+ *
+ * Os números vêm calculados do servidor porque a tela mostra a série TRUNCADA
+ * (500 pontos) — deixar o gráfico somar o que recebeu daria um "variou R$ 80"
+ * que não é a variação do período, é a do pedaço que coube.
+ */
+export function resumirCredito(pontos) {
+  if (!pontos || pontos.length === 0) {
+    return { pontos: [], leituras: 0, variacao: null, pico: null, fundo: null, primeiraEm: null };
+  }
+
+  const valores = pontos.map(p => Number(p.saldo));
+  // A consulta devolve do mais novo para o mais antigo.
+  const maisNovo = pontos[0];
+  const maisAntigo = pontos[pontos.length - 1];
+
+  return {
+    pontos,
+    leituras: pontos.length,
+    variacao: Number(maisNovo.saldo) - Number(maisAntigo.saldo),
+    pico: Math.max(...valores),
+    fundo: Math.min(...valores),
+    primeiraEm: maisAntigo.lido_em,
+    ultimaEm: maisNovo.lido_em,
+  };
+}
+
+// ─── Flutuação do credit da base ────────────────────────
+//
+// O saldo na casa só pode ser lido com o token da própria pessoa, e por isso só
+// existe leitura enquanto ela está com o app aberto (ver creditCollector.js).
+// Tudo aqui é sobre QUEM FOI LIDO, nunca sobre a base inteira — e a tela diz
+// isso, senão o operador lê "R$ 40 mil em caixa" como se fosse o total dos
+// clientes, quando é o total dos clientes que apareceram.
+
+/** Faixas de saldo. O corte separa quem não pode apostar de quem tem banca. */
+const FAIXAS_SQL = `
+  CASE WHEN saldo <= 0    THEN 0
+       WHEN saldo < 50    THEN 1
+       WHEN saldo < 200   THEN 2
+       WHEN saldo < 1000  THEN 3
+       ELSE 4 END`;
+
+const NOME_DA_FAIXA = ['zerado', 'até R$ 50', 'R$ 50 a 200', 'R$ 200 a 1.000', 'acima de R$ 1.000'];
+
+export async function getCreditOverview(days = 30) {
+  const janela = String(Math.max(1, Math.min(Number(days) || 30, 365)));
+
+  const [agora, serie, faixas, altas, quedas, cobertura] = await Promise.all([
+    // Foto de AGORA: sai do espelho, que é onde mora a última leitura de cada
+    // pessoa. Reconstruir isso pela série custaria um DISTINCT ON na tabela
+    // inteira para chegar no mesmo número.
+    query(
+      `SELECT COUNT(*) FILTER (WHERE saldo IS NOT NULL)::int          AS pessoas,
+              COALESCE(SUM(saldo), 0)::float                          AS total,
+              COALESCE(AVG(saldo), 0)::float                          AS media,
+              COALESCE(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY saldo), 0)::float AS mediana,
+              COUNT(*) FILTER (WHERE saldo <= 0)::int                  AS zerados,
+              COUNT(*) FILTER (WHERE saldo_em > NOW() - INTERVAL '24 hours')::int AS lidos_24h
+         FROM platform_profiles`,
+    ),
+
+    // A flutuação em si: por dia, quanto ENTROU e quanto SAIU das carteiras
+    // lidas. Soma de deltas, não diferença de saldos — assim uma pessoa que
+    // ganhou 100 e outra que perdeu 100 aparecem as duas, em vez de se anularem
+    // num total que não mexeu.
+    query(
+      `SELECT lido_em::date::text                                        AS dia,
+              COUNT(*)::int                                              AS leituras,
+              COUNT(DISTINCT email)::int                                 AS pessoas,
+              COALESCE(SUM(delta) FILTER (WHERE delta > 0), 0)::float     AS entradas,
+              COALESCE(SUM(delta) FILTER (WHERE delta < 0), 0)::float     AS saidas,
+              COALESCE(SUM(delta), 0)::float                              AS liquido,
+              COALESCE(AVG(saldo), 0)::float                              AS saldo_medio
+         FROM platform_balance_history
+        WHERE lido_em > NOW() - ($1 || ' days')::interval
+        GROUP BY 1
+        ORDER BY 1`,
+      [janela],
+    ),
+
+    query(
+      `SELECT ${FAIXAS_SQL} AS faixa, COUNT(*)::int AS pessoas, COALESCE(SUM(saldo), 0)::float AS total
+         FROM platform_profiles
+        WHERE saldo IS NOT NULL
+        GROUP BY 1
+        ORDER BY 1`,
+    ),
+
+    // Quem mais subiu e quem mais caiu. É a lista que o atendimento usa: um
+    // mergulho grande é um pedido de ajuda que ninguém abriu.
+    query(
+      `SELECT h.email, pp.nome, SUM(h.delta)::float AS variacao, COUNT(*)::int AS leituras,
+              pp.saldo::float AS saldo_atual, MAX(h.lido_em) AS ultima_em
+         FROM platform_balance_history h
+         LEFT JOIN platform_profiles pp ON pp.email = h.email
+        WHERE h.lido_em > NOW() - ($1 || ' days')::interval AND h.delta IS NOT NULL
+        GROUP BY h.email, pp.nome, pp.saldo
+       HAVING SUM(h.delta) > 0
+        ORDER BY variacao DESC
+        LIMIT 10`,
+      [janela],
+    ),
+
+    query(
+      `SELECT h.email, pp.nome, SUM(h.delta)::float AS variacao, COUNT(*)::int AS leituras,
+              pp.saldo::float AS saldo_atual, MAX(h.lido_em) AS ultima_em
+         FROM platform_balance_history h
+         LEFT JOIN platform_profiles pp ON pp.email = h.email
+        WHERE h.lido_em > NOW() - ($1 || ' days')::interval AND h.delta IS NOT NULL
+        GROUP BY h.email, pp.nome, pp.saldo
+       HAVING SUM(h.delta) < 0
+        ORDER BY variacao ASC
+        LIMIT 10`,
+      [janela],
+    ),
+
+    // Saúde do coletor. Sem isto, uma queda no gráfico é ambígua: pode ser
+    // dinheiro saindo ou pode ser o coletor parado há dois dias.
+    query(
+      `SELECT COUNT(*)::int                                        AS pontos,
+              COUNT(DISTINCT email)::int                            AS pessoas,
+              COUNT(*) FILTER (WHERE origem = 'coletor')::int       AS do_coletor,
+              COUNT(*) FILTER (WHERE origem = 'login')::int         AS do_login,
+              MAX(lido_em)                                          AS ultimo_ponto
+         FROM platform_balance_history
+        WHERE lido_em > NOW() - ($1 || ' days')::interval`,
+      [janela],
+    ),
+  ]);
+
+  const s = serie.rows;
+
+  return {
+    dias: Number(janela),
+    agora: agora.rows[0],
+    serie: s,
+    // Movimento do período inteiro, para o topo da tela não obrigar o operador
+    // a somar barras com o olho.
+    periodo: {
+      entradas: s.reduce((a, d) => a + d.entradas, 0),
+      saidas:   s.reduce((a, d) => a + d.saidas, 0),
+      liquido:  s.reduce((a, d) => a + d.liquido, 0),
+    },
+    faixas: faixas.rows.map(f => ({ ...f, nome: NOME_DA_FAIXA[f.faixa] || 'outros' })),
+    altas: altas.rows,
+    quedas: quedas.rows,
+    cobertura: cobertura.rows[0],
   };
 }
 

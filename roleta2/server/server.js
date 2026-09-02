@@ -35,10 +35,11 @@ import { processSource, initMotorEngine, getLatestMotorAnalysis, computeMotorAna
 import { processTriggerSource } from './triggerScoreEngine.js';
 import { gerenciamentoAuthMiddleware, gerenciamentoProxy } from './gerenciamentoGateway.js';
 import { login as adminLogin, logout as adminLogout, resolveSession as resolveAdminSession, logAdminAction, listAdminAudit } from './adminAuthService.js';
-import { getOverview, getRetention, getEngagement, getFunnel, listUsers, getUserDetail } from './adminService.js';
+import { getOverview, getRetention, getEngagement, getFunnel, listUsers, getUserDetail, getCreditOverview } from './adminService.js';
 import { adminNetworkGate, gateAtivo } from './adminGate.js';
 import { recordEvents, hashIp, startSession, touchSession, endSession, closeOrphanSessions, runDailyRollup, purgeOldTelemetry } from './telemetryService.js';
-import { capturePlatformData, platformSyncStats, getPlatformRaw, getPlatformPii } from './platformProfileService.js';
+import { capturePlatformData, platformSyncStats, getPlatformRaw, getPlatformPii, purgeOldCreditHistory } from './platformProfileService.js';
+import { startCreditCollector, creditCollectorStats } from './creditCollector.js';
 
 dotenv.config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.env') });
 
@@ -1123,6 +1124,25 @@ app.get('/api/admin/metrics/engagement', adminReadLimiter, requireAdminSession, 
   }
 });
 
+/**
+ * Flutuação do credit (o saldo das pessoas na casa).
+ *
+ * A série sai de platform_balance_history, alimentada pelo coletor de 5 em 5
+ * minutos. Como a casa só responde com o token do próprio usuário, só existe
+ * leitura de quem está com o app aberto — por isso a resposta leva junto a
+ * `cobertura`: sem ela, o operador não distingue "o dinheiro parou de se mexer"
+ * de "o coletor parou".
+ */
+app.get('/api/admin/metrics/credit', adminReadLimiter, requireAdminSession, async (req, res) => {
+  try {
+    const dados = await getCreditOverview(parseInt(req.query.days) || 30);
+    res.json({ ...dados, coletor: creditCollectorStats });
+  } catch (e) {
+    Sentry.captureException(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('/api/admin/metrics/funnel', adminReadLimiter, requireAdminSession, async (req, res) => {
   try {
     res.json(await getFunnel());
@@ -1149,6 +1169,7 @@ app.get('/api/admin/users', adminReadLimiter, requireAdminSession, auditarLeitur
       sessoesMin: req.query.sessoesMin ?? null,
       saldoMin:   req.query.saldoMin ?? null,
       acesso:     req.query.acesso || '',
+      premium:    req.query.premium || '',
       ordenarPor: req.query.ordenarPor || 'ultimo_acesso',
       direcao:    req.query.direcao || 'desc',
     }));
@@ -1766,6 +1787,11 @@ const startServer = async () => {
             if (purged.events || purged.sessions) {
               console.log(`🗑️  [telemetry] purge — ${purged.events} eventos, ${purged.sessions} sessões`);
             }
+
+            // Histórico de banca no mesmo job, com retenção própria (bem mais
+            // longa): é uma linha por MUDANÇA de saldo, não por leitura.
+            const saldos = await purgeOldCreditHistory();
+            if (saldos) console.log(`🗑️  [credit] purge — ${saldos} ponto(s) de saldo`);
           } catch (err) {
             console.error('❌ [telemetry] job falhou:', err.message);
             Sentry.captureException(err, { tags: { context: 'telemetry-job' } });
@@ -1775,6 +1801,12 @@ const startServer = async () => {
         setInterval(runTelemetryMaintenance, TELEMETRY_JOB_INTERVAL_MS);
         console.log(`📊 Telemetria: rollup + purge a cada ${TELEMETRY_JOB_INTERVAL_MS / 3600000}h`);
       }
+
+      // Coletor de banca — FORA do `if (isMainWorker)`, ao contrário de todos os
+      // jobs acima. Ele não varre o banco: varre os sockets que ESTE worker
+      // atende, e é no handshake deles que está o token com que a casa aceita
+      // responder o saldo. Só no worker 0, ele leria apenas 1/N dos usuários.
+      startCreditCollector(io);
     });
   } catch (err) {
     console.error('❌ ERRO CRÍTICO:', err);

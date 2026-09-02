@@ -69,7 +69,20 @@ Painel interno portado do roleta3. É um **app à parte** dentro do mesmo bundle
   `/wallet` com o JWT do próprio usuário, no login, e grava em
   `platform_profiles`. É o backend que lê, não o app — se o app reportasse,
   bastaria forjar um POST para se declarar outra pessoa. Sem `await` no login.
-- Abas: Visão geral, Usuários, Retenção, Engajamento, Moderação, Auditoria.
+- **Coletor de banca** (`server/creditCollector.js`): de 5 em 5 minutos relê o
+  `credit` de quem está com o app aberto e grava um ponto quando o número muda.
+  O token sai do handshake do Socket.IO — é a única credencial com que a casa
+  aceita responder o saldo, e ela vive só o tempo da conexão (nada é guardado).
+  Cada worker do PM2 varre os SEUS sockets: por isso este job roda fora do
+  `if (isMainWorker)`, ao contrário de todos os outros, e nenhum JWT trafega
+  pelo Redis. Consequência a dizer em voz alta no painel: **buraco no gráfico é
+  app fechado, não saldo parado**.
+- **Contador de premium**: `dias_restantes` e `premium_ativo` são calculados no
+  servidor (`adminService`), não no navegador — `expires_at` sozinho engana
+  (`canceled` com data futura não dá acesso; `active` sem data dá para sempre).
+  Plano com `source = 'admin'` aparece marcado como *personalizado*.
+- Abas: Visão geral, Usuários, Créditos, Retenção, Engajamento, Moderação,
+  Auditoria.
 
 ### Data Flow
 1. Crawler/fetch → `POST /api/report-spin` or auto-fetch → PostgreSQL `signals` table
@@ -92,6 +105,8 @@ Painel interno portado do roleta3. É um **app à parte** dentro do mesmo bundle
 - `app_events` (user_email, event, view, meta JSONB) — retenção 90 dias
 - `metrics_daily` (day PK, dau, premium_dau, new_users, sessions, total_seconds) — rollup, não expira
 - `platform_profiles` (email PK, nome, documento, telefone, saldo, ftd_valor, perfil_bruto/carteira_bruto JSONB)
+- `platform_balance_history` (email, saldo, delta, origem, lido_em) — série do
+  credit; uma linha por MUDANÇA de saldo, não por leitura
 
 ## Conventions
 
@@ -111,6 +126,12 @@ Required env vars: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `R
 nenhum, nem na auditoria), `TELEMETRY_EVENT_RETENTION_DAYS`,
 `TELEMETRY_SESSION_RETENTION_DAYS`, `PLATFORM_API_URL` (cai no
 `AUTH_PROXY_TARGET` quando ausente), `PLATFORM_SYNC_TIMEOUT_MS`, `BRAND`.
+
+Coletor de banca (todos opcionais, com padrão): `CREDIT_POLL_INTERVAL_MS`
+(300000), `CREDIT_MIN_GAP_MS` (240000 — piso entre duas leituras da mesma
+pessoa), `CREDIT_POLL_CONCURRENCY` (4), `CREDIT_POLL_MAX` (300 por ciclo),
+`CREDIT_HEARTBEAT_HOURS` (6 — ponto de vida quando o saldo não muda),
+`CREDIT_RETENTION_DAYS` (730).
 
 ## Important Patterns
 
